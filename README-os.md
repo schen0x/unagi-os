@@ -79,3 +79,55 @@ nvim example.bin
 :%!xxd -r # to revert a mail safe hex dump to binary
 ```
 
+
+## U02
+
+### Segment Memory Model
+
+- 8086 real mode, 16 bits + Segment Registers = 1MB memory access
+
+#### 8086 Segment Registers
+
+- CS, Code Segment
+- SS, Stack Segment
+- DS, Data Segment
+- ES, Extra Segment
+
+#### Calculating Absolute Offset
+
+- Take the segment register, multiply it by 16 and add the offset
+- Example:
+    - Assume: Code Segment = 0x7c0
+    - Assume: Assembly Origin "org" is set to zero (when assembled, OFFSET all code by 0)
+    - (0x7c0 * 16) = 0x7c00
+    - 0x7c00 + 0 = 0x7c00
+- Other Example:
+    - Segment 0 offset 0x7cff
+    - Segment 0x7c0 offset 0xff
+    - Segment 0x7cf offset 0x0f
+- Example that loadsb use the Data Segment Register
+    - ![u02-loadsb_manual](./img/u02-loadsb_manual.png)
+
+```asm
+org 0
+mov ax, 0x7c0
+mov ds, ax
+mov si, 0x1f
+; load char from 0x7c0 * 16 + 0x1f = 0x7c1f
+lodsb
+```
+
+#### ACCESS MULTIPLE SEGMENTS WITH SEGMENT REGISTERS
+
+```asm
+; set al to the byte at [es * 16 + 32]
+mov byte al, [es:32]
+```
+
+- SS(Stack Segment) = 0x00
+- SP(Stack Pointer) = 0x7c00
+- When push 0xffff (in 16 bit system, so only 4 bytes are pushed):
+    - decrement the SP by 2 => SP = 0x7bfe
+    - set 0x7bfe-0x7bff to 0xffff
+
+
