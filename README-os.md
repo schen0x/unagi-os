@@ -80,7 +80,7 @@ nvim example.bin
 ```
 
 
-## U02
+## U02 REALMODE SEGMENTED MEMORY MODEL
 
 ### Segment Memory Model
 
@@ -131,7 +131,7 @@ mov byte al, [es:32]
     - set 0x7bfe-0x7bff to 0xffff
 
 
-## U04 - INTERRUPT VECTOR TABLE (IVT) (REAL MODE ONLY)
+## U04 INTERRUPT VECTOR TABLE (IVT) (REAL MODE ONLY)
 
 - Interrupt are subroutines
 
@@ -182,6 +182,13 @@ mov byte al, [es:32]
 
 - In 16 bit real mode the BIOS provided interrupt 13h for disk operations
 - In 32 bit protected mode we need to write our own a disk driver.
+
+### READ CUSTOM BLOCK
+
+- Use BIOS interrupt call 13h to interact with harddisk sectors directly
+- INT 13h AH=02h: DISK - READ SECTOR(S) INTO MEMORY
+
+## U06 INTRODUCING PROTECTED MODE
 
 
 ## ASSEMBLY
