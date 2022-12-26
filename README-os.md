@@ -190,6 +190,25 @@ mov byte al, [es:32]
 
 ## U06 INTRODUCING PROTECTED MODE
 
+- Different level of access
+    - Ring 0
+    - Ring 1
+    - Ring 2
+    - Ring 3
+        - cannot use cli sti
+
+- Different memory scheme (Paging)
+    - SELECTOR MEMORY SCHEME (?)
+    - PAGING MEMORY SCHEME (Most common)
+
+- 4GB of Addressable Memory (if 32 bit), compare to the realmode's 1MB
+
+
+### ENTERING PROTECTED MODE
+
+- [protected mode, osdev wiki](https://wiki.osdev.org/Protected_Mode)
+
+
 
 ## ASSEMBLY
 
