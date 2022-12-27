@@ -1,0 +1,5 @@
+*.tar.?z
+src/binutils-*/**/*
+src/gcc-*/**/*
+src/build-*/**/*
+

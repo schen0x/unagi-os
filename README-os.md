@@ -204,6 +204,19 @@ mov byte al, [es:32]
 - 4GB of Addressable Memory (if 32 bit), compare to the realmode's 1MB
 
 
+## U07 GCC CROSS COMPILER
+
+- Build a customized cross compiler that does not link to default Linux library.
+- [osdev gcc cross compiler](https://wiki.osdev.org/GCC_Cross-Compiler)
+- Download src of `binutils` and `gcc`
+- Build and install `binutils` and GCC_CROSS_COMPILER.
+    - To install for the user only: `$HOME/opt/cross`
+    - To install globally: `/usr/local/cross`
+
+## U08
+
+
+
 ### ENTERING PROTECTED MODE
 
 - [protected mode, osdev wiki](https://wiki.osdev.org/Protected_Mode)
