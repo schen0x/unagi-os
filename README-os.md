@@ -213,14 +213,54 @@ mov byte al, [es:32]
     - To install for the user only: `$HOME/opt/cross`
     - To install globally: `/usr/local/cross`
 
-## U08
-
-
-
-### ENTERING PROTECTED MODE
+## U09 ENTERING PROTECTED MODE
 
 - [protected mode, osdev wiki](https://wiki.osdev.org/Protected_Mode)
 
+### THE FAR JMP AFTER MOV CR0
+
+- The `jmp` runs in 32 bit protected mode.
+- The `08h` is a [Segment Selector](https://wiki.osdev.org/Segment_selector), that points to the first entry of GDTR with all flag cleared
+- Addressing with Segment is different in proceted mode. [Segmentation Protected Mode](https://wiki.osdev.org/Segmentation#Protected_Mode)
+- I.e., `SEGMENT_SELECTOR:OFFSET`
+- The next segment is `10h:Offset` or `0b10,000:Offset`
+
+```asm
+mov cr0, eax
+jmp 08h:PModeMain
+```
+
+### CALCULATE THE SEGMENT_SELECTOR USE ASM
+
+- Since each Segment Descriptor is 64 bits (8 bytes).
+- The following code calculate the segment selector with no flag.
+
+```asm
+CODE_SEG equ GDT_CODE - GDT_START			; Segment Selector with no flag
+DATA_SEG equ GDT_DATA - GDT_START			; Segment Selector with no flag
+
+GDT_START:
+GDT_NULL:						; GDT Entry 0
+    dd 0						; 4 bytes
+    dd 0
+
+; OFFSET 0x0
+GDT_CODE:						; CS should point to this
+    dw 0xffff						; Segment Limit, first 0-15 bits, 0xffff is 256MB in 4kb page
+    dw 0						; Base Address 15:00
+    db 0						; Base Address 23:16
+    db 10011010b					; Common Access Byte 0x9a for Kernel Mode Code Segment
+    db 11001111b					; Flags and Limit; Simply allow all memory access
+    db 0						; Base 31:24
+
+GDT_DATA:						; DS, SS, ES, FS, GS
+    dw 0xffff						; Segment Limit, first 0-15 bits, 0xffff is 256MB in 4kb page
+    dw 0						; Base Address 15:00
+    db 0						; Base Address 23:16
+    db 0x92						; Access Byte for Kernel Mode Data Segment
+    db 11001111b					; Flags and Limit
+    db 0						; Base 31:24
+```
 
 
 ## ASSEMBLY
