@@ -297,6 +297,18 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - Link the object file, generate binary. The binary load instructions into a specific address.
 - Jump to the address in the bootloader. I.e., The address can be where GDT_CODE section points to.
 
+### ALIGNMENT
+
+- We attached 2 binaries into 2.
+- `bootloader` : `jmp 0x0100000`, which is the start of the kernel.o.
+- Since kernel.asm needs to be run first (than other C code), the asm section need to be in the first section of the second binary.
+- Then the kernel.asm may damage the alignment of the C code later.
+
+- A solution: add paddings `times 512-($-$$) db 0`
+- Or put the assembly code in the latest section, later than `.text` (which contains C code), then use some magic to jmp to that section first.
+
+- Also, align all "Sections" during link time to 4KB, although C compiler usually do so by default. The 4096 bytes is also a common system page size.
+
 
 ## ASSEMBLY
 
