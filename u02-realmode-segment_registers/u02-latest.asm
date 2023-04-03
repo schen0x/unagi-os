@@ -12,7 +12,7 @@ START:
     mov es, ax			; Extra Segment Register, another data segment
     mov ax, 0x00
     mov ss, ax
-    mov sp, 0x7c00
+    mov sp, 0x7c00		; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself
     sti				; Enables Interrupts
     mov si, MESSAGE
     call PRINT

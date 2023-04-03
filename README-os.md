@@ -3,6 +3,8 @@
 ## TABLE OF CONTENT
 
 
+## Section 3: Real Mode Development
+
 ## DAY1 A BOOTABLE IMAGE
 
 ### RESULT
@@ -213,11 +215,20 @@ mov byte al, [es:32]
     - To install for the user only: `$HOME/opt/cross`
     - To install globally: `/usr/local/cross`
 
-## U09 ENTERING PROTECTED MODE
+
+## SECTION 4 PROTECTED MODE DEVELOPMENT
+
+- Protected Mode is a mode that protect memory & hardware from being accessed.
+- Protected Mode can be divided into rings with different permission level: Ring 0 (kernel), Ring 1 & 2 (maybe device drivers), Ring 3 (normal user program)
+- Protected Mode also give access to 32-bit Instructions and 4 GB of Addressable Memory (in Real Mode only 1MB)
+- There are different memory schemes, a common one is Paging Memory Scheme
+
+
+### U09 ENTERING PROTECTED MODE
 
 - [protected mode, osdev wiki](https://wiki.osdev.org/Protected_Mode)
 
-### THE FAR JMP AFTER MOV CR0
+#### THE FAR JMP AFTER MOV CR0
 
 - The `jmp` runs in 32 bit protected mode.
 - The `08h` is a [Segment Selector](https://wiki.osdev.org/Segment_selector), that points to the first entry of GDTR with all flag cleared
@@ -230,8 +241,10 @@ mov cr0, eax
 jmp 08h:PModeMain
 ```
 
-### CALCULATE THE SEGMENT_SELECTOR USE ASM
+#### GLOBAL DESCRIPTOR TABLE
 
+- Use default GDT parameter values
+- CALCULATE THE SEGMENT_SELECTOR USE ASM
 - Since each Segment Descriptor is 64 bits (8 bytes).
 - The following code calculate the segment selector with no flag.
 
@@ -261,6 +274,12 @@ GDT_DATA:						; DS, SS, ES, FS, GS
     db 11001111b					; Flags and Limit
     db 0						; Base 31:24
 ```
+
+
+#### ENABLING THE A20 LINE
+
+- A20 line exists for compatibility reasons. Enable it to access more than 1MB memory.
+- [fast_A20_gate, OSDEV](https://wiki.osdev.org/A20_Line#Fast_A20_Gate)
 
 
 ## ASSEMBLY

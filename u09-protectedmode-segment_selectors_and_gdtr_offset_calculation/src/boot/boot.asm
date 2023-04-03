@@ -21,7 +21,7 @@ STEP2:
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, 0x7c00
+    mov sp, 0x7c00					; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself.
     sti
 
 .LOAD_PROTECTED:
@@ -81,7 +81,7 @@ enable_a20_line:
     and al, 0xFE
     out 0x92, al
 after:
-    jmp $
+    jmp $						; infinite jump to the current position
 
 times 510 - ($ - $$) db 0	; pad to write the boot signature 0x55 0xAA
 dw 0xAA55			; The boot signature in Little Endian
