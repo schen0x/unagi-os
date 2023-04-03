@@ -285,6 +285,13 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 
 ## U10 USING C
 
+- We want to write kernel in C, because it is simpler.
+- Bootloader -> Load Protected Mode (use GDT to load a binary into memory segment) -> use a mini disk driver (ata read/write in LBA mode, because in Protected Mode direct IO is not allowed) to read 51.2 kb of the disk which contains our kernel binary, into a memory segment -> The binary is 32 bits, written in asm and C, sections are (4k) aligned.
+- To create the binary, use a cross-compiler (binutils + gcc) for `TARGET=i686-elf`. A single object file is generated using nasm (asm part, `-f elf -g`), and gcc (C part, `-ffreestanding -g` and many other flags).
+- gcc + linker script (section alignment, entry point) is used again (probably can be combined) to generate the final binary.
+- Bootloader will jump to run the asm part, which will then setup the DS (according to the GDT parameters) and the stack, enable the A20 Line, then calls the C function.
+
+
 ### BUILD A CROSS COMPILER
 
 - Install build dependencies [GCC_Cross-Compiler_Depencies, OSDEV](https://wiki.osdev.org/GCC_Cross-Compiler#Installing_Dependencies)
