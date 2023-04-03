@@ -280,6 +280,22 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 
 - A20 line exists for compatibility reasons. Enable it to access more than 1MB memory.
 - [fast_A20_gate, OSDEV](https://wiki.osdev.org/A20_Line#Fast_A20_Gate)
+- Enable the A20 in 32 bit code section.
+
+
+## U10 USING C
+
+### BUILD A CROSS COMPILER
+
+- Install build dependencies [GCC_Cross-Compiler_Depencies, OSDEV](https://wiki.osdev.org/GCC_Cross-Compiler#Installing_Dependencies)
+- Get the source code of binutils and gcc [Get binutils and gcc source code](https://wiki.osdev.org/GCC_Cross-Compiler#Downloading_the%20Source_Code)
+- Follow the instruction to build a toolset whose `TARGET=i686-elf` [build binutils and gcc](https://wiki.osdev.org/GCC_Cross-Compiler#The_Build)
+
+### USING C
+
+- Seperate the 32 code, use C to generate object file.
+- Link the object file, generate binary. The binary load instructions into a specific address.
+- Jump to the address in the bootloader. I.e., The address can be where GDT_CODE section points to.
 
 
 ## ASSEMBLY
