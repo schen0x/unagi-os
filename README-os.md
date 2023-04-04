@@ -317,6 +317,13 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - Also, align all "Sections" during link time to 4KB, although C compiler usually do so by default. The 4096 bytes is also a common system page size.
 
 
+## U13 C HELLO WORLD
+
+- Use the VGA Text-mode interface to clear the screen and print.
+- The Video Memory is mapped to a specific address (e.g., 0xB8000) during the boot process (probably handled by BIOS).
+- [(VGA) Text Mode, OSDEV](https://wiki.osdev.org/Printing_To_Screen)
+
+
 ## ASSEMBLY
 
 ### SEGMENT OVERRIDE PREFIX AND DEFAULT SEGMENT
