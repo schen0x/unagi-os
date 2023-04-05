@@ -135,19 +135,23 @@ mov byte al, [es:32]
 
 ## U04 INTERRUPT VECTOR TABLE (IVT) (REAL MODE ONLY)
 
-- Interrupt are subroutines
+- INTERRUPTs are subroutines, when invoked:
+  - Processor is interrupted
+  - Old state saved on the stack
+  - Interrupt executed
 
-- Processor is interrupted
-- Old state saved on the stack
-- Interrupt executed
+- The IVT table starts at the absolute address 0 in the memory.
+  - Each entry contains 4 bytes (byte 0-1 OFFSET: byte 2-3 SEGMENT)
+  - The interrupts are in numeric order in the table
+  - The table describe 256 interrupt handlers
 
-- The table describe 256 interrupt handlers
-- Each entry contains 4 bytes (2 bytes OFFSET: 2 bytes SEGMENT)
-- The interrupts are in numeric order in the table
+- An interrupt subroutine ends till an IRET instruction
 
-- Interrupt 0x13 is at offset 0x13 * 4 bytes = 0x46
-
-- Interrupt ends till an IRET instruction
+- To call an interrupt, `int 0x13`
+  - Interrupt 0 = address 0x00
+  - Interrupt 1 = address 0x04
+  - Interrupt 2 = address 0x08
+  - Interrupt 0x13 = address 76
 
 
 ### EXCEPTIONS
