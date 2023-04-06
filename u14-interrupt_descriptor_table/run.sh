@@ -3,4 +3,4 @@
 export PREFIX="$HOME/opt/cross"
 export TARGET=i686-elf
 export PATH="$PREFIX/bin:$PATH"
-[[ -z $1 ]] && make all || make allgdb
+([[ -z $1 ]] && make all)||([[ $1 == "gui" ]] && make allgui)||(make allgdb)

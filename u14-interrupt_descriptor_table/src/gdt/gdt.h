@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 void idt_zero();
-void _inthandler_1();
 void idt_init();
 
 struct InterruptDescriptorTable32

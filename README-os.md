@@ -153,7 +153,6 @@ mov byte al, [es:32]
   - Interrupt 2 = address 0x08
   - Interrupt 0x13 = address 76
 
-
 ### EXCEPTIONS
 
 - [osdev Exceptions](https://wiki.osdev.org/Exceptions)
@@ -326,6 +325,15 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - Use the VGA Text-mode interface to clear the screen and print.
 - The Video Memory is mapped to a specific address (e.g., 0xB8000) during the boot process (probably handled by BIOS).
 - [(VGA) Text Mode, OSDEV](https://wiki.osdev.org/Printing_To_Screen)
+
+## U14 INTERRUPT DESCRIPTOR TABLE (IDT) (PROTECTED MODE INTERRUPTS)
+
+- Initialize an array of IDT, usually IDT[256].
+- Describe the array in IDTR ((length-1=0x7ff)(2 bytes) + base address (4 bytes))
+- Define a interrupt handler and write the IDT array to the IDTR.
+- Use `lidt[idtr]` in asm to load the Interrupt Descriptor Tables.
+- Use `Int 0` to invoke an "Interrupt Gate" interrupt.
+- (TODO? If IRET is necessary, this is done by asm, the IRET seems to loads many more registers from the stack than RET).
 
 
 ## ASSEMBLY
