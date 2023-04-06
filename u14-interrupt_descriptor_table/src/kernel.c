@@ -24,7 +24,13 @@ void kernel_main()
 	size_t msg_len = kstrlen(msg);
 	kprint(msg, msg_len, 4);
 
+	uint32_t h = 0x123456f8;
+	//! void* hex_number = (void*)0x123456f8; /* pointer points to the absolute address 0x123456f8 */
+	char ascii_str[2 * sizeof(h) + 1]; // +1 for null terminator
+	hex_to_ascii(&h, ascii_str, sizeof(h));
+	kprint(ascii_str, 2*sizeof(h), 4);
 	idt_init();
+
 	problem();
 }
 
@@ -81,3 +87,4 @@ void kprint(const char* str, const size_t len, const uint8_t color)
 		terminal_write_char(str[i], color);
 	}
 }
+

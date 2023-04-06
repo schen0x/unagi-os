@@ -2,7 +2,9 @@
 #define UTIL_KUTIL_H_
 
 #include <stddef.h>
-void kstrcpy(char* dest, const char* src);
+#include <stdint.h>
+void* kstrcpy(char* dest, const char* src);
 size_t kstrlen(const char *str);
+void* hex_to_ascii(void* hex_ptr, char* ascii_str, size_t size);
 
 #endif

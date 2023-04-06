@@ -32,7 +32,8 @@ after:
 
 problem:
     ; call idt_zero					; int 0
-    int 0						; call idt_zero
+    ; int 0						; call idt_zero
+    int 1
 
 times 4096-($ - $$) db 0
 
