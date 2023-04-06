@@ -335,6 +335,11 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - Use `Int 0` to invoke an "Interrupt Gate" interrupt.
 - (TODO? If IRET is necessary, this is done by asm, the IRET seems to loads many more registers from the stack than RET).
 
+## U15 IO
+
+- Use asm `in` && `out` instructions to write byte/word(2 bytes) to a port
+- Note: AT&T syntax `out %al,(%dx)`, is equals to Intel syntax `out dx, al`, where the value in the `dx` register is the port value, despite the confusing parentheses.
+
 
 ## ASSEMBLY
 
