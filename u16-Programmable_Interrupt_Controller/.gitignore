@@ -1,0 +1,9 @@
+*.bin
+build/**/*
+bin/**/*
+session.sh
+session.sh
+generate_compile_commands.sh
+compile_commands.json
+.ccls-cache/**/*
+

@@ -28,9 +28,7 @@ ASM=d01/voyager0.asm; IMG=$(mktemp) && nasm $ASM -o $IMG && qemu-system-x86_64 -
 dd if=/dev/zero of=os.img bs=1024 count=1440
 sudo mkfs -t fat os.img
 # Then modified the bytes. (with VIM XXD)
-```
-
-### NASM to img
+``` ### NASM to img
 
 ```sh
 nasm os.nas -o os.img
@@ -341,7 +339,19 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - Note: AT&T syntax `out %al,(%dx)`, is equals to Intel syntax `out dx, al`, where the value in the `dx` register is the port value, despite the confusing parentheses.
 
 
+## U16 PROGRAMMABLE INTERRUPT CONTROLLER (PIC)
+
+- [A list of Industry Standard Architecture Interrupt ReQuests, OSDEV](https://wiki.osdev.org/Interrupts#Standard_ISA_IRQs)
+- [Mordern APIC, OSDEV](https://wiki.osdev.org/APIC)
+- A System has 2 PICs (Master PIC: IRQ 0-7, Slave PIC: IRQ 8-15)
+- Use NASM macro to create interrupt handlers in asm, passing interrupt numbers and stack frame to the C function.
+- Correctly enable sti after idt is initialized
+
+
 ## ASSEMBLY
+
+- [NASM doc](https://www.nasm.us/xdoc/2.11.08/html/nasmdoc7.html)
+
 
 ### SEGMENT OVERRIDE PREFIX AND DEFAULT SEGMENT
 
@@ -352,4 +362,7 @@ GDT_DATA:						; DS, SS, ES, FS, GS
     - Stack               SS
     - Local_Data          DS
     - Destination_Strings ES
+
+
+
 
