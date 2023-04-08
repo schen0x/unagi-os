@@ -11,7 +11,7 @@ tmux new-session -d -s $session &&
 
 window=0
 tmux rename-window -t $session:$window '-'
-tmux send-keys -t $session:$window "cd ../; nvim README-os.md;"
+tmux send-keys -t $session:$window "nvim README-os.md;"
 
 window=1
 tmux new-window -t $session:$window -n 's'
