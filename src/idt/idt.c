@@ -4,6 +4,7 @@
 #include "kernel.h"
 #include "util/kutil.h"
 #include "pic/pic.h"
+#include "drivers/keyboard.h"
 
 /* global variable should be tudo initialized with 0 */
 static struct InterruptDescriptorTableRegister32 idtr; // static or not, global variable, address loaded into memory, known in linktime.
@@ -15,18 +16,6 @@ void idt_zero()
 {
 	char msg[] = "Divide by zero error\n";
 	kprint(msg, kstrlen(msg), 4);
-}
-
-void _int1h_handler()
-{
-	char msg[] = "Int 1\n";
-	kprint(msg, kstrlen(msg), 4);
-}
-
-void _int21h_handler()
-{
-	kfprint("Keyboard pressed!\n", 4);
-	PIC_sendEOI(0x2);
 }
 
 //void _interrupt_handler(uint32_t interrupt, struct interrupt_frame* frame)
@@ -67,9 +56,49 @@ void idt_init()
 	}
 
 	idt_set(0, idt_zero);
-	idt_set(1, int1h);
 	idt_set(0x21, int21h);
 	idt_load(&idtr);
 }
 
 
+	// kfprint("Keyboard pressed!\n", 4);
+	// char hex[2] = {0};
+	// kfprint(hex_to_ascii(hex, (char*)&keyPressed, 2), 4);
+	// kfprint(k, 4);
+/* keyPressed is key + \0 */
+void _int21h_handler(uint16_t scancode)
+{
+	atakbd_interrupt(scancode);
+	PIC_sendEOI(0x2);
+}
+
+void input_report_key(uint8_t scancode, uint8_t down)
+{
+	if(!down)
+	{
+		return;
+	}
+	switch(scancode)
+	{
+		case 2:
+			kfprint("1", 4);
+			break;
+		case 3:
+			kfprint("2", 4);
+			break;
+		case 4:
+			kfprint("3", 4);
+			break;
+		case 30:
+			kfprint("a", 4);
+			break;
+		case 31:
+			kfprint("s", 4);
+			break;
+		case 32:
+			kfprint("d", 4);
+			break;
+
+	}
+	return;
+}

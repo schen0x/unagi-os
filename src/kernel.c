@@ -33,10 +33,6 @@ void kernel_main()
 	idt_init();
 
 	enable_interrupts();
-
-	// outb(0x60, 0xff);
-
-	// problem();
 }
 
 static uint16_t* video_mem = (uint16_t*)(0xB8000); /* create a local pointer to the absolute address */

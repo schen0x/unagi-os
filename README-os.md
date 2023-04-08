@@ -347,6 +347,12 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - Use NASM macro to create interrupt handlers in asm, passing interrupt numbers and stack frame to the C function.
 - Correctly enable sti after idt is initialized
 
+### KEYBOARD HANDLING
+
+- [scancode, atakbd](https://elixir.bootlin.com/linux/latest/source/drivers/input/keyboard/atakbd.c#L64)
+- [scancode](https://hp.vector.co.jp/authors/VA003720/lpproj/others/kbdjpn.htm)
+- [scancode](https://github.com/flosse/linuxconsole/blob/master/utils/scancodes.h)
+
 
 ## ASSEMBLY
 
@@ -362,7 +368,5 @@ GDT_DATA:						; DS, SS, ES, FS, GS
     - Stack               SS
     - Local_Data          DS
     - Destination_Strings ES
-
-
 
 
