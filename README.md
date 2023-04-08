@@ -1,2 +1,4 @@
 # os30days
-30日でできる OS自作入門
+
+- [README-os](./README-os.md)
+
