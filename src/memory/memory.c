@@ -13,3 +13,14 @@ void* kmemset(void* ptr, int c, size_t size)
 	return ptr;
 }
 
+void* kmemcpy(void* dst, const void* src, size_t size)
+{
+	char* c_dst = (char*)dst;
+	char* c_src = (char*)src;
+	for (size_t i=0; i < size; i++)
+	{
+		c_dst[i] = c_src[i];
+	}
+	return dst;
+}
+

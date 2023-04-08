@@ -1,5 +1,5 @@
 # FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/gdt/gdt.asm.o ./build/gdt/gdt.o
-FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o
+FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o
 GCC_KERNEL_INCLUDES = -I./src
 # GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -Wno-unused-label -Wno-cpp -Wno-unused-parameter -nostdlib -nostartfiles -nodefaultlibs -Wall -O0 -Iinc
 GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -O0 -Iinc
@@ -9,7 +9,7 @@ allgdb: clean builddir compile gdb
 allgui: clean builddir compile rungui
 
 builddir:
-	mkdir -p build/gdt build/idt build/memory build/util build/io build/pic
+	mkdir -p build/gdt build/idt build/memory build/util build/io build/pic build/drivers
 
 compile: ./bin/boot.bin ./bin/kernel.bin
 	rm -rf ./bin/os.bin
@@ -61,6 +61,8 @@ gdb:
 	nasm -f elf -F dwarf -g ./src/pic/pic.asm -o ./build/pic/pic.asm.o
 ./build/pic/pic.o: ./src/pic/pic.c
 	i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/pic/pic.c -o ./build/pic/pic.o
+./build/drivers/keyboard.o: ./src/drivers/keyboard.c
+	i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/keyboard.c -o ./build/drivers/keyboard.o
 
 clean:
 	rm -rf ./bin/os.bin

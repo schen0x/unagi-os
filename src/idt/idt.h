@@ -21,20 +21,16 @@ void idt_set(int interrupt_number, void* address);
 void idt_init();
 
 void idt_zero();
-void _int1h_handler();
-void _int21h_handler();
-void _intnull_pic_master_handler();
-void _intnull_pic_slave_handler();
 void _interrupt_handler(uint32_t interrupt, uint32_t frame);
 
 extern void idt_load(struct InterruptDescriptorTableRegister32* idtr_ptr);
-extern void int1h();
 extern void int21h();
 extern void no_interrupt();
 
-// extern void intnull_pic_master();
-// extern void intnull_pic_slave();
 extern void enable_interrupts();
 extern void disable_interrupts();
+
+void _int21h_handler(uint16_t keyPressed);
+void input_report_key(uint8_t scancode, uint8_t down);
 
 #endif
