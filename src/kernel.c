@@ -32,19 +32,20 @@ void kernel_main()
 
 	// TODO CACHE OFF && MEMORY TEST
 	uint8_t* memory_start = (uint8_t*) OS_HEAP_ADDRESS;
-	kmemory_init(memory_start, OS_HEAP_SIZE_BYTES);
+	kmemory_init(memory_start, OS_HEAP_SIZE_BYTES - 1); // ? -1 FIXME FIX & CONFIRM LATER
 
 	idt_init();
 	enable_interrupts();
 
 	char* ptr = (char*)kmalloc(2*sizeof(char));
-//	for (int i = 0; i<10;i++)
-//	{
-//		ptr[i] = 0x41+i;
-//	}
-	ptr[10] = 0x41;
-	ptr[2] = '\0';
-	ptr[0] = 'a';
+	for (int i = 0; i<500;i+=8)
+	{
+		for (int j = 0; j<8;j++)
+		{
+			ptr[i+j] = 0x41+j;
+		}
+	}
+	// ptr[10] = 0;
 	kfprint(ptr, 4);
 	// char ascii_str2[2 + 1 + 4];
 	//hex_to_ascii(&ptr, ascii_str2, (2+1+4));

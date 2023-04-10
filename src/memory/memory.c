@@ -178,11 +178,11 @@ static inline void dlist_remove_from(DList **d1p, DList *d2) {
 
 typedef struct Chunk Chunk;
 struct Chunk {
-    DList all;
-    int used;
-    union {
+    DList all;			// track all memory chunks in the system
+    int used;			// is chunk in use, if not, may try merge chunks
+    union {			// a union is large enough to hold its largest member
 	char data[0];
-	DList free;
+	DList free;		// track free memory chunks that can be reused
     };
 };
 
@@ -202,8 +202,15 @@ Chunk *last = NULL;
 
 static void memory_chunk_init(Chunk *chunk) {
 	//printf("%s(%p)\n", __FUNCTION__, chunk);
-    DLIST_INIT(chunk, all);
-    chunk->used = 0;
+	//#define DLIST_INIT(v, l) dlist_init(&v->l)
+	//// initialize a one element *circular Doubly-Linked list*
+	///static inline void dlist_init(DList *dlist) {
+	///	    dlist->next = dlist;
+	///	        dlist->prev = dlist;
+	///	        }
+	///
+    DLIST_INIT(chunk, all); // Initialize the &chunk->all DList by setting next and prev to point to the DList itself
+    chunk->used = 0; // set the used to 0
     DLIST_INIT(chunk, free);
 }
 
