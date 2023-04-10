@@ -3,6 +3,7 @@
 #include "util/kutil.h"
 #include "idt/idt.h"
 #include "io/io.h"
+#include "memory/memory.h"
 extern void problem();
 
 void terminal_initialize()
@@ -20,8 +21,6 @@ void kernel_main()
 {
 	terminal_initialize();
 	char msg[] = "Hello World!\nHello World!";
-	// int64_t msg_len = kstrlen(msg);
-	// size_t msg_len = (sizeof(msg) / sizeof(msg[0]) - 1); /* sizeof (array) includes the null byte */
 	size_t msg_len = kstrlen(msg);
 	kprint(msg, msg_len, 4);
 
@@ -30,9 +29,33 @@ void kernel_main()
 	char ascii_str[2 * sizeof(h) + 1]; // +1 for null terminator
 	hex_to_ascii(&h, ascii_str, sizeof(h));
 	kprint(ascii_str, 2*sizeof(h), 4);
-	idt_init();
 
+	// TODO CACHE OFF && MEMORY TEST
+	uint8_t* memory_start = (uint8_t*) OS_HEAP_ADDRESS;
+	kmemory_init(memory_start, OS_HEAP_SIZE_BYTES);
+
+	idt_init();
 	enable_interrupts();
+
+	char* ptr = (char*)kmalloc(2*sizeof(char));
+//	for (int i = 0; i<10;i++)
+//	{
+//		ptr[i] = 0x41+i;
+//	}
+	ptr[10] = 0x41;
+	ptr[2] = '\0';
+	ptr[0] = 'a';
+	kfprint(ptr, 4);
+	// char ascii_str2[2 + 1 + 4];
+	//hex_to_ascii(&ptr, ascii_str2, (2+1+4));
+	//kprint(ascii_str2);
+	kfree((void*)ptr);
+
+
+	// TODO IMPLEMENT PRINTF!
+	//
+	// TODO MOUSE HANDLING
+	// TODO TERMINAL
 }
 
 static uint16_t* video_mem = (uint16_t*)(0xB8000); /* create a local pointer to the absolute address */

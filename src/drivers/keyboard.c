@@ -135,7 +135,7 @@ void atakbd_interrupt(uint8_t rawscancode)
 		}
 		uint8_t uscancode = atakbd_keycode[rawscancode & ~BREAK_MASK];
 
-		input_report_key(uscancode, keydown);
+		input_report_key(uscancode, !!keydown);
 		// input_sync(atakbd_dev);
 	}
 	else				/* scancodes >= 0xf3 are mouse data, most likely */

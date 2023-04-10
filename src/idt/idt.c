@@ -72,6 +72,7 @@ void _int21h_handler(uint16_t scancode)
 	PIC_sendEOI(0x2);
 }
 
+// TODO https://elixir.bootlin.com/linux/latest/source/drivers/input/input.c#L424
 void input_report_key(uint8_t scancode, uint8_t down)
 {
 	if(!down)

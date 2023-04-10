@@ -1,5 +1,8 @@
 # OS30DAYS
 
+- [Linux, GITHUB](https://github.com/torvalds/linux)
+- [Linux Cross Referencer](https://elixir.bootlin.com/)
+
 ## TABLE OF CONTENT
 
 
@@ -352,6 +355,35 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - [scancode, atakbd](https://elixir.bootlin.com/linux/latest/source/drivers/input/keyboard/atakbd.c#L64)
 - [scancode](https://hp.vector.co.jp/authors/VA003720/lpproj/others/kbdjpn.htm)
 - [scancode](https://github.com/flosse/linuxconsole/blob/master/utils/scancodes.h)
+
+
+## U17 HEAP AND MEMORY MANAGEMENT
+
+- `malloc` and `free`
+- 32-bit addressing == 2**32 bytes/1024/1024/1024 == 2**2GB == 4GB address
+- There are reserved addresses for:
+  - Video memory
+  - Hardware memory
+- An array of uninitialized memory is available to us (the system?) from address "0x01000000"
+- 0xc0000000 is reserved (video memory?)
+
+### MEMORY TEST
+
+- [Memory Test, Linux](https://github.com/torvalds/linux/blob/master/mm/memtest.c)
+
+### HEAP
+
+- [Simple Heap Implementations, OSDEV](https://wiki.osdev.org/User:Pancakes/SimpleHeapImplementation#Implementations)
+- "Stack Based" is the best?
+- "Linked List" also good
+
+
+### MEMORY MAP
+
+- BIOS seems to load physical to addresses (TODO to confirm, revisit by PAGING)
+- e.g. `0x00100000`-`0x00EFFFFF` (14 MB), `0x01000000`-`0xC0000000` (?MB) is some non-reserved memory space below 4GB
+- [Memory Map (x86), OSDEV](https://wiki.osdev.org/Memory_Map_(x86))
+- ![u17-memory_map_on_boot.png](./img/u17-memory_map_on_boot.png)
 
 
 ## ASSEMBLY
