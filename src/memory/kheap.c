@@ -29,3 +29,9 @@ void* k_heap_table_mm_malloc(size_t size)
 {
 	return heap_malloc(&kernel_heap, size);
 }
+
+void k_heap_table_mm_free(void *ptr)
+{
+	heap_free(&kernel_heap, ptr);
+}
+

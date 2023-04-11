@@ -6,5 +6,6 @@
 
 void k_heap_table_mm_init();
 void* k_heap_table_mm_malloc(size_t size);
+void k_heap_table_mm_free(void *ptr);
 
 #endif

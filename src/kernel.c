@@ -61,7 +61,13 @@ void kernel_main()
 	// char ascii_str2[2 + 1 + 4];
 	//hex_to_ascii(&ptr, ascii_str2, (2+1+4));
 	//kprint(ascii_str2);
-	kfree((void*)ptr);
+	// kfree((void*)ptr);
+	k_heap_table_mm_free((void*)ptr);
+	char* ptr3 = (char*)k_heap_table_mm_malloc(500);  // Reusing the First Block used by ptr
+	ptr3[0] = 'E';
+	// (gdb) p ptr3
+	// $2 = 0x2000000 "EBCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEF
+	// k_heap_table_mm_free((void*)ptr2);
 
 
 	// TODO IMPLEMENT PRINTF!

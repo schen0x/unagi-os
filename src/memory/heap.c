@@ -153,7 +153,29 @@ void* heap_malloc(struct heap* heap, size_t size)
 	return heap_malloc_blocks(heap, total_blocks);
 }
 
-// void heap_free(struct heap* heap, void* ptr)
-// {
-// }
+int64_t heap_address_to_block(struct heap* heap, void* ptr)
+{
+	return (ptr - heap->start_addr) / (HBLOCK_SIZE);
+}
+
+void heap_mark_blocks_free(struct heap* heap, int64_t start_block)
+{
+	int64_t i = start_block;
+	while(1)
+	{
+		HEAP_BLOCK_TABLE_ENTRY* current_entry = &heap->table->entries[i];
+		if ((*current_entry & 0b1) != HEAP_BLOCK_TABLE_ENTRY_FREE)
+		{
+			*current_entry = HEAP_BLOCK_TABLE_ENTRY_FREE;
+		}
+		return;
+	}
+}
+
+
+void heap_free(struct heap* heap, void* ptr)
+{
+	heap_mark_blocks_free(heap, heap_address_to_block(heap, ptr));
+
+}
 
