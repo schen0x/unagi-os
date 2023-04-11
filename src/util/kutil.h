@@ -5,6 +5,6 @@
 #include <stdint.h>
 void* kstrcpy(char* dest, const char* src);
 size_t kstrlen(const char *str);
-void* hex_to_ascii(void* hex_ptr, char* ascii_str, size_t size);
+void* hex_to_ascii(char* ascii_str_buf, void* hex_number,  size_t size);
 
 #endif

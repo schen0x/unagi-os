@@ -380,7 +380,104 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 
 ### MEMORY MAP
 
-- BIOS seems to load physical to addresses (TODO to confirm, revisit by PAGING)
+- Linux kernel 6.2.10 `arch/x86/kernel/e820.c`, quote:
+
+```c
+/*
+ * We organize the E820 table into three main data structures:
+ *
+ * - 'e820_table_firmware': the original firmware version passed to us by the
+ *   bootloader - not modified by the kernel. It is composed of two parts:
+ *   the first 128 E820 memory entries in boot_params.e820_table and the remaining
+ *   (if any) entries of the SETUP_E820_EXT nodes. We use this to:
+ *
+ *       - inform the user about the firmware's notion of memory layout
+ *         via /sys/firmware/memmap
+ *
+ *       - the hibernation code uses it to generate a kernel-independent CRC32
+ *         checksum of the physical memory layout of a system.
+ * ...
+ * Once the E820 map has been converted to the standard Linux memory layout
+ * information its role stops - modifying it has no effect and does not get
+ * re-propagated. So its main role is a temporary bootstrap storage of firmware
+ * specific memory layout data during early bootup.
+ */
+```
+
+- In short, on boot, bootloader collect memory info from platform specific hardware, then pass to the kernel.
+- The "BIOS Function: INT 0x15, AX=0xE820": [Memory_map, OSDEV](https://en.wikipedia.org/wiki/Memory_map)
+- The GRUB implementation: [grub_get_mmap_entry, mmap.c, GRUB](https://git.savannah.gnu.org/cgit/grub.git/tree/grub-core/kern/i386/pc/mmap.c)
+
+```c
+/*
+ *
+ * grub_get_mmap_entry(addr, cont) : address and old continuation value (zero to
+ *		start), for the Query System Address Map BIOS call.
+ *
+ *  Sets the first 4-byte int value of "addr" to the size returned by
+ *  the call.  If the call fails, sets it to zero.
+ *
+ *	Returns:  new (non-zero) continuation value, 0 if done.
+ */
+/* Get a memory map entry. Return next continuation value. Zero means
+   the end.  */
+static grub_uint32_t
+grub_get_mmap_entry (struct grub_machine_mmap_entry *entry,
+		     grub_uint32_t cont)
+{
+  struct grub_bios_int_registers regs;
+
+  regs.flags = GRUB_CPU_INT_FLAGS_DEFAULT;
+
+  /* place address (+4) in ES:DI */
+  regs.es = ((grub_addr_t) &entry->addr) >> 4;
+  regs.edi = ((grub_addr_t) &entry->addr) & 0xf;
+
+  /* set continuation value */
+  regs.ebx = cont;
+
+  /* set default maximum buffer size */
+  regs.ecx = sizeof (*entry) - sizeof (entry->size);
+
+  /* set EDX to 'SMAP' */
+  regs.edx = 0x534d4150;
+
+  regs.eax = 0xe820;
+  grub_bios_interrupt (0x15, &regs);
+
+  /* write length of buffer (zero if error) into ADDR */
+  if ((regs.flags & GRUB_CPU_INT_FLAGS_CARRY) || regs.eax != 0x534d4150
+      || regs.ecx < 0x14 || regs.ecx > 0x400)
+    entry->size = 0;
+  else
+    entry->size = regs.ecx;
+
+  /* return the continuation value */
+  return regs.ebx;
+}
+```
+
+- [drivers/firmware/memmap.c](https://elixir.bootlin.com/linux/latest/source/drivers/firmware/memmap.c#L26)
+
+```c
+/*
+ * Firmware map entry. Because firmware memory maps are flat and not
+ * hierarchical, it's ok to organise them in a linked list. No parent
+ * information is necessary as for the resource tree.
+ */
+struct firmware_map_entry {
+	/*
+	 * start and end must be u64 rather than resource_size_t, because e820
+	 * resources can lie at addresses above 4G.
+	 */
+	u64			start;	/* start of the memory range */
+	u64			end;	/* end of the memory range (incl.) */
+	const char		*type;	/* type of the memory range */
+	struct list_head	list;	/* entry for the linked list */
+	struct kobject		kobj;   /* kobject for each entry */
+};
+```
+
 - e.g. `0x00100000`-`0x00EFFFFF` (14 MB), `0x01000000`-`0xC0000000` (?MB) is some non-reserved memory space below 4GB
 - [Memory Map (x86), OSDEV](https://wiki.osdev.org/Memory_Map_(x86))
 - ![u17-memory_map_on_boot.png](./img/u17-memory_map_on_boot.png)

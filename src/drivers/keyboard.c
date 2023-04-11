@@ -143,7 +143,7 @@ void atakbd_interrupt(uint8_t rawscancode)
 
 		kfprint("KERN_INFO atakbd_interrupt: unhandled scancode ", 4);
 		char msg[8] = {0};
-		kfprint(hex_to_ascii(&rawscancode, msg, sizeof(rawscancode)), 4);
+		kfprint(hex_to_ascii(msg, &rawscancode, sizeof(rawscancode)), 4);
 	}
 
 	return;
