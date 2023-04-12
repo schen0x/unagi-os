@@ -7,7 +7,8 @@
 #include "memory/kheap.h"
 #include "memory/paging/paging.h"
 extern void problem();
-static struct PAGE_DIRECTORY_4KB* k_page_dir = 0;
+/* Kernel Page Directory */
+static PAGE_DIRECTORY_4KB* kpd = 0;
 
 void terminal_initialize()
 {
@@ -36,9 +37,10 @@ void kernel_main()
 	// ==============
 
 
-	PAGE_DIRECTORY_ENTRY_4KB_FLAGS k_page_dir_flags = {.access_for_all = 1, .allow_write = 1, .present_in_physical_memory = 1 };
-	k_page_dir = new_page_table_4KB_4GB(k_page_dir_flags);
-	paging_switch(k_page_dir);
+	uint32_t pd_entries_flags = 0b111;
+
+	kpd = pd_init(pd_entries_flags);
+	paging_switch(kpd);
 	enable_paging();
 
 
