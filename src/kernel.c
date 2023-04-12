@@ -29,8 +29,6 @@ void kernel_main()
 	kprint(msg, msg_len, 4);
 
 	// TODO CACHE OFF && MEMORY TEST
-	// uint8_t* memory_start = (uint8_t*) OS_HEAP_ADDRESS;
-	// kmemory_init(memory_start, OS_HEAP_SIZE_BYTES - 1); // ? -1 FIXME FIX & CONFIRM LATER
 
 	k_mm_init();
 	idt_init();
