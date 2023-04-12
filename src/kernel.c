@@ -7,6 +7,7 @@
 #include "memory/kheap.h"
 #include "memory/paging/paging.h"
 extern void problem();
+static struct PAGE_DIRECTORY_4KB* k_page_dir = 0;
 
 void terminal_initialize()
 {
@@ -26,56 +27,24 @@ void kernel_main()
 	size_t msg_len = kstrlen(msg);
 	kprint(msg, msg_len, 4);
 
-	uint32_t h = 0x123456f8;
-	//! void* hex_number = (void*)0x123456f8; /* pointer points to the absolute address 0x123456f8 */
-	char ascii_str_buf[2 * sizeof(h) + 1]; // +1 for null terminator
-	hex_to_ascii(ascii_str_buf, &h, sizeof(h));
-	kprint(ascii_str_buf, 2*sizeof(h), 4);
-
 	// TODO CACHE OFF && MEMORY TEST
 	// uint8_t* memory_start = (uint8_t*) OS_HEAP_ADDRESS;
 	// kmemory_init(memory_start, OS_HEAP_SIZE_BYTES - 1); // ? -1 FIXME FIX & CONFIRM LATER
 
-	k_heap_table_mm_init(); // managemend by simple heap table
-
+	k_mm_init();
 	idt_init();
+	// ==============
 
-	//char* ptr = (char*)kmalloc(2*sizeof(char));
-	char* ptr = (char*)k_heap_table_mm_malloc(2*sizeof(char));
-	char* ptr2 = (char*)k_heap_table_mm_malloc(5000);
-	ptr2[0] ='B';
-	//(gdb) p ptr2
-	// $3 = 0x2002000 "B"
-	// (gdb) p ptr
-	// $4 = 0x2000000 ""
-	//
-	for (int i = 0; i<500;i+=8)
-	{
-		for (int j = 0; j<8;j++)
-		{
-			ptr[i+j] = 0x41+j;
-		}
-	}
-	// ptr[10] = 0;
-	kfprint(ptr, 4);
-	// char ascii_str2[2 + 1 + 4];
-	//hex_to_ascii(&ptr, ascii_str2, (2+1+4));
-	//kprint(ascii_str2);
-	// kfree((void*)ptr);
-	k_heap_table_mm_free((void*)ptr);
-	char* ptr3 = (char*)k_heap_table_mm_malloc(500);  // Reusing the First Block used by ptr
-	ptr3[0] = 'E';
-	// (gdb) p ptr3
-	// $2 = 0x2000000 "EBCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEF
-	// k_heap_table_mm_free((void*)ptr2);
+
 	PAGE_DIRECTORY_ENTRY_4KB_FLAGS k_page_dir_flags = {.access_for_all = 1, .allow_write = 1, .present_in_physical_memory = 1 };
-
-	struct PAGE_DIRECTORY_4KB* k_page_dir = new_page_table_4KB_4GB(k_page_dir_flags);
+	k_page_dir = new_page_table_4KB_4GB(k_page_dir_flags);
 	paging_switch(k_page_dir);
 	enable_paging();
 
+
+
+	// ==============
 	// TODO Try sprintf
-	//
 	// TODO MOUSE HANDLING
 	// TODO TERMINAL
 	enable_interrupts();

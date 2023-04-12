@@ -11,5 +11,6 @@ void *k_dl_mm_malloc(size_t size);
 void k_dl_mm_free(void *mem);
 void* kzalloc(size_t size);
 void kfree(void *ptr);
+void k_mm_init();
 
 #endif

@@ -61,4 +61,5 @@ typedef struct PAGE_DIRECTORY_ENTRY_4KB_FLAGS
 struct PAGE_DIRECTORY_4KB* new_page_table_4KB_4GB(struct PAGE_DIRECTORY_ENTRY_4KB_FLAGS flags);
 void paging_switch(struct PAGE_DIRECTORY_4KB* directory);
 extern void enable_paging();
+
 #endif

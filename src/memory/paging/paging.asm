@@ -21,3 +21,5 @@ enable_paging:
     mov cr0, eax
     pop ebp
     ret
+
+times 4096-($ - $$) db 0

@@ -27,6 +27,11 @@ void* kmemcpy(void* dst, const void* src, size_t size)
 	return dst;
 }
 
+void k_mm_init()
+{
+	k_heap_table_mm_init(); // managemend by simple heap table
+}
+
 void* kmalloc(size_t size)
 {
 	return k_heap_table_mm_malloc(size);
