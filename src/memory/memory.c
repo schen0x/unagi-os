@@ -1,5 +1,6 @@
 // memory/memory.c
 #include "memory/memory.h"
+#include "memory/kheap.h"
 #include <stddef.h>
 #include <stdint.h>
 #include "config.h"
@@ -24,6 +25,29 @@ void* kmemcpy(void* dst, const void* src, size_t size)
 		c_dst[i] = c_src[i];
 	}
 	return dst;
+}
+
+void* kmalloc(size_t size)
+{
+	return k_heap_table_mm_malloc(size);
+}
+
+void* kzalloc(size_t size)
+{
+
+	void* ptr = k_heap_table_mm_malloc(size);
+	if (!ptr)
+	{
+		return 0;
+	}
+	kmemset(ptr, 0, size);
+	return ptr;
+}
+
+
+void kfree(void *ptr)
+{
+	k_heap_table_mm_free(ptr);
 }
 
 /*
@@ -253,7 +277,7 @@ void kmemory_init(void *mem, size_t size) {
     mem_meta = sizeof(Chunk) * 2 + HEADER_SIZE;
 }
 
-void *kmalloc(size_t size) {
+void *k_dl_mm_malloc(size_t size) {
     //printf("%s(%#lx)\n", __FUNCTION__, size);
     size = (size + ALIGN - 1) & (~(ALIGN - 1));
 
@@ -310,7 +334,7 @@ static void push_free(Chunk *chunk) {
     mem_free += len - HEADER_SIZE;
 }
 
-void kfree(void *mem) {
+void k_dl_mm_free(void *mem) {
     Chunk *chunk = (Chunk*)((char*)mem - HEADER_SIZE);
     Chunk *next = CONTAINER(Chunk, all, chunk->all.next);
     Chunk *prev = CONTAINER(Chunk, all, chunk->all.prev);

@@ -5,6 +5,7 @@
 #include "io/io.h"
 #include "memory/memory.h"
 #include "memory/kheap.h"
+#include "memory/paging/paging.h"
 extern void problem();
 
 void terminal_initialize()
@@ -38,7 +39,6 @@ void kernel_main()
 	k_heap_table_mm_init(); // managemend by simple heap table
 
 	idt_init();
-	enable_interrupts();
 
 	//char* ptr = (char*)kmalloc(2*sizeof(char));
 	char* ptr = (char*)k_heap_table_mm_malloc(2*sizeof(char));
@@ -68,12 +68,17 @@ void kernel_main()
 	// (gdb) p ptr3
 	// $2 = 0x2000000 "EBCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEF
 	// k_heap_table_mm_free((void*)ptr2);
+	PAGE_DIRECTORY_ENTRY_4KB_FLAGS k_page_dir_flags = {.access_for_all = 1, .allow_write = 1, .present_in_physical_memory = 1 };
 
+	struct PAGE_DIRECTORY_4KB* k_page_dir = new_page_table_4KB_4GB(k_page_dir_flags);
+	paging_switch(k_page_dir);
+	enable_paging();
 
-	// TODO IMPLEMENT PRINTF!
+	// TODO Try sprintf
 	//
 	// TODO MOUSE HANDLING
 	// TODO TERMINAL
+	enable_interrupts();
 }
 
 static uint16_t* video_mem = (uint16_t*)(0xB8000); /* create a local pointer to the absolute address */
