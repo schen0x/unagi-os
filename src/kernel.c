@@ -42,7 +42,6 @@ void kernel_main()
 	enable_paging();
 
 
-
 	// ==============
 	// TODO Try sprintf
 	// TODO MOUSE HANDLING

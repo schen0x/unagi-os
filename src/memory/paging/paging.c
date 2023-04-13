@@ -1,7 +1,7 @@
 #include "memory/paging/paging.h"
 #include "memory/memory.h"
 
-extern void paging_load_directory(struct PAGE_DIRECTORY_4KB* directory);
+extern void paging_load_directory(PAGE_DIRECTORY_ENTRY_4KB* directory);
 static struct PAGE_DIRECTORY_4KB* current_directory = 0;
 
 static inline void pd_entry_set_flags(struct PAGE_DIRECTORY_ENTRY_4KB *e, uint32_t flags)
@@ -69,7 +69,7 @@ PAGE_DIRECTORY_4KB* pd_init(uint32_t flags)
 
 void paging_switch(PAGE_DIRECTORY_4KB* directory)
 {
-	paging_load_directory(directory);
+	paging_load_directory(directory->entries);
 	current_directory=directory;
 }
 

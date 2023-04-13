@@ -41,23 +41,23 @@ void* kzalloc(size_t size)
 
 void k_mm_init()
 {
-	// k_heap_table_mm_init(); // managemend by simple heap table
+	k_heap_table_mm_init(); // managemend by simple heap table
 
-	uint8_t* memory_start = (uint8_t*) OS_HEAP_ADDRESS;
-	kmemory_init(memory_start, OS_HEAP_SIZE_BYTES); // ? -1 FIXME FIX & CONFIRM LATER
+	// uint8_t* memory_start = (uint8_t*) OS_HEAP_ADDRESS;
+	// kmemory_init(memory_start, OS_HEAP_SIZE_BYTES); // ? -1 FIXME FIX & CONFIRM LATER
 }
 
 void* kmalloc(size_t size)
 {
-	// return k_heap_table_mm_malloc(size);
 	return k_heap_table_mm_malloc(size);
+	// return k_heap_table_mm_malloc(size);
 }
 
 
 void kfree(void *ptr)
 {
-	// k_heap_table_mm_free(ptr);
-	k_dl_mm_free(ptr);
+	k_heap_table_mm_free(ptr);
+	// k_dl_mm_free(ptr);
 }
 
 /*

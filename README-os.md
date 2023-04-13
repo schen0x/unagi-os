@@ -483,7 +483,7 @@ struct firmware_map_entry {
 - ![u17-memory_map_on_boot.png](./img/u17-memory_map_on_boot.png)
 
 
-## PAGING
+## U18 PAGING
 
 - 32-bit architecture: 4KB memory block per "Entry" -> 1024 "Entries" per "Page Table" -> 1024 "Page Table" per "Page Directory"
 - 4KB * 1024 * 1024 = 4GB
