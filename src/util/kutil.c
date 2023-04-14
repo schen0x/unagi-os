@@ -21,10 +21,14 @@ size_t kstrlen(const char *str)
 	return len;
 }
 
+/*
+ * Write the ascii representation of hex_number at &hex_number.
+ * Usage: kfprint((hex_to_ascii(buf, &hex, sizeof(hex)))),4);
+ */
 void* hex_to_ascii(char* ascii_str_buf, void* hex_number,  size_t size)
 {
     uint8_t* bytes = (uint8_t*)hex_number;
-    const char hex_chars[] = "0123456789ABCDEF";
+    const char hex_chars[] = "0123456789abcdef";
 
     for (int i = size - 1; i >= 0; i--)
     {

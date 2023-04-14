@@ -4,7 +4,7 @@
 extern void paging_load_directory(PAGE_DIRECTORY_ENTRY_4KB* directory);
 static struct PAGE_DIRECTORY_4KB* current_directory = 0;
 
-static inline void pd_entry_set_flags(struct PAGE_DIRECTORY_ENTRY_4KB *e, uint32_t flags)
+static inline void pd_entry_set_flags(PAGE_DIRECTORY_ENTRY_4KB *e, uint32_t flags)
 {
     // e->higher_address	= flags >> 12 & 0xfffff;
     e->AVL0		= flags >> 8 & 0b1111;
@@ -18,7 +18,7 @@ static inline void pd_entry_set_flags(struct PAGE_DIRECTORY_ENTRY_4KB *e, uint32
     e->P		= flags & 0x1;
 }
 
-static inline uint32_t pd_entry_to_val(struct PAGE_DIRECTORY_ENTRY_4KB *e)
+static inline uint32_t pd_entry_to_val(PAGE_DIRECTORY_ENTRY_4KB *e)
 {
     return e->higher_address << 12
          | e->AVL0 << 8

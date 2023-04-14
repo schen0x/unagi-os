@@ -151,11 +151,9 @@ static inline void dlist_remove_from(DList **d1p, DList *d2) {
     }
 }
 
-// TODO YO
-
 #define CONTAINER(C, l, v) ((C*)(((char*)v) - (intptr_t)&(((C*)0)->l)))
 #define OFFSETOF(TYPE, MEMBER)  __builtin_offsetof (TYPE, MEMBER)
-
+/* Init the DList* &v->l. Set (&v->l)->next, (&v->l)->prev = &v->l */
 #define DLIST_INIT(v, l) dlist_init(&v->l)
 
 #define DLIST_REMOVE_FROM(h, d, l)					\
@@ -236,14 +234,7 @@ Chunk *last = NULL;
 
 static void memory_chunk_init(Chunk *chunk) {
 	//printf("%s(%p)\n", __FUNCTION__, chunk);
-	//#define DLIST_INIT(v, l) dlist_init(&v->l)
-	//// initialize a one element *circular Doubly-Linked list*
-	///static inline void dlist_init(DList *dlist) {
-	///	    dlist->next = dlist;
-	///	        dlist->prev = dlist;
-	///	        }
-	///
-    DLIST_INIT(chunk, all); // Initialize the &chunk->all DList by setting next and prev to point to the DList itself
+    DLIST_INIT(chunk, all);
     chunk->used = 0; // set the used to 0
     DLIST_INIT(chunk, free);
 }
