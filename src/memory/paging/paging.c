@@ -1,5 +1,8 @@
 #include "memory/paging/paging.h"
 #include "memory/memory.h"
+#include "paging.h"
+#include "status.h"
+#include <stdint.h>
 
 extern void paging_load_directory(PAGE_DIRECTORY_ENTRY_4KB* directory);
 static struct PAGE_DIRECTORY_4KB* current_directory = 0;
@@ -30,6 +33,21 @@ static inline uint32_t pd_entry_to_val(PAGE_DIRECTORY_ENTRY_4KB *e)
          | e->U_S << 2
          | e->R_W << 1
          | e->P;
+}
+
+static inline void pd_table_set(PAGE_TABLE_ENTRY_4KB *e, uint32_t data)
+{
+    e->higher_address	= data >> 12 & 0xfffff;
+    e->AVL		= data >> 9 & 0b111;
+    e->G		= data >> 8 & 0x1;
+    e->PAT		= data >> 7 & 0x1;
+    e->D		= data >> 6 & 0x1;
+    e->A		= data >> 5 & 0x1;
+    e->PCD		= data >> 4 & 0x1;
+    e->PWT		= data >> 3 & 0x1;
+    e->U_S		= data >> 2 & 0x1;
+    e->R_W		= data >> 1 & 0x1;
+    e->P		= data & 0x1;
 }
 
 /* Create a new Page Directory */
@@ -73,3 +91,53 @@ void paging_switch(PAGE_DIRECTORY_4KB* directory)
 	current_directory=directory;
 }
 
+uint32_t is_address_aligned_4KB(void* addr)
+{
+	return (uint32_t)addr % PAGE_OS_PAGE_SIZE == 0;
+}
+
+/*
+ * Spit out the closest lower value that align.
+ * Use PAGE_OS_PAGE_SIZE as align.
+ * e.g., 4097 -> 4096; 8193 -> 8192;
+ */
+static uint32_t align_addr_to_lower(uint32_t val)
+{
+    const uint32_t residual = val % PAGE_OS_PAGE_SIZE;
+    if (residual == 0)
+    {
+	    return val;
+    }
+	    val -= residual;
+    return val;
+}
+
+/*
+ * Calculate the directory and table index, Given the virtual_address
+ * Directory (bits 22-31), Table (bits 12-21), Offset (bits 0-11)
+ */
+void vaddress_to_page_indexes(void* virtual_address, uint32_t* dir_index_out, uint32_t* table_index_out)
+{
+	uint32_t virtual_addr_aligned = align_addr_to_lower((uint32_t)virtual_address);
+	*dir_index_out = ((uint32_t)virtual_addr_aligned / (PAGE_OS_PAGE_SIZE * PAGE_DIRECTORY_TOTAL_ENTRIES));
+	*table_index_out = ((uint32_t)virtual_addr_aligned % (PAGE_OS_PAGE_SIZE * PAGE_DIRECTORY_TOTAL_ENTRIES) / PAGE_OS_PAGE_SIZE);
+}
+
+/*
+ * Assign a new physical address and flags to the virtual_address.
+ * "data" is a page table entry.
+ * Example:
+ * char* p0 = kzalloc(4096);
+ * paging_set_page(kpd->entries , (void *)0x1000, ((uint32_t)p0 & 0xfffff000) | 0b111);
+ * enable_paging();
+ * // p0 == (char*) 0x1000;
+ */
+uint32_t paging_set_page(PAGE_DIRECTORY_ENTRY_4KB *dir, void* virtual_address, uint32_t data)
+{
+	uint32_t dir_index = 0;
+	uint32_t table_index = 0;
+	vaddress_to_page_indexes(virtual_address, &dir_index, &table_index);
+	PAGE_TABLE_ENTRY_4KB *table = (PAGE_TABLE_ENTRY_4KB*)(dir[dir_index].higher_address << 12);
+	pd_table_set(&table[table_index], data);
+	return 0;
+}

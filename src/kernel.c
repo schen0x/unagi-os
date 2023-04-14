@@ -47,8 +47,18 @@ void kernel_main()
 
 	kpd = pd_init(pd_entries_flags);
 	paging_switch(kpd);
+
+	// Map the virtual_address 0x1000 to physical address p0
+	char* p0 = kzalloc(4096);
+	paging_set_page(kpd->entries , (void *)0x1000, ((uint32_t)p0 & 0xfffff000) | 0b111);
+
 	enable_paging();
 
+	// Proof:
+	char* p_real = (char*) 0x1000;
+	p_real[0] = 'B';
+	kfprint(p0, 5);
+	kfprint(p_real, 4);
 
 	// ==============
 	// TODO Try sprintf

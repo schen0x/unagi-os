@@ -490,6 +490,8 @@ struct firmware_map_entry {
 - `int 0x14` "Page Fault"
 - [Enabling Paging, OSDEV](https://wiki.osdev.org/Paging#Enabling)
 
+- Hardware addresses (e.g. Video memory address) cannot be mapped by paging. Probably because devices may wants to do direct IO without going through CPU.
+
 
 ## ASSEMBLY
 
