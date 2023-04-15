@@ -78,7 +78,7 @@ PATH_PART* path_parse_part(PATH_PART* prev, const char** path_str)
 
 uint32_t path_free(PATH_ROOT* root)
 {
- 	struct PATH_PART* pt_ptr[OS_PATH_MAX_LENGTH] = {0}; // all PATH_PART ptr
+	struct PATH_PART* pt_ptr[OS_PATH_MAX_LENGTH] = {0}; // all PATH_PART ptr
 	PATH_PART* pt = root->first;
 	int32_t i = 0;
 	for (i = 0; i < OS_PATH_MAX_LENGTH; i++)
