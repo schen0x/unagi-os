@@ -6,6 +6,7 @@
 #include "memory/memory.h"
 #include "memory/kheap.h"
 #include "memory/paging/paging.h"
+#include "disk/disk.h"
 extern void problem();
 /* Kernel Page Directory */
 static PAGE_DIRECTORY_4KB* kpd = 0;
@@ -59,6 +60,13 @@ void kernel_main()
 	p_real[0] = 'B';
 	kfprint(p0, 5);
 	kfprint(p_real, 4);
+
+
+	char buf[512] = {0};
+	disk_read_sector(0, 1, buf);
+	char buf2[2048] = {0};
+	kfprint(hex_to_ascii(buf2, &buf, 512), 4);
+
 
 	// ==============
 	// TODO Try sprintf
