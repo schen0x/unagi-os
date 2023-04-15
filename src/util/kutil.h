@@ -3,8 +3,14 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 void* kstrcpy(char* dest, const char* src);
 size_t kstrlen(const char *str);
+size_t kstrnlen(const char *str, size_t max);
 void* hex_to_ascii(char* ascii_str_buf, void* hex_number,  size_t size);
+bool is_digit(char c);
+int32_t to_digit(char c);
+int32_t kmemcmp(const void *str1, const void *str2, size_t n);
+void memset(void* ptr, int c, size_t size);
 
 #endif

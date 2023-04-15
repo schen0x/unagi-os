@@ -5,5 +5,6 @@
 #define EIO 1 // IO ERROR
 #define EINVARG 2 // Invalid Arguments
 #define ENOMEM 3 // NO MEMORY
+#define EBADPATH 4 // BAD PATH FORMAT
 
 #endif

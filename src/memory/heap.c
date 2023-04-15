@@ -176,6 +176,5 @@ void heap_mark_blocks_free(struct heap* heap, int64_t start_block)
 void heap_free(struct heap* heap, void* ptr)
 {
 	heap_mark_blocks_free(heap, heap_address_to_block(heap, ptr));
-
 }
 

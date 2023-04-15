@@ -7,7 +7,6 @@
 #include "memory/kheap.h"
 #include "memory/paging/paging.h"
 #include "disk/disk.h"
-extern void problem();
 /* Kernel Page Directory */
 static PAGE_DIRECTORY_4KB* kpd = 0;
 
@@ -42,31 +41,12 @@ void kernel_main()
 	k_mm_init();
 	idt_init();
 	// ==============
-
-
 	uint32_t pd_entries_flags = 0b111;
-
 	kpd = pd_init(pd_entries_flags);
 	paging_switch(kpd);
-
-	// Map the virtual_address 0x1000 to physical address p0
-	char* p0 = kzalloc(4096);
-	paging_set_page(kpd->entries , (void *)0x1000, ((uint32_t)p0 & 0xfffff000) | 0b111);
-
 	enable_paging();
 
-	// Proof:
-	char* p_real = (char*) 0x1000;
-	p_real[0] = 'B';
-	kfprint(p0, 5);
-	kfprint(p_real, 4);
-
-
-	char buf[512] = {0};
-	disk_read_sector(0, 1, buf);
-	char buf2[2048] = {0};
-	kfprint(hex_to_ascii(buf2, &buf, 512), 4);
-
+	disk_search_and_init();
 
 	// ==============
 	// TODO Try sprintf

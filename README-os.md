@@ -524,6 +524,10 @@ struct firmware_map_entry {
 - [PCI_IDE_Controller, OSDEV](https://wiki.osdev.org/PCI_IDE_Controller)
 
 
+## U20 FILE SYSTEM
+
+- File system driver write data to a disk location in an organized way.
+
 
 ## ASSEMBLY
 

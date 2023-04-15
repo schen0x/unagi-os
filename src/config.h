@@ -10,5 +10,6 @@
 #define OS_HEAP_SIZE_BYTES 1024 * 1024 * 100 // 100MB
 #define OS_HEAP_BLOCK_SIZE 4096
 // #define OS_SHEAP_TABLE_ADDRESS
-
+#define OS_DISK_SECTOR_SIZE 512 // must be 512 or a multiple of 512
+#define OS_PATH_MAX_LENGTH 4096
 #endif

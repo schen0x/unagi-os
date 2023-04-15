@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "config.h"
 
+/* Fill "*ptr" with (char)"c" * "size" */
 void* kmemset(void* ptr, int c, size_t size)
 {
 	/* write size * c to (*ptr) */
