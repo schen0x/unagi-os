@@ -2,7 +2,7 @@
 #include "memory/heap.h"
 // #include "memory/memory.h"
 #include "config.h"
-#include "kernel.h"
+#include "include/uapi/graphic.h"
 
 struct heap kernel_heap;
 

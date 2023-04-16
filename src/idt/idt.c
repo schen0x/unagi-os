@@ -1,10 +1,10 @@
 #include "idt/idt.h"
 #include "memory/memory.h"
 #include "config.h"
-#include "kernel.h"
 #include "util/kutil.h"
 #include "pic/pic.h"
 #include "drivers/keyboard.h"
+#include "include/uapi/graphic.h"
 
 /* global variable should be tudo initialized with 0 */
 static struct InterruptDescriptorTableRegister32 idtr; // static or not, global variable, address loaded into memory, known in linktime.
@@ -15,13 +15,13 @@ extern uint32_t* interrupt_pointer_table[OS_IDT_TOTAL_INTERRUPTS];
 void idt_zero()
 {
 	char msg[] = "Divide by zero error\n";
-	kprint(msg, kstrlen(msg), 4);
+	kfprint(msg, 4);
 }
 
 //void _interrupt_handler(uint32_t interrupt, struct interrupt_frame* frame)
 void _interrupt_handler(uint32_t interrupt, uint32_t frame)
 {
-	frame = frame; // unused
+	(void)frame;
 	PIC_sendEOI((uint8_t)(interrupt & 0xff));
 }
 

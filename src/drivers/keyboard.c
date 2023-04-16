@@ -21,7 +21,7 @@
 #include "drivers/keyboard.h"
 #include "idt/idt.h"
 #include "util/kutil.h"
-#include "kernel.h"
+#include "include/uapi/graphic.h"
 #define BREAK_MASK (0x80)
 
 static unsigned char atakbd_keycode[0x73] = {	/* American layout */
