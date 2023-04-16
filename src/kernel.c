@@ -7,6 +7,7 @@
 #include "memory/kheap.h"
 #include "memory/paging/paging.h"
 #include "disk/disk.h"
+#include "fs/pathparser.h"
 /* Kernel Page Directory */
 static PAGE_DIRECTORY_4KB* kpd = 0;
 
@@ -53,6 +54,8 @@ void kernel_main()
 	// TODO MOUSE HANDLING
 	// TODO TERMINAL
 	enable_interrupts();
+	PATH_ROOT* root_path = path_parse("0:/bin/bash", NULL);
+	(void) root_path;
 }
 
 static uint16_t* video_mem = (uint16_t*)(0xB8000); /* create a local pointer to the absolute address */

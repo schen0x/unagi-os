@@ -14,8 +14,8 @@ typedef struct PATH_PART
 	const char* part;
 	struct PATH_PART* next;
 } PATH_PART;
-PATH_PART* path_parse_part(PATH_PART* prev, const char** path_str);
 uint32_t path_free(PATH_ROOT* root);
+PATH_ROOT* path_parse(const char* path_str, const char* current_dir_path);
 
 #endif
 

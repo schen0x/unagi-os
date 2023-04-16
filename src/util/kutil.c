@@ -29,7 +29,7 @@ size_t kstrnlen(const char *str, size_t max)
 	size_t len = 0;
 	for (len = 0; len < max; len++)
 	{
-		if(str[len] != '\0')
+		if(str[len] == '\0')
 			break;
 	}
 	return len;
