@@ -526,6 +526,9 @@ struct firmware_map_entry {
 
 ## U20 FILE SYSTEM
 
+- More disk IO
+  - ![u20-dstream_read](./img/u20-dstream_read.png)
+  - ![u20-dstream_read-img](./img/u20-dstream_read-img.png)
 - File system driver write data to a disk location in an organized way.
 
 

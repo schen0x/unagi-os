@@ -1,6 +1,7 @@
 #include "io/io.h"
 #include "disk/disk.h"
 #include <stdint.h>
+#include <stddef.h>
 #include "memory/memory.h"
 #include "status.h"
 #include "config.h"
@@ -63,7 +64,7 @@ DISK* disk_get(int index)
 {
 	if (index != 0)
 	{
-		return 0;
+		return NULL;
 	}
 	return &disk;
 }

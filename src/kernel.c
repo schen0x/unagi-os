@@ -9,6 +9,7 @@
 #include "disk/disk.h"
 #include "fs/pathparser.h"
 #include "include/uapi/graphic.h"
+#include "disk/dstream.h"
 /* Kernel Page Directory */
 static PAGE_DIRECTORY_4KB* kpd = 0;
 
@@ -40,8 +41,12 @@ void kernel_main()
 	// TODO Try sprintf
 	// TODO MOUSE HANDLING
 	// TODO TERMINAL
+
+	// Read 1024 bytes from 0x10 byte of the os image.
+	char* dbuf = kzalloc(2048);
 	enable_interrupts();
-	PATH_ROOT* root_path = path_parse("0:/bin/bash", NULL);
-	(void) root_path;
+	DISK_STREAM* ds = dstream_new(0);
+	dstream_seek(ds, 0x10);
+	dstream_read(ds, dbuf, 1024);
 }
 
