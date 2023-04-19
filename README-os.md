@@ -570,4 +570,12 @@ struct firmware_map_entry {
     - Local_Data          DS
     - Destination_Strings ES
 
+- Address = Segment * 0x10 + offset
+
+```asm
+mov ax, 0x82
+mov ds, ax
+mov ax, 0x81
+mov [ds:ax], 1 ; 0x82 << 4 + 0x81 == mov [0x8A1], 1
+```
 

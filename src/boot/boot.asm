@@ -1,10 +1,12 @@
 [BITS 16]
-[ORG 0x7c00]
+[ORG 0x7c00]						; Memory Map - Boot Sector is loaded at this address
 
 PROTECTED_MODE_CODE_SEGMENT_SELECTOR equ  1000b		; Index 1, no flags set; The first entry in the GDTR
 PROTECTED_MODE_DATA_SEGMENT_SELECTOR equ 10000b		; Index 2, no flags set; The second entry in the GDTR
 CODE_SEG equ GDT_CODE - GDT_START			; This also calculates the offset. Because each Segment Descriptor is 64 bits or 8 bytes. Offset * 8 equals to the segment selector with no flag.
 DATA_SEG equ GDT_DATA - GDT_START
+BOOT_DISK_INT13H_DRIVE_TYPE equ 80h			; 1st hard disk
+LOAD_ADDRESS_NEXT_SECTOR_ES equ 820h			; ES * 0x10h == 0x8200
 
 _START:
     jmp short START
@@ -23,11 +25,63 @@ STEP2:
     mov ss, ax
     mov sp, 0x7c00					; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself.
     sti
+    jmp 0:READ_MORE_SECTORS
+    ;jmp 0:LOAD_PROTECTED
 
-    jmp VESA_INIT
-
-.LOAD_PROTECTED:
+READ_MORE_SECTORS:					; load more sectors to [0x7e00 - 0x7ffff] (conventional memory), for disk, use ah=8 function to get CHS info but we only load very few sectors for video etc. See LBA to CHS algorithm in OSDEV
     cli
+    mov ax, LOAD_ADDRESS_NEXT_SECTOR_ES
+    mov es, ax						; ES:BX Buffer Address Pointer, ES * 0x10 == 0x8200
+    mov ch, 0						; Cylinder
+    mov dh, 0						; Head
+    mov cl, 2						; Sector
+
+.int13h_readloop:
+    mov si, 0						; Fail count
+.int13h_retry:
+    mov ah, 0x02					; INT 13h AH=02h Read disk
+    mov al, 1						; Sectors To Read Count
+    mov bx, 0						; ES:BX Buffer Address Pointer
+    mov dl, BOOT_DISK_INT13H_DRIVE_TYPE
+    int 0x13						; CF is set on error, clear if no error
+    jnc .int13h_next
+    add si, 1						; retry counter++
+    cmp si, 5						; retry max = 5
+    mov ah, 0
+    mov dl, BOOT_DISK_INT13H_DRIVE_TYPE
+    int 0x13						; drive reset
+    jmp .int13h_retry
+
+.int13h_next:
+    mov ax, es
+    add ax, 0x0020
+    mov es, ax						; 0x200 == 512 byte == 1 sector
+    add cl, 1
+    cmp cl, 63						; disk CHS max sector convention
+    jbe .int13h_readloop				; loop when below equal x sectors
+    sti
+    ; jmp NEXT_SECTORS
+    jmp 0:LOAD_PROTECTED
+
+;VESA_INIT:
+;    pusha
+;    pushf
+;    xor ah,ah
+;    mov al, 0x13					; 300x200x256
+;    ;mov al, 0x107					; 107h   1280x1024x256 VESA
+;    int 0x10
+;
+;    popf
+;    popa
+
+
+LOAD_PROTECTED:
+    cli
+    mov ax, 0x00
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov sp, 0x7c00					; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself.
     lgdt[GDT_DESCRIPTOR]				; load GDT with GDT_DESCRIPTOR (GDTR)
     mov eax, cr0					; Prepare to set PE (Protection Enable) bit in CR0 (Control Register 0)
     or al, 1						; Prepare to set PE bit in CR0
@@ -64,6 +118,10 @@ GDT_DESCRIPTOR:						; The GDTR
     dw GDT_END - GDT_START - 1				; GDT_Size - 1, because max GDT_Size can be 65536, 1 byte more than 0xffff
     dd GDT_START					; Offset, 4 bytes in 32 bit mode
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 32 BIT START ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [BITS 32]
 load32:
     mov eax, 1						; we use eax to represent the starting sector to load
@@ -130,18 +188,6 @@ ata_lba_read:
     loop .next_sector					; Loop and decrement ecx by 1
     ; End of reading sectors to read
     ret
-
-VESA_INIT:
-    pusha
-    pushf
-    xor ah,ah
-    mov al, 0x13					; 300x200x256
-    ;mov al, 0x107					; 107h   1280x1024x256 VESA
-    int 0x10
-
-    popf
-    popa
-
 
 times 510 - ($ - $$) db 0	; pad to write the boot signature 0x55 0xAA
 dw 0xAA55			; The boot signature in Little Endian
