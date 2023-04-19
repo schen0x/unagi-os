@@ -24,6 +24,8 @@ STEP2:
     mov sp, 0x7c00					; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself.
     sti
 
+    jmp VESA_INIT
+
 .LOAD_PROTECTED:
     cli
     lgdt[GDT_DESCRIPTOR]				; load GDT with GDT_DESCRIPTOR (GDTR)
@@ -128,6 +130,17 @@ ata_lba_read:
     loop .next_sector					; Loop and decrement ecx by 1
     ; End of reading sectors to read
     ret
+
+VESA_INIT:
+    pusha
+    pushf
+    xor ah,ah
+    mov al, 0x13					; 300x200x256
+    ;mov al, 0x107					; 107h   1280x1024x256 VESA
+    int 0x10
+
+    popf
+    popa
 
 
 times 510 - ($ - $$) db 0	; pad to write the boot signature 0x55 0xAA

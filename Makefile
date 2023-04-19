@@ -18,7 +18,8 @@ compile: ./bin/boot.bin ./bin/kernel.bin
 	dd if=/dev/zero bs=512 count=100 >> ./bin/os.bin
 
 run:
-	qemu-system-i386 -hda ./bin/os.bin -curses
+	qemu-system-i386 -hda ./bin/os.bin -vga std
+	# qemu-system-i386 -hda ./bin/os.bin -vga std -curses 
 
 rungui:
 	qemu-system-i386 -hda ./bin/os.bin

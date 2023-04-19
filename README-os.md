@@ -532,6 +532,29 @@ struct firmware_map_entry {
 - File system driver write data to a disk location in an organized way.
 
 
+## B04 GRAPHIC MODES
+
+- KEYWORDS: **INT 10H**, **VESA**, **VESA BIOS extension(VBE)**
+
+- [INT 10H, wiki](https://en.wikipedia.org/wiki/INT_10H)
+- [INT 10H, Video Mode examples, wiki](http://www.columbia.edu/~em36/wpdos/videomodes.txt)
+
+- It is a BIOS call == only available in "REALMODE" or "VITURAL 8086 MODE".
+
+- Video Graphics Array (VGA) ALL POINTS ADDRESSABLE (APA) Graphics
+- Typically, the Video Memory is mapped as the following:
+
+```txt
+0xA0000 - 0xBFFFF For EGA/VGA video modes
+0xB0000 - 0xB7777 For Monochrome text mode
+0xB8000 - 0xBFFFF For Color text mode and CGA compatible graphics modes
+```
+
+- [Locating_Video_Memory](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer#Locating_Video_Memory)
+- Mode 13h: VGA 320*200 256 color
+
+
+
 ## ASSEMBLY
 
 - [NASM doc](https://www.nasm.us/xdoc/2.11.08/html/nasmdoc7.html)
