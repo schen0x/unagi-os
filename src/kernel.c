@@ -16,7 +16,7 @@ static PAGE_DIRECTORY_4KB* kpd = 0;
 void kernel_main()
 {
 	graphic_initialize();
-	char msg[] = "Hello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!Hello World!\nHello World!    ";
+	char msg[] = "A";
 	kfprint(msg, 4);
 	int32_t x = 10;
 	int32_t y = 0;
@@ -28,7 +28,6 @@ void kernel_main()
 	// TODO e820 routine
 
 	k_mm_init();
-	idt_init();
 	// ==============
 	uint32_t pd_entries_flags = 0b111;
 	kpd = pd_init(pd_entries_flags);
@@ -42,11 +41,8 @@ void kernel_main()
 	// TODO MOUSE HANDLING
 	// TODO TERMINAL
 
-	// Read 1024 bytes from 0x10 byte of the os image.
-	char* dbuf = kzalloc(2048);
+	idt_init();
 	enable_interrupts();
-	DISK_STREAM* ds = dstream_new(0);
-	dstream_seek(ds, 0x10);
-	dstream_read(ds, dbuf, 1024);
+	asm("hlt");
 }
 

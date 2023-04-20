@@ -53,8 +53,8 @@ READ_MORE_SECTORS:					; load more sectors to [0x7e00 - 0x7ffff] (conventional m
     add ax, 0x0020
     mov es, ax						; 0x200 == 512 byte == 1 sector
     add cl, 1
-    cmp cl, 63						; disk CHS max sector convention
-    jbe .int13h_readloop				; loop when below equal x sectors
+    cmp cl, 4						; disk CHS max sector 63
+    jbe .int13h_readloop				; loop when below equal x sectors. load 4096 bytes, which is boot.asm + boot_next.asm
     sti
     jmp LOAD_ADDRESS_NEXT_SECTOR_ES * 0x10
     ; jmp 0:LOAD_PROTECTED

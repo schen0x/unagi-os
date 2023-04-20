@@ -11,7 +11,7 @@ struct heap_table kernel_heap_table;
 /*
  * 1024 * 1024 * 100 = 100 MB heap size
  * 100 MB / 4096 = 25600 block; heap_table_size = <block counts> * entrysize("uint8_t")
- * Put the table in 0x7E00 - 0x7FFF (480KB), we need 25KB per 100MB
+ * Put the table in 0x7E00 - 0x7FFFF (480KB), we need 25KB per 100MB
  */
 void k_heap_table_mm_init()
 {

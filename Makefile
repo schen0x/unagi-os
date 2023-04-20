@@ -16,18 +16,18 @@ compile: ./bin/boot.bin ./bin/kernel.bin ./bin/boot_next.bin
 	dd if=./bin/boot.bin >> ./bin/os.bin
 	dd if=./bin/boot_next.bin >> ./bin/os.bin
 	dd if=./bin/kernel.bin >> ./bin/os.bin
-	dd if=/dev/zero bs=512 count=100 >> ./bin/os.bin
+	dd if=/dev/zero bs=512 count=200 >> ./bin/os.bin
 
 run:
 	# qemu-system-i386 -hda ./bin/os.bin -vga std
-	qemu-system-i386 -hda ./bin/os.bin -vga std -curses 
+	qemu-system-i386 -hda ./bin/os.bin -vga std -curses
 
 rungui:
 	qemu-system-i386 -hda ./bin/os.bin
 
 gdb:
 	# qemu-system-x86_64 -hda ./bin/os.bin -curses -S -s
-	qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234 -curses 
+	qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234 -curses
 
 # The bootloader
 ./bin/boot.bin: ./src/boot/boot.asm

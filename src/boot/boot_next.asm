@@ -69,21 +69,37 @@ GDT_DESCRIPTOR:						; The GDTR
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [BITS 32]
 LOAD32:
-    mov eax, 2						; we use eax to represent the starting sector to load
-    mov ecx, 100					; we use ecx to represent the total sectors to load
-    mov edi, 0x0100000					; we use edi to represent the dst address when loading
-    ; jmp $ ; FIXME need to load the correct sector
-    call ata_lba_read
-    jmp CODE_SEG:0x0100000				; jump to 1MB
+    push 0x00100000					; dst address when loading, edi
+    push 0xf0						; Total sectors to load, max 0xff, ecx
+    push 8						; The starting sector to load; It's an lba number, hence 0 indexed. Two boot sectors have 4096 bytes in total, 4096 / 512 == 8, so _start is in the 9th sector;
+    call ATA_LBA_READ
+    add esp, 12
+    jmp CODE_SEG:0x00100000				; jump to 1MB
 
-ata_lba_read:
-    mov ebx, eax					; Backup the Logic Block Address (LBA)
+ATA_LBA_READ:
+    push ebp
+    mov ebp, esp
+
+    mov eax, 0
+    mov es, eax
+
+    xor ecx, ecx
+    mov ecx, [ebp + 12]					; total sectors to load, max 0xff, ecx
+
+    xor edi, edi
+    mov edi, [ebp + 16]					; dst address when loading, edi
+
+    mov ebx, [ebp + 8]					; The Logic Block Address (LBA)
+    mov eax, ebx
     ; Send the highest 8 bits of the lba to hard disk controller
     shr eax, 24
-    or eax, 0xE0					; select the master drive
+    or eax, 0b01000000					; (28 bit PIO), select lba mode and the master drive
     mov dx, 0x1F6					; the destined port
     out dx, al
     ; Finished sending the highest 8 bits of the lba
+    mov dx, 0x1F1					; the destined port
+    mov al, 0
+    out dx, al	; io wait
 
     ; Send the total sectors to read
     mov eax, ecx
@@ -91,28 +107,29 @@ ata_lba_read:
     out dx, al
     ; Finished sending the total bits to read
 
-    ; Send more bits of the LBA
+    ; Send lower 8 bits of the LBA
     mov eax, ebx					; Restore the backup LBA
     mov dx, 0x1F3
     out dx, al
     ; Finished sending more bits of the LBA
 
-    ; Send more bits of the LBA
-    mov dx, 0x1F4
+    ; Send next 8 bits of the LBA
     mov eax, ebx					; Restore the backup LBA
     shr eax, 8
+    mov dx, 0x1F4
     out dx, al
     ; Finished sending more bits of the LBA
 
     ; Send the upper 16 bits of the LBA
-    mov dx, 0x1F5
     mov eax, ebx					; Restore the backup LBA
     shr eax, 16
+    mov dx, 0x1F5
     out dx, al
     ; Finished sending the upper 16 bits of the LBA
 
-    mov dx, 0x1f7
+    ; Send the "READ SECTORS" command (0x20)
     mov al, 0x20
+    mov dx, 0x1f7
     out dx, al
 
 ; Read all sectors into memory
@@ -120,19 +137,21 @@ ata_lba_read:
     push ecx
 
 ; Checking if we need to read
-.try_again:
+.try_again:						; wait until disk controller ready
     mov dx, 0x1f7
     in al, dx
-    test al, 8
+    test al, 8						; magic, ata status ready
     jz .try_again
 
-; We need to read 256 words at a time
-    mov ecx, 256
+; Read 256 words at a time
+    mov ecx, 256					; ecx is the counter of rep
     mov dx, 0x1F0
-    rep insw						; Read one word, repeat 256 times
+    rep insw						; Read one word, repeat 256 times; Input doubleword from IO port specified in dx, into memory es:(e)di
     pop ecx						; Restore the ecx
     loop .next_sector					; Loop and decrement ecx by 1
     ; End of reading sectors to read
+
+    pop ebp
     ret
 
-times 512 - ($ - $$) db 0
+times (4096 - 512) - ($ - $$) db 0

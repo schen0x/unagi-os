@@ -20,8 +20,7 @@ static int heap_validate_table(void* heap_start, void* heap_end,  struct heap_ta
 	size_t expected_total_table_blocks = total_memory_size / HBLOCK_SIZE;
 	if (table->total_blocks != expected_total_table_blocks)
 	{
-		res = -EINVARG;
-		return res;
+		return -EINVARG;
 	}
 	return res;
 }
