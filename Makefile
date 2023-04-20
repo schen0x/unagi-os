@@ -11,9 +11,10 @@ allgui: clean builddir compile rungui
 builddir:
 	mkdir -p build/gdt build/idt build/memory build/memory/paging build/util build/io build/pic build/drivers build/disk build/fs ./build/include/uapi ./build/drivers/graphic
 
-compile: ./bin/boot.bin ./bin/kernel.bin
+compile: ./bin/boot.bin ./bin/kernel.bin ./bin/boot_next.bin
 	rm -rf ./bin/os.bin
 	dd if=./bin/boot.bin >> ./bin/os.bin
+	dd if=./bin/boot_next.bin >> ./bin/os.bin
 	dd if=./bin/kernel.bin >> ./bin/os.bin
 	dd if=/dev/zero bs=512 count=100 >> ./bin/os.bin
 
@@ -31,6 +32,8 @@ gdb:
 # The bootloader
 ./bin/boot.bin: ./src/boot/boot.asm
 	nasm -f bin ./src/boot/boot.asm -o ./bin/boot.bin
+./bin/boot_next.bin: ./src/boot/boot_next.asm
+	nasm -f bin ./src/boot/boot_next.asm -o ./bin/boot_next.bin
 # The 32 bits kernel, depends on two parts, written in asm and C
 ./bin/kernel.bin: $(FILES)
 	$(TOOLPATH)/i686-elf-ld -g -relocatable $(FILES) -o ./build/kernelfull.o
