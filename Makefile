@@ -1,4 +1,4 @@
-FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o ./build/memory/heap.o ./build/memory/kheap.o ./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o ./build/disk/disk.o ./build/fs/pathparser.o ./build/include/uapi/graphic.o ./build/drivers/graphic/colortextmode.o ./build/disk/dstream.o
+FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o ./build/memory/heap.o ./build/memory/kheap.o ./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o ./build/disk/disk.o ./build/fs/pathparser.o ./build/include/uapi/graphic.o ./build/drivers/graphic/colortextmode.o ./build/disk/dstream.o ./build/drivers/graphic/videomode.o
 GCC_KERNEL_INCLUDES = -I./src
 GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -O0 -Iinc
 TOOLPATH = $(HOME)/opt/cross/bin
@@ -19,8 +19,8 @@ compile: ./bin/boot.bin ./bin/kernel.bin ./bin/boot_next.bin
 	dd if=/dev/zero bs=512 count=200 >> ./bin/os.bin
 
 run:
-	# qemu-system-i386 -hda ./bin/os.bin -vga std
-	qemu-system-i386 -hda ./bin/os.bin -vga std -curses
+	qemu-system-i386 -hda ./bin/os.bin -vga std
+	# qemu-system-i386 -hda ./bin/os.bin -vga std -curses
 
 rungui:
 	qemu-system-i386 -hda ./bin/os.bin
@@ -87,6 +87,8 @@ gdb:
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/graphic/colortextmode.c -o ./build/drivers/graphic/colortextmode.o
 ./build/disk/dstream.o: ./src/disk/dstream.c
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/disk/dstream.c -o ./build/disk/dstream.o
+./build/drivers/graphic/videomode.o: ./src/drivers/graphic/videomode.c
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/graphic/videomode.c -o ./build/drivers/graphic/videomode.o
 clean:
 	rm -rf ./bin/os.bin
 	rm -rf ./bin/boot.bin

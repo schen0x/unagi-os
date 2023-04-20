@@ -16,6 +16,7 @@ void idt_zero()
 {
 	char msg[] = "Divide by zero error\n";
 	kfprint(msg, 4);
+	asm("HLT");
 }
 
 //void _interrupt_handler(uint32_t interrupt, struct interrupt_frame* frame)

@@ -5,6 +5,7 @@ global insb:function
 global insw:function
 global outb:function
 global outw:function
+global _write_mem8:function
 
 insb:
     push ebp
@@ -51,6 +52,17 @@ outw:
     mov eax, [ebp+12]			; the word to write
     mov edx, [ebp+8]
     in ax,dx
+
+    pop ebp
+    ret
+
+_write_mem8: ; void write_mem8(uint32_t addr, uint8_t data);
+    push ebp
+    mov ebp, esp
+
+    mov ecx, [esp + 8]			; addr
+    mov al, [esp + 12]			; data
+    mov [ecx], al
 
     pop ebp
     ret

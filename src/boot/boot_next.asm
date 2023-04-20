@@ -8,18 +8,31 @@ DATA_SEG equ GDT_DATA - GDT_START
 BOOT_DISK_INT13H_DRIVE_TYPE equ 80h			; 1st hard disk
 LOAD_ADDRESS_NEXT_SECTOR_ES equ 820h			; ES * 0x10h == 0x8200
 
-;VESA_INIT:
-;    pusha
-;    pushf
-;    xor ah,ah
-;    mov al, 0x13					; 300x200x256
-;    ;mov al, 0x107					; 107h   1280x1024x256 VESA
-;    int 0x10
-;
-;    popf
-;    popa
-
 NEXT_SECTORS:
+VESA_INIT:						; Select video mode
+    mov ah, 0
+    mov al, 0x13					; 300x200x256
+    ;mov al, 0x107					; 107h   1280x1024x256 VESA
+    int 0x10
+
+BOOT_INFO:
+    CYLS equ 0x0ff0					; ? boot sector?
+    LEDS equ 0x0ff1
+    VMODE equ 0x0ff2
+    SCRNX equ 0x0ff4					; Screen Resolution X
+    SCRNY equ 0x0ff6					; Screen Resolution Y
+    VRAM equ 0x0ff8					; Graphic Buffer Start Address
+
+    mov byte [VMODE], 8
+    mov word [SCRNX], 320				; ? TODO double check
+    mov word [SCRNY], 200
+    mov dword [VRAM], 0x000a0000
+
+    ; Keyboard status
+    mov ah, 0x02
+    int 0x16						; keyboard BIOS
+    mov [LEDS], al
+
 LOAD_PROTECTED:
     cli
     mov ax, 0x00
@@ -66,6 +79,8 @@ GDT_DESCRIPTOR:						; The GDTR
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 32 BIT START ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PROTECTED_MODE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;load kernel.asm and kernel.c to 0x100_000 (1M) ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [BITS 32]
 LOAD32:

@@ -16,6 +16,7 @@ static PAGE_DIRECTORY_4KB* kpd = 0;
 void kernel_main()
 {
 	graphic_initialize();
+	asm("hlt");
 	char msg[] = "A";
 	kfprint(msg, 4);
 	int32_t x = 10;
@@ -42,6 +43,7 @@ void kernel_main()
 	// TODO TERMINAL
 
 	idt_init();
+	asm volatile ("int $0");
 	enable_interrupts();
 	asm("hlt");
 }
