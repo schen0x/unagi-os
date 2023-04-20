@@ -24,12 +24,12 @@ struct DISK disk;
 int32_t disk_read_sector(int32_t lba, int32_t total_sectors, void* buf)
 {
 	lba &= 0x0fffffff; // 0-27 bits is the 28-bit-long lba
-	outb(ATA_SECTOR_COUNT_RW, total_sectors);
-	outb(ATA_LBA_LOW_RW, (lba & 0xff));
-	outb(ATA_LBA_MID_RW, ((lba >> 8) & 0xff));
-	outb(ATA_LBA_HIGH_RW, ((lba >> 16) & 0xff));
-	outb(ATA_DEVICE_OR_HEAD_RW, ((lba >> 24) | 0b01000000)); // bits 24-27 + 0b?1?0 Select Primary Master Drive, bit 30 (6, 0b?1) indicate lbs, bit 28 indicate the DEVICE number.
-	outb(ATA_CMD_W, 0x20);
+	_io_out8(ATA_SECTOR_COUNT_RW, total_sectors);
+	_io_out8(ATA_LBA_LOW_RW, (lba & 0xff));
+	_io_out8(ATA_LBA_MID_RW, ((lba >> 8) & 0xff));
+	_io_out8(ATA_LBA_HIGH_RW, ((lba >> 16) & 0xff));
+	_io_out8(ATA_DEVICE_OR_HEAD_RW, ((lba >> 24) | 0b01000000)); // bits 24-27 + 0b?1?0 Select Primary Master Drive, bit 30 (6, 0b?1) indicate lbs, bit 28 indicate the DEVICE number.
+	_io_out8(ATA_CMD_W, 0x20);
 
 	uint16_t *inbuf = (uint16_t*) buf;
 	for (int32_t i = 0; i < total_sectors; i++)
@@ -38,13 +38,13 @@ int32_t disk_read_sector(int32_t lba, int32_t total_sectors, void* buf)
 		uint8_t s = 0;
 		while (!(s & 0x08))
 		{
-			s = insb(ATA_STATUS_R);
+			s = _io_in8(ATA_STATUS_R);
 		}
 		// Copy from hard disk to memory, 2 bytes a time
 		// OS_DISK_SECTOR_SIZE must be a multiple of 512
 		for (int j = 0; j < OS_DISK_SECTOR_SIZE / 2; j++)
 		{
-			*inbuf = insw(ATA_DATA_RW);
+			*inbuf = _io_in16(ATA_DATA_RW);
 			inbuf++;
 		}
 	}

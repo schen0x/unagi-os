@@ -553,6 +553,16 @@ struct firmware_map_entry {
 - [Locating_Video_Memory](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer#Locating_Video_Memory)
 - Mode 13h: VGA 320*200 256 color
 
+### VGA COLOR REGISTERS
+
+- [VGA Resources, OSDEV](https://wiki.osdev.org/VGA_Resources)
+- [Color Registers, Hardware Level VGA and SVGA Video Programming Information Page](http://www.osdever.net/FreeVGA/vga/colorreg.htm)
+
+```txt
+  The Color Registers in the standard VGA provide a mapping between the palette of between 2 and 256 colors to a larger 18-bit color space. This capability allows for efficient use of video memory while providing greater flexibility in color choice. The standard VGA has 256 palette entries containing six bits each of red, green, and blue values. The palette RAM is accessed via a pair of address registers and a data register. To write a palette entry, output the palette entry's index value to the DAC Address Write Mode Register then perform 3 writes to the DAC Data Register, loading the red, green, then blue values into the palette RAM. The internal write address automatically advances allowing the next value's RGB values to be loaded without having to reprogram the DAC Address Write Mode Register.  This allows the entire palette to be loaded in one write operation. To read a palette entry, output the palette entry's index to the DAC Address Read Mode Register. Then perform 3 reads from the DAC Data Register, loading the red, green, then blue values from palette RAM. The internal write address automatically advances allowing the next RGB values to be written without having to reprogram the DAC Address Read Mode Register.
+```
+
+- ![B04-VGA_Color_Registers](./img/B04-VGA_Color_Registers.png)
 
 
 ## ASSEMBLY
@@ -578,4 +588,9 @@ mov ds, ax
 mov ax, 0x81
 mov [ds:ax], 1 ; 0x82 << 4 + 0x81 == mov [0x8A1], 1
 ```
+
+### FLAGS
+
+- `CLI`: CLear Interrupt Flag (IF) (in FLAGS or EFLAGS)
+- `STI`: SeT Interrupt Flag (IF) (in FLAGS or EFLAGS)
 
