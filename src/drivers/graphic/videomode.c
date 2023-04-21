@@ -2,27 +2,90 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "io/io.h"
+#define COL8_000000 0 // 0:Black
+#define COL8_FF0000 1 // 1:Red+
+#define COL8_00FF00 2 // 2:Green+
+#define COL8_FFFF00 3 // 3:Yellow+
+#define COL8_0000FF 4 // 4:Cyan+
+#define COL8_FF00FF 5 // 5:Purple+
+#define COL8_00FFFF 6 // 6:Blue+
+#define COL8_FFFFFF 7 // 7:White
+#define COL8_C6C6C6 8 // 8:Gray+
+#define COL8_840000 9 // 9:Red-
+#define COL8_008400 10 // 10:Green-
+#define COL8_848400 11 // 11:Yellow-
+#define COL8_000084 12 // 12:Cyan-
+#define COL8_840084 13 // 13:Purple-
+#define COL8_008484 14 // 14:Blue-
+#define COL8_848484 15 // 15:Gray-
+static uintptr_t video_mem_start = (uintptr_t)(0xa0000); /* create a local pointer to the absolute address */
+static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer to the absolute address */
 
-// static uint16_t* video_mem = (uint16_t*)(0xa8000); /* create a local pointer to the absolute address */
-
-// void videomode_terminal_put_char(const int64_t x, const int64_t y, const char c, const uint8_t color);
-// void videomode_kfprint(const char* str, const uint8_t color);
-void videomode_terminal_initialize()
+/* Draw stripes on the screen */
+static void __draw_stripes()
 {
-	unsigned char* p = NULL;
-	// use intptr_t to ensure the size is big enough to hold a pointer
-	for (intptr_t i = 0xa0000; i <= 0xaffff; i++)
+	// use uintptr_t to ensure the size is big enough to hold a pointer
+	// cannot do arithmetic operations on (void*) without casting, but can with uintptr_t
+	for (uintptr_t i = video_mem_start; i <= video_mem_end; i++)
 	{
 		// _asm_write_mem8(i, 15); // all white
 		// _asm_write_mem8(i, i & 0x0f); // vertical stripes
-		p = (unsigned char *)i;
-		*p = i & 0x0f;
-		*(uint8_t*) i = i & 0x0f; // same
+		*(uint8_t*) i = i & 0x0f;
 	}
+}
+
+static void __draw_three_boxes()
+{
+	uintptr_t vram = video_mem_start;
+	boxfill8((uint8_t*) vram, 320, COL8_FF0000, 20, 20, 120, 120);
+	boxfill8((uint8_t*) vram, 320, COL8_00FF00, 70, 50, 170, 150);
+	boxfill8((uint8_t*) vram, 320, COL8_0000FF, 120, 80, 220, 180);
+}
+
+static void draw_windows()
+{
+	int32_t xsize, ysize;
+	uint8_t* vram = (uint8_t *) video_mem_start;
+	xsize = 320;
+	ysize = 200;
+
+	boxfill8(vram, xsize, COL8_008484, 0,		0,		xsize - 1,	ysize - 29); // Blue-, desktop
+	boxfill8(vram, xsize, COL8_C6C6C6, 0,		ysize - 28, 	xsize - 1, 	ysize - 28); // Gray, line as shadow, taskbar
+	boxfill8(vram, xsize, COL8_FFFFFF, 0,		ysize - 27, 	xsize - 1, 	ysize - 27); // White, line, taskbar
+	boxfill8(vram, xsize, COL8_C6C6C6, 0,		ysize - 26, 	xsize - 1, 	ysize - 1); // Gray+, taskbar
+
+	boxfill8(vram, xsize, COL8_FFFFFF, 3,		ysize - 24, 	59, 	ysize - 24); // White, start menu btn.t
+	boxfill8(vram, xsize, COL8_FFFFFF, 2,		ysize - 24, 	2, 	ysize - 4); // White, start menu btn.l
+	boxfill8(vram, xsize, COL8_848484, 3,		ysize - 4, 	59, 	ysize - 4); // Gray-, start menu btn.b.edge
+	boxfill8(vram, xsize, COL8_848484, 59,		ysize - 23, 	59, 	ysize - 5); // Gray-, start menu btn.r.edge
+	boxfill8(vram, xsize, COL8_000000, 2,		ysize - 3, 	59, 	ysize - 3); // Black, start menu btn.r.shadow
+	boxfill8(vram, xsize, COL8_000000, 60,		ysize - 24, 	60, 	ysize - 3); // Black, start menu btn.r.shadow
+
+	boxfill8(vram, xsize, COL8_848484, xsize - 47,	ysize - 24, xsize - 4, 	ysize - 24); // Gray-, tray.t.edge
+	boxfill8(vram, xsize, COL8_848484, xsize - 47,	ysize - 23, xsize - 47,	ysize - 4); // Gray-, tray.l.edge
+	boxfill8(vram, xsize, COL8_FFFFFF, xsize - 47,	ysize - 3, xsize - 4,	ysize - 3); // White, tray.b.edge
+	boxfill8(vram, xsize, COL8_FFFFFF, xsize - 3,	ysize - 24, xsize - 3,	ysize - 3); // White, tray.r.edge
 
 }
 
-// TODO
+void videomode_window_initialize()
+{
+	// __draw_stripes();
+
+	init_palette();
+	// __draw_three_boxes();
+	draw_windows();
+}
+
+static void boxfill8(uint8_t* vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
+{
+	for(int32_t y = y0; y <= y1; y++)
+	{
+		for(int32_t x = x0; x <= x1; x++)
+			vram[y * xsize + x] = color;
+	}
+}
+
 static void init_palette(void)
 {
 	static unsigned char table_rgb[16 * 3] =
