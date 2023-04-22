@@ -66,12 +66,8 @@ void putfont8(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, int8_t color,
 
 }
 
-void videomode_window_initialize(BOOTINFO* bi)
+static void __write_some_chars(BOOTINFO* bi)
 {
-	// __draw_stripes();
-	init_palette();
-	// __draw_three_boxes();
-	draw_windows(bi);
 	putfont8((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, font_A);
 	/* Since "hankaku[4096]" is 0 indexed from '\x00', '\x41' * 16 gives the starting location */
 	putfont8((uintptr_t)bi->vram, bi->scrnx, 16, 8, COL8_FFFFFF, hankaku + 'B' * 16);
@@ -79,6 +75,27 @@ void videomode_window_initialize(BOOTINFO* bi)
 	putfont8((uintptr_t)bi->vram, bi->scrnx, 40, 8, COL8_FFFFFF, hankaku + '1' * 16);
 	putfont8((uintptr_t)bi->vram, bi->scrnx, 48, 8, COL8_FFFFFF, hankaku + '2' * 16);
 	putfont8((uintptr_t)bi->vram, bi->scrnx, 56, 8, COL8_FFFFFF, hankaku + '3' * 16);
+}
+
+void putfonts8_asc(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, uint8_t color, char *s)
+{
+	for(; *s != 0; s++)
+	{
+		putfont8(vram, xsize, x, y, color, hankaku + *s * 16);
+		x += 8;
+	}
+}
+
+void videomode_window_initialize(BOOTINFO* bi)
+{
+	// __draw_stripes();
+	init_palette();
+	// __draw_three_boxes();
+	draw_windows(bi);
+	// __write_some_chars(bi);
+	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "ABC 234");
+	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 31, 31, COL8_000000, "Haribote OS.");
+	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 30, 30, COL8_FFFFFF, "Haribote OS.");
 }
 
 static void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
