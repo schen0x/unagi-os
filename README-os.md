@@ -220,13 +220,12 @@ mov byte al, [es:32]
     - To install globally: `/usr/local/cross`
 
 
-## SECTION 4 PROTECTED MODE DEVELOPMENT
+## SECTION 4 PROTECTED MODE DEVELOPMENT  (PROTECTED_MODE)
 
 - Protected Mode is a mode that protect memory & hardware from being accessed.
 - Protected Mode can be divided into rings with different permission level: Ring 0 (kernel), Ring 1 & 2 (maybe device drivers), Ring 3 (normal user program)
 - Protected Mode also give access to 32-bit Instructions and 4 GB of Addressable Memory (in Real Mode only 1MB)
 - There are different memory schemes, a common one is Paging Memory Scheme
-
 
 ### U09 ENTERING PROTECTED MODE
 
@@ -247,8 +246,13 @@ jmp 08h:PModeMain
 
 #### GLOBAL DESCRIPTOR TABLE
 
+- SEGMENT_SELECTOR index range is 0 to 8191
+    - Index			15:3
+    - Table Indicator (TI)	2		; 0 for GDT, 1 for LDT
+    - Ring Privilege Level	1:0
+- [Segment Selector, OSDEV](https://wiki.osdev.org/Segment_Selector)
 - Use default GDT parameter values
-- CALCULATE THE SEGMENT_SELECTOR USE ASM
+- Calculate the SEGMENT_SELECTOR in asm
 - Since each Segment Descriptor is 64 bits (8 bytes).
 - The following code calculate the segment selector with no flag.
 
@@ -580,7 +584,10 @@ struct firmware_map_entry {
     - Local_Data          DS
     - Destination_Strings ES
 
-- Address = Segment * 0x10 + offset
+- Behavior different in REALMODE and PROTECTED_MODE
+    - Realmode: Address = Segment * 0x10 + offset
+    - Protected mode: SS as SEGMENT_SELECTOR
+
 
 ```asm
 mov ax, 0x82

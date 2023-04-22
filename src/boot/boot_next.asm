@@ -1,10 +1,10 @@
 [BITS 16]
 [ORG 0x8200]						;
 
-PROTECTED_MODE_CODE_SEGMENT_SELECTOR equ  1000b		; Index 1, no flags set; The first entry in the GDTR
-PROTECTED_MODE_DATA_SEGMENT_SELECTOR equ 10000b		; Index 2, no flags set; The second entry in the GDTR
-CODE_SEG equ GDT_CODE - GDT_START			; This also calculates the offset. Because each Segment Descriptor is 64 bits or 8 bytes. Offset * 8 equals to the segment selector with no flag.
+; PROTECTED_MODE_DATA_SEGMENT_SELECTOR equ 1000b		; Index 1, no flags set; The second entry in the GDTR
+; PROTECTED_MODE_CODE_SEGMENT_SELECTOR equ 10000b		; Index 2, no flags set; The first entry in the GDTR
 DATA_SEG equ GDT_DATA - GDT_START
+CODE_SEG equ GDT_CODE - GDT_START			; This also calculates the offset. Because each Segment Descriptor is 64 bits or 8 bytes. Offset * 8 equals to the segment selector with no flag.
 BOOT_DISK_INT13H_DRIVE_TYPE equ 80h			; 1st hard disk
 LOAD_ADDRESS_NEXT_SECTOR_ES equ 820h			; ES * 0x10h == 0x8200
 
@@ -34,18 +34,32 @@ BOOT_INFO:
     mov [LEDS], al
 
 LOAD_PROTECTED:
+.prep:
     cli
     mov ax, 0x00
     mov ds, ax
     mov es, ax
     mov ss, ax
     mov sp, 0x7c00					; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself.
+
+.load_gdtr:
     lgdt[GDT_DESCRIPTOR]				; load GDT with GDT_DESCRIPTOR (GDTR)
+
+.enable_a20_line:
+    in al, 0x92
+    test al, 2
+    jnz .enable_a20_line_end
+    or al, 2
+    and al, 0xFE
+    out 0x92, al
+
+.enable_a20_line_end:
+.enable_protected_mode:
     mov eax, cr0					; Prepare to set PE (Protection Enable) bit in CR0 (Control Register 0)
     or al, 1						; Prepare to set PE bit in CR0
     mov cr0, eax					; Set PE (Protection Enable) bit in CR0 (Control Register 0)
 
-    jmp PROTECTED_MODE_CODE_SEGMENT_SELECTOR:LOAD32	; load the 32 bits code into memory and jump to it
+    jmp CODE_SEG:LOAD32					; load the 32 bits code into memory and jump to it
 
 ; GDT
 GDT_START:
@@ -53,27 +67,25 @@ GDT_NULL:						; GDT Entry 0
     dd 0						; 4 bytes
     dd 0
 
-; OFFSET 0x0
-GDT_CODE:						; CS should point to this
-    dw 0xffff						; Segment Limit, first 0-15 bits, 0xffff is 256MB in 4kb page
-    dw 0						; Base Address 15:00
-    db 0						; Base Address 23:16
-    db 10011010b					; Common Access Byte 0x9a for Kernel Mode Code Segment
-    db 11001111b					; Flags and Limit; Simply allow all memory access
-    db 0						; Base 31:24
-
 GDT_DATA:						; DS, SS, ES, FS, GS
     dw 0xffff						; Segment Limit, first 0-15 bits, 0xffff is 256MB in 4kb page
     dw 0						; Base Address 15:00
     db 0						; Base Address 23:16
     db 0x92						; Access Byte for Kernel Mode Data Segment
-    db 11001111b					; Flags and Limit
+    db 11001111b					; Flags and Limit; Limit 0xfffff => 4GB memory
+    db 0						; Base 31:24
+
+GDT_CODE:						; CS should point to this
+    dw 0xffff						; Segment Limit, first 0-15 bits, 0xffff is 256MB in 4kb page
+    dw 0						; Base Address 15:00
+    db 0						; Base Address 23:16
+    db 0x9a						; Common Access Byte 0x9a for Kernel Mode Code Segment
+    db 11000111b					; Flags and Limit; Limit 0x7ffff => 2GB
     db 0						; Base 31:24
 
 GDT_END:
-
 GDT_DESCRIPTOR:						; The GDTR
-    dw GDT_END - GDT_START - 1				; GDT_Size - 1, because max GDT_Size can be 65536, 1 byte more than 0xffff
+    dw (GDT_END - GDT_START - 1)			; The size of the table in bytes - 1; because max GDT_Size can be 65536, 1 byte more than 0xffff
     dd GDT_START					; Offset, 4 bytes in 32 bit mode
 
 

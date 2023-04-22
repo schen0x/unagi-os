@@ -5,8 +5,8 @@ extern kernel_main					; the C function
 global problem
 extern idt_zero
 
-CODE_SEG equ 0x08
-DATA_SEG equ 0x10					; as explained in u09, boot.asm
+CODE_SEG equ 0x10
+DATA_SEG equ 0x8					; as explained in u09, boot.asm
 
 _start:
     mov ax, DATA_SEG
@@ -17,14 +17,6 @@ _start:
     mov ss, ax
     mov ebp, 0x00200000
     mov esp, ebp
-
-enable_a20_line:
-    in al, 0x92
-    test al, 2
-    jnz after
-    or al, 2
-    and al, 0xFE
-    out 0x92, al
 
 after:
     call kernel_main
