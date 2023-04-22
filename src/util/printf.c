@@ -1,3 +1,6 @@
+// COPY AND PASTED FROM
+// https://github.com/mpaland/printf
+//
 ///////////////////////////////////////////////////////////////////////////////
 // \author (c) Marco Paland (info@paland.com)
 //             2014-2019, PALANDesign Hannover, Germany
@@ -914,8 +917,9 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
   return ret;
 }
 
+// TODO
 void _putchar(char character)
 {
-	terminal_write_char(character, 3);
+	(void) character;
 }
 

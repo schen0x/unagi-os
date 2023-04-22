@@ -1,4 +1,4 @@
-FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o ./build/memory/heap.o ./build/memory/kheap.o ./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o ./build/disk/disk.o ./build/fs/pathparser.o ./build/include/uapi/graphic.o ./build/drivers/graphic/colortextmode.o ./build/disk/dstream.o ./build/drivers/graphic/videomode.o ./build/font/hankaku.o
+FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o ./build/memory/heap.o ./build/memory/kheap.o ./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o ./build/disk/disk.o ./build/fs/pathparser.o ./build/include/uapi/graphic.o ./build/drivers/graphic/colortextmode.o ./build/disk/dstream.o ./build/drivers/graphic/videomode.o ./build/font/hankaku.o ./build/util/printf.o ./build/util/arith64.o
 GCC_KERNEL_INCLUDES = -I./src
 GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -O0 -Iinc
 TOOLPATH = $(HOME)/opt/cross/bin
@@ -75,8 +75,8 @@ gdb:
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/memory/paging/paging.c -o ./build/memory/paging/paging.o
 ./build/memory/paging/paging.asm.o: ./src/memory/paging/paging.asm
 	nasm -f elf -F dwarf -g ./src/memory/paging/paging.asm -o ./build/memory/paging/paging.asm.o
-#./build/util/printf.o: ./src/util/printf.c
-#	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/printf.c -o ./build/util/printf.o
+./build/util/printf.o: ./src/util/printf.c
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/printf.c -o ./build/util/printf.o
 ./build/disk/disk.o: ./src/disk/disk.c
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/disk/disk.c -o ./build/disk/disk.o
 ./build/fs/pathparser.o: ./src/fs/pathparser.c
@@ -91,6 +91,8 @@ gdb:
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/graphic/videomode.c -o ./build/drivers/graphic/videomode.o
 ./build/font/hankaku.o: ./src/font/hankaku.c
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/font/hankaku.c -o ./build/font/hankaku.o
+./build/util/arith64.o: ./src/util/arith64.c
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/arith64.c -o ./build/util/arith64.o
 clean:
 	rm -rf ./bin/os.bin
 	rm -rf ./bin/boot.bin

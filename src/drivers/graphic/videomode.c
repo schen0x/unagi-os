@@ -4,6 +4,7 @@
 #include "io/io.h"
 #include "include/uapi/bootinfo.h"
 #include "font/hankaku.h"
+#include "util/printf.h"
 #define COL8_000000 0 // 0:Black
 #define COL8_FF0000 1 // 1:Red+
 #define COL8_00FF00 2 // 2:Green+
@@ -96,6 +97,9 @@ void videomode_window_initialize(BOOTINFO* bi)
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "ABC 234");
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 31, 31, COL8_000000, "Haribote OS.");
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 30, 30, COL8_FFFFFF, "Haribote OS.");
+	char s[16] = {0};
+	sprintf(s, "scrnx = %d", bi->scrnx);
+	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 16, 64, COL8_FFFFFF, s);
 }
 
 static void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
