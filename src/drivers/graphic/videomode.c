@@ -100,6 +100,79 @@ void videomode_window_initialize(BOOTINFO* bi)
 	char s[16] = {0};
 	sprintf(s, "scrnx = %d", bi->scrnx);
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 16, 64, COL8_FFFFFF, s);
+	uint8_t mouse[16*16] = {0};
+	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
+	putblock8_8((uintptr_t)bi->vram, bi->scrnx, 16, 16, bi->scrnx/2, bi->scrny/2, mouse, 16);
+
+}
+
+/*
+ * Parse video_mem ready data for the mouse cursor, store at *(uint8_t*)mouse
+ */
+void init_mouse_cursor8(intptr_t mouse, uint8_t back_color)
+{
+	uint8_t *m = (uint8_t *) mouse;
+	static char cursor[16][16] = {
+		"**************..",
+		"*OOOOOOOOOOO*...",
+		"*OOOOOOOOOO*....",
+		"*OOOOOOOOO*.....",
+		"*OOOOOOOO*......",
+		"*OOOOOOO*.......",
+		"*OOOOOOO*.......",
+		"*OOOOOOOO*......",
+		"*OOOO**OOO*.....",
+		"*OOO*..*OOO*....",
+		"*OO*....*OOO*...",
+		"*O*......*OOO*..",
+		"**........*OOO*.",
+		"*..........*OOO*",
+		"............*OO*",
+		".............***"
+	};
+	for (int32_t y = 0; y < 16; y++)
+	{
+		for (int32_t x = 0; x < 16; x++)
+		{
+			if (cursor[x][y] == '*')
+			{
+				m[y * 16 + x] = COL8_000000;
+				continue;
+			}
+			if (cursor[y][x] == 'O')
+			{
+				m[y * 16 + x] = COL8_FFFFFF;
+				continue;
+			}
+			if (cursor[y][x] == '.')
+			{
+				m[y * 16 + x] = back_color; // keep the original back_color (when hovering)
+			}
+		}
+	}
+	return;
+}
+
+/*
+ * Put *buf (a box) in vram.
+ * bxsize must eq pxsize and pysize for now.
+ * otherwise OVERFLOW!
+ * bxsize: Box xsize (width)
+ * FIXME vram, buf, index out of bound.
+ * Though for vram, currently probably will not cross 0x000BFFFF so no problem
+ *
+ */
+void putblock8_8(intptr_t vram, int32_t vxsize, int32_t pxsize,
+		int32_t pysize, int32_t px0, int32_t py0, uint8_t* buf, int32_t bxsize)
+{
+	int32_t x, y;
+	for (y = 0; y < pysize; y++)
+	{
+		for (x = 0; x < pxsize; x++)
+		{
+			((uint8_t *)vram)[(py0 + y) * vxsize + (px0 + x)] = buf[y * bxsize + x];
+		}
+	}
 }
 
 static void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
