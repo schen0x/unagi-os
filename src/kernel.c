@@ -10,12 +10,14 @@
 #include "fs/pathparser.h"
 #include "include/uapi/graphic.h"
 #include "disk/dstream.h"
+#include "include/uapi/bootinfo.h"
+
 /* Kernel Page Directory */
 static PAGE_DIRECTORY_4KB* kpd = 0;
 
 void kernel_main()
 {
-	graphic_initialize();
+	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	asm("hlt");
 	char msg[] = "A";
 	kfprint(msg, 4);
@@ -47,4 +49,5 @@ void kernel_main()
 	enable_interrupts();
 	asm("hlt");
 }
+
 

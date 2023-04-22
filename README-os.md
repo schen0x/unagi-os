@@ -594,3 +594,10 @@ mov [ds:ax], 1 ; 0x82 << 4 + 0x81 == mov [0x8A1], 1
 - `CLI`: CLear Interrupt Flag (IF) (in FLAGS or EFLAGS)
 - `STI`: SeT Interrupt Flag (IF) (in FLAGS or EFLAGS)
 
+
+## C
+
+### DEFINE A GLOBAl VARIABLE
+
+- In the header file write it with `extern`. And at the global scope of one of the c files declare it without `extern`.
+

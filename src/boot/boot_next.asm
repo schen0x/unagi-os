@@ -24,7 +24,7 @@ BOOT_INFO:
     VRAM equ 0x0ff8					; Graphic Buffer Start Address
 
     mov byte [VMODE], 8
-    mov word [SCRNX], 320				; ? TODO double check
+    mov word [SCRNX], 320
     mov word [SCRNY], 200
     mov dword [VRAM], 0x000a0000
 
