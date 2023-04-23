@@ -30,6 +30,12 @@ _idt_load:
     pop ebp
     ret
 
+load_idtr: ; void load_idtr(int limit, int addr);
+  MOV AX, [ESP+4] ; limit
+  MOV [ESP+6], AX
+  LIDT [ESP+6]
+  RET
+
 _int21h:					; ISA IRT 2, Keyboard Input
     cli
     pushad

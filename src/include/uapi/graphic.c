@@ -16,6 +16,7 @@ void putchar(const int64_t x, const int64_t y, const char c, const uint8_t color
 }
 void kfprint(const char* str, const uint8_t color)
 {
-	colortextmode_kfprint(str,color);
+	// colortextmode_kfprint(str,color);
+	videomode_kfprint(str, color);
 }
 

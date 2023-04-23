@@ -87,6 +87,12 @@ void putfonts8_asc(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, uint8_t 
 	}
 }
 
+void videomode_kfprint(const char* str, const uint8_t color)
+{
+	(void) color;
+	putfonts8_asc((uintptr_t)0xa0000, 320, 16, 80, COL8_FFFFFF, (char *) str);
+}
+
 void videomode_window_initialize(BOOTINFO* bi)
 {
 	// __draw_stripes();

@@ -20,7 +20,7 @@ void idt_init()
 	/* The kmemset is not necessary though, because a global variable will be auto initialized to 0 */
 	// kmemset(idts, 0, sizeof(idts)); // Set the all idt entries to 0
 	// kmemset(&idtr, 0, sizeof(idtr)); // Set the all idtr entries to 0
-	PIC_remap(0x20, 0x28);
+	// PIC_remap(0x20, 0x28);
 
 	/* Initialize the IDTR */
 	idtr.size = (uint16_t)(sizeof(idts) - 1);
@@ -49,6 +49,12 @@ void set_gatedesc(IDT_GATE_DESCRIPTOR_32* gd, intptr_t offset, uint16_t selector
 	gd->offset_2 = (uint16_t)((offset >> 16) & 0xffff);
 }
 
+static void idt99()
+{
+	char msg[] = "idt 99";
+	kfprint(msg, 4);
+}
+
 void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 {
 	(void)frame;
@@ -57,6 +63,12 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 			(interrupt_number >= 0x28 && interrupt_number < 0x30))
 	{
 		PIC_sendEOI((uint8_t)(interrupt_number & 0xff));
+		return;
+	}
+	if(interrupt_number == 99)
+	{
+		idt99();
+		return;
 	}
 }
 
@@ -66,7 +78,6 @@ void idt_zero()
 {
 	char msg[] = "Divide by zero error\n";
 	kfprint(msg, 4);
-	asm("HLT");
 }
 
 /* keyPressed is key + \0 */

@@ -16,5 +16,6 @@ static void init_palette(void);
 static void draw_windows();
 void init_mouse_cursor8(intptr_t vram_mouse_address, uint8_t back_color);
 void putblock8_8(intptr_t vram, int32_t vxsize, int32_t pxsize, int32_t pysize, int32_t px0, int32_t py0, uint8_t* buf, int32_t bxsize);
+void videomode_kfprint(const char* str, const uint8_t color);
 
 #endif

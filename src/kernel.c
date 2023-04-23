@@ -21,8 +21,10 @@ void kernel_main()
 
 	idt_init();
 	_io_sti();
-	asm("hlt");
-	asm volatile ("int $0");
+	for (int i = 0 ; i < 100; i++)
+	{
+		asm volatile ("int $99");
+	}
 
 	// TODO CACHE OFF && MEMORY TEST
 	// TODO e820 routine
@@ -36,11 +38,7 @@ void kernel_main()
 
 	disk_search_and_init();
 
-	// ==============
-	// TODO Try sprintf
-	// TODO MOUSE HANDLING
-	// TODO TERMINAL
-
+	// asm("hlt");
 }
 
 
