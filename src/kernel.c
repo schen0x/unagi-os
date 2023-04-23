@@ -18,14 +18,11 @@ static PAGE_DIRECTORY_4KB* kpd = 0;
 void kernel_main()
 {
 	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
+
+	idt_init();
+	_io_sti();
 	asm("hlt");
-	char msg[] = "A";
-	kfprint(msg, 4);
-	int32_t x = 10;
-	int32_t y = 0;
-	y = ++x;
-	char n[10] = {0};
-	kfprint(hex_to_ascii(n, &y, 4),5); // 0xb 11
+	asm volatile ("int $0");
 
 	// TODO CACHE OFF && MEMORY TEST
 	// TODO e820 routine
@@ -44,10 +41,6 @@ void kernel_main()
 	// TODO MOUSE HANDLING
 	// TODO TERMINAL
 
-	idt_init();
-	asm volatile ("int $0");
-	enable_interrupts();
-	asm("hlt");
 }
 
 

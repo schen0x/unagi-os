@@ -1,24 +1,25 @@
+[BITS 32]
 ; section .asm
 section .text
 
-global idt_load				; globally export the symbol
-global int21h
-extern _int21h_handler
-global interrupt_pointer_table
-extern _interrupt_handler
+global _idt_load				; globally export the symbol
+global _int21h
+extern int21h_handler
+global _int_default_handlers
+extern idt_int_default_handler
 
-global enable_interrupts
-global disable_interrupts
+;global enable_interrupts
+;global disable_interrupts
+;
+;enable_interrupts:
+;    sti
+;    ret
+;
+;disable_interrupts:
+;    cli
+;    ret
 
-enable_interrupts:
-    sti
-    ret
-
-disable_interrupts:
-    cli
-    ret
-
-idt_load:
+_idt_load:
     push ebp
     mov ebp, esp
 
@@ -29,14 +30,14 @@ idt_load:
     pop ebp
     ret
 
-int21h:					; ISA IRT 2, Keyboard Input
+_int21h:					; ISA IRT 2, Keyboard Input
     cli
     pushad
 
     xor eax, eax
     in al, 60h				; Read key
     push ax
-    call _int21h_handler
+    call int21h_handler
     pop ax				; Reverse esp
 
     popad
@@ -55,9 +56,9 @@ int21h:					; ISA IRT 2, Keyboard Input
 	; uint32_t ss
 	pushad
 
-	push esp			; the "stack frame"
+	push esp			; the "stack_frame* ptr"
 	push dword %1
-	call _interrupt_handler
+	call idt_int_default_handler
 	add esp, 8			; to reverse the two push
 
 	popad
@@ -74,11 +75,11 @@ times 4096-($ - $$) db 0
 
 section .data
 
+; intptr_t _handler[256] ; where _handler[i] points to a default asm function returns stack_frame* ptr and int32_t interrupt_number and pass to C
 %macro interrupt_array_entry 1		; define a macro named interrupt_array_entry with one variable
     dd int%1				; "dd int$1"; which will be further replaced by the address of corresponding tags
 %endmacro
-
-interrupt_pointer_table:
+_int_default_handlers:
 %assign i 0
 %rep 256
     interrupt_array_entry i

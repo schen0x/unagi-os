@@ -2,9 +2,10 @@
 #define CONFIG_H_
 
 #define OS_BOOT_BOOTINFO_ADDRESS 0x0ff0
-#define GDT_KERNEL_CODE_SEGMENT_SELECTOR 2 * 8
-#define GDT_KERNEL_DATA_SEGMENT_SELECTOR 1 * 8 // because last 3 bits are flags
+#define OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR 2 * 8
+#define OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR 1 * 8 // because last 3 bits are flags
 #define OS_IDT_TOTAL_INTERRUPTS 256
+#define OS_IDT_AR_INTGATE32 0x8e // access bit for intgate32
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define OS_HEAP_ADDRESS 0x01000000 // Extended Memory; 0x0100_0000 - 0xC000_0000; 3056 MB;

@@ -2,35 +2,49 @@
 #define IDT_IDT_H_
 
 #include <stdint.h>
-struct InterruptDescriptorTable32
+typedef struct IDT_GATE_DESCRIPTOR_32
 {
-	uint16_t offset_1; // Offset bits 0-15
-	uint16_t selector; // Selector in the GDT
+	/*
+	 * Offset: A 32-bit value, split in two parts. It represents the
+	 * address of the entry point of the Interrupt Service Routine.
+	 * offset_1: Offset bits 0:15
+	 */
+	uint16_t offset_1;
+	/* Selector: A Segment Selector with multiple fields which must point to a valid code segment in your GDT. */
+	uint16_t selector;
 	uint8_t zero; // unused byte
-	uint8_t type_attr; // Descriptor type and attributes, 0b1 + DPL (2bits) + 0 + Gate Type (3bit); Ring 3 Intterrupt Gate is 0b1_11_0_1110 (0xEE)
-	uint16_t offset_2; // Offset bits 16-31
-} __attribute__((packed));
+	/*
+	 * Gate Type
+	 * 32-bit Intterrupt Gate kernel access == 0x8E
+	 */
+	uint8_t type_attr;
+	/*
+	 * Offset: A 32-bit value, split in two parts. It represents the
+	 * address of the entry point of the Interrupt Service Routine.
+	 * offset_2: Offset bits 16:31
+	 */
+	uint16_t offset_2;
+} __attribute__((packed)) IDT_GATE_DESCRIPTOR_32;
 
-typedef struct InterruptDescriptorTableRegister32
+/* IDT Descriptor (IDTR) */
+typedef struct IDT_IDTR_32
 {
-	uint16_t limit; // total idt counts minus 1
-	uint32_t base; // the address, paging applies, where the IDTR starts
-} __attribute__((packed)) InterruptDescriptorTableRegister32;
+	/* One less than the size of the IDT in bytes */
+	uint16_t size;
+	/* The linear address of the Interrupt Descriptor Table (not the physical address, paging applies) */
+	uint32_t offset;
+} __attribute__((packed)) IDT_IDTR_32;
 
-void idt_set(int interrupt_number, void* address);
+void set_gatedesc(IDT_GATE_DESCRIPTOR_32* gd, intptr_t offset, uint16_t selector, uint8_t access_right);
 void idt_init();
+void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
+void int21h_handler(uint16_t keyPressed);
+extern void _int21h();
 
 void idt_zero();
-void _interrupt_handler(uint32_t interrupt, uint32_t frame);
 
-extern void idt_load(InterruptDescriptorTableRegister32* idtr_ptr);
-extern void int21h();
-extern void no_interrupt();
+extern void _idt_load(IDT_IDTR_32* idtr_ptr);
 
-extern void enable_interrupts();
-extern void disable_interrupts();
-
-void _int21h_handler(uint16_t keyPressed);
 void input_report_key(uint8_t scancode, uint8_t down);
 
 #endif
