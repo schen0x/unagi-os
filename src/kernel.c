@@ -17,14 +17,11 @@ static PAGE_DIRECTORY_4KB* kpd = 0;
 
 void kernel_main()
 {
-	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
-
 	idt_init();
+	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	_io_sti();
-	for (int i = 0 ; i < 100; i++)
-	{
-		asm volatile ("int $99");
-	}
+	asm("int $99");
+	asm("hlt");
 
 	// TODO CACHE OFF && MEMORY TEST
 	// TODO e820 routine

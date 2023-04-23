@@ -8,17 +8,6 @@ extern int21h_handler
 global _int_default_handlers
 extern idt_int_default_handler
 
-;global enable_interrupts
-;global disable_interrupts
-;
-;enable_interrupts:
-;    sti
-;    ret
-;
-;disable_interrupts:
-;    cli
-;    ret
-
 _idt_load:
     push ebp
     mov ebp, esp
@@ -51,8 +40,8 @@ _int21h:					; ISA IRT 2, Keyboard Input
     iretd				; IRET and IRETD are mnemonics for the same opcode. The IRETD mnemonic (interrupt return double) is intended for use when returning from an interrupt when using the 32-bit operand size; however, most assemblers use the IRET mnemonic interchangeably for both operand sizes
 
 %macro interrupt 1
-    global int%1
-    int%1:
+    global __int%{1}_auto
+    __int%{1}_auto:
         ; INTERRUPT FRAME START
 	; PUSHED TO US BY THE PROCESSOR UPON ENTRY TO THIS INTERRUPT
 	; uint32_t ip
@@ -68,7 +57,7 @@ _int21h:					; ISA IRT 2, Keyboard Input
 	add esp, 8			; to reverse the two push
 
 	popad
-	iretd
+	iretd				; Redirect the codeflow and recover the registers that was auto pushed by CPU
 %endmacro
 
 %assign i 0
@@ -79,12 +68,14 @@ _int21h:					; ISA IRT 2, Keyboard Input
 
 times 4096-($ - $$) db 0
 
+
 section .data
 
-; intptr_t _handler[256] ; where _handler[i] points to a default asm function returns stack_frame* ptr and int32_t interrupt_number and pass to C
-%macro interrupt_array_entry 1		; define a macro named interrupt_array_entry with one variable
-    dd int%1				; "dd int$1"; which will be further replaced by the address of corresponding tags
+%macro interrupt_array_entry 1		; define the macro, accept 1 variable
+    dd __int%{1}_auto			; the offset of the auto generated intterrupt handlers (calculated from the labels, at link time)
 %endmacro
+
+; intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS]; each element points to a default asm function returns stack_frame* ptr and int32_t interrupt_number and pass to C
 _int_default_handlers:
 %assign i 0
 %rep 256
