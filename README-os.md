@@ -579,7 +579,7 @@ struct firmware_map_entry {
 - `SS:` is a segment override prefix
 - Search for "default segment" in the intel manual to see more specific rules (`Specifying a Segment Selector`), some common ones are as follows:
     - REFERENCE_TYPE      REGISTER_USED
-    - Instructions        CS
+    - Instructions        CS (TODO this is auto set to SEGMENT_SELECTOR at when?)
     - Stack               SS
     - Local_Data          DS
     - Destination_Strings ES

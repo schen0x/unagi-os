@@ -15,6 +15,7 @@ VESA_INIT:						; Select video mode
     ;mov al, 0x107					; 107h   1280x1024x256 VESA
     int 0x10
 
+
 BOOT_INFO:
     CYLS equ 0x0ff0					; ? boot sector?
     LEDS equ 0x0ff1
@@ -33,18 +34,17 @@ BOOT_INFO:
     int 0x16						; keyboard BIOS
     mov [LEDS], al
 
+
 LOAD_PROTECTED:
-.prep:
+.load_protected_prep:
     cli
     mov ax, 0x00
     mov ds, ax
     mov es, ax
     mov ss, ax
     mov sp, 0x7c00					; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself.
-
 .load_gdtr:
     lgdt[GDT_DESCRIPTOR]				; load GDT with GDT_DESCRIPTOR (GDTR)
-
 .enable_a20_line:
     in al, 0x92
     test al, 2
@@ -52,16 +52,16 @@ LOAD_PROTECTED:
     or al, 2
     and al, 0xFE
     out 0x92, al
-
 .enable_a20_line_end:
 .enable_protected_mode:
     mov eax, cr0					; Prepare to set PE (Protection Enable) bit in CR0 (Control Register 0)
     or al, 1						; Prepare to set PE bit in CR0
     mov cr0, eax					; Set PE (Protection Enable) bit in CR0 (Control Register 0)
-
     jmp CODE_SEG:LOAD32					; load the 32 bits code into memory and jump to it
 
-; GDT
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GDT && GDTR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 GDT_START:
 GDT_NULL:						; GDT Entry 0
     dd 0						; 4 bytes
@@ -88,7 +88,6 @@ GDT_DESCRIPTOR:						; The GDTR
     dw (GDT_END - GDT_START - 1)			; The size of the table in bytes - 1; because max GDT_Size can be 65536, 1 byte more than 0xffff
     dd GDT_START					; Offset, 4 bytes in 32 bit mode
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 32 BIT START ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PROTECTED_MODE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -98,10 +97,21 @@ GDT_DESCRIPTOR:						; The GDTR
 LOAD32:
     push 0x00100000					; dst address when loading, edi
     push 0xf0						; Total sectors to load, max 0xff, ecx
-    push 8						; The starting sector to load; It's an lba number, hence 0 indexed. Two boot sectors have 4096 bytes in total, 4096 / 512 == 8, so _start is in the 9th sector;
+    push 8						; VOLATILE; The starting sector to load; It's an lba number, hence 0 indexed. Two boot sectors have 4096 bytes in total, 4096 / 512 == 8, so _start is in the 9th sector;
     call ATA_LBA_READ
     add esp, 12
+.load32_kernel_prep:
+    mov ax, DATA_SEG
+    mov ds, ax
+    mov es, ax						; TODO why es-ss set to DATA_SEG?
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    mov ebp, 0x00200000
+    mov esp, ebp
+.load32_kernel:
     jmp CODE_SEG:0x00100000				; jump to 1MB
+
 
 ATA_LBA_READ:
     push ebp

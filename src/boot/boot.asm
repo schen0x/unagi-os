@@ -30,7 +30,7 @@ READ_MORE_SECTORS:					; load more sectors to [0x7e00 - 0x7ffff] (conventional m
     mov es, ax						; ES:BX Buffer Address Pointer, ES * 0x10 == 0x8200
     mov ch, 0						; Cylinder
     mov dh, 0						; Head
-    mov cl, 2						; Sector
+    mov cl, 2						; CHS Sector, 1 indexed
 
 .int13h_readloop:
     mov si, 0						; Fail count
@@ -53,7 +53,7 @@ READ_MORE_SECTORS:					; load more sectors to [0x7e00 - 0x7ffff] (conventional m
     add ax, 0x0020
     mov es, ax						; 0x200 == 512 byte == 1 sector
     add cl, 1
-    cmp cl, 4						; disk CHS max sector 63
+    cmp cl, 4						; VOLATILE; disk CHS max sector 63
     jbe .int13h_readloop				; loop when below equal x sectors. load 4096 bytes, which is boot.asm + boot_next.asm
     sti
     jmp LOAD_ADDRESS_NEXT_SECTOR_ES * 0x10
