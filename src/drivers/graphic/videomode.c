@@ -25,6 +25,9 @@
 static uintptr_t video_mem_start = (uintptr_t)(0xa0000); /* create a local pointer to the absolute address */
 static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer to the absolute address */
 
+static int32_t posX = 16;
+static int32_t posY = 80;
+
 /*
  * Bitmap of font 'A'
  * 00000000
@@ -87,10 +90,28 @@ void putfonts8_asc(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, uint8_t 
 	}
 }
 
+void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t posYnew, uint8_t color, char *s)
+{
+	posX = posXnew;
+	posY = posYnew;
+	for(; *s != 0; s++)
+	{
+		putfont8(vram, xsize, posX, posY, color, hankaku + *s * 16);
+		posX += 8;
+		if (posX > xsize - 16)
+		{
+			posX = 0;
+			posY += 24;
+		}
+
+	}
+}
+
 void videomode_kfprint(const char* str, const uint8_t color)
 {
 	(void) color;
-	putfonts8_asc((uintptr_t)0xa0000, 320, 16, 80, COL8_FFFFFF, (char *) str);
+	// putfonts8_asc((uintptr_t)0xa0000, 320, 16, 80, COL8_FFFFFF, (char *) str);
+	putfonts8_ascv2((uintptr_t)0xa0000, 320, posX, posY, COL8_FFFFFF, (char *) str);
 }
 
 void videomode_window_initialize(BOOTINFO* bi)

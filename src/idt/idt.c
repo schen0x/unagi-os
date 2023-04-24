@@ -67,9 +67,6 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 	if((interrupt_number >= 0x20 && interrupt_number < 0x27) ||
 			(interrupt_number >= 0x28 && interrupt_number < 0x30))
 	{
-		char s[50] = {0};
-		sprintf(s, "%x", interrupt_number);
-		kfprint(s, 4);
 		PIC_sendEOI((uint8_t)(interrupt_number & 0xff));
 		return;
 	}
