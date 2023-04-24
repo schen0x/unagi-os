@@ -35,6 +35,7 @@ typedef struct IDT_IDTR_32
 	uint32_t offset;
 } __attribute__((packed)) IDT_IDTR_32;
 
+extern void _idt_load(IDT_IDTR_32* idtr_ptr);
 void set_gatedesc(IDT_GATE_DESCRIPTOR_32* gd, intptr_t offset, uint16_t selector, uint8_t access_right);
 void idt_init();
 void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
@@ -43,8 +44,5 @@ extern void _int21h();
 
 void idt_zero();
 
-extern void _idt_load(IDT_IDTR_32* idtr_ptr);
-
-void input_report_key(uint8_t scancode, uint8_t down);
 
 #endif

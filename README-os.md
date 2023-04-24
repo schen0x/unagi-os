@@ -348,11 +348,23 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 
 ## U16 PROGRAMMABLE INTERRUPT CONTROLLER (PIC)
 
+- For each PCI controller, there are 4 "Initialization Command Words(ICWs)" need to be sent on init
+- Then 3 "Operation Command Words(OCWs) can be sent"
+- [8259A Datasheet](https://pdos.csail.mit.edu/6.828/2005/readings/hardware/8259A.pdf)
+- ICW1, ICW2:
+- ![u16-PIC_datasheet0](./img/u16-PIC_datasheet0.png)
+- ICW3, ICW4:
+- ![u16-PIC_datasheet1](./img/u16-PIC_datasheet1.png)
+- OCWs:
+- ![u16-PIC_datasheet3](./img/u16-PIC_datasheet3.png)
+
+
 - [A list of Industry Standard Architecture Interrupt ReQuests, OSDEV](https://wiki.osdev.org/Interrupts#Standard_ISA_IRQs)
 - [Mordern APIC, OSDEV](https://wiki.osdev.org/APIC)
 - A System has 2 PICs (Master PIC: IRQ 0-7, Slave PIC: IRQ 8-15)
 - Use NASM macro to create interrupt handlers in asm, passing interrupt numbers and stack frame to the C function.
 - Correctly enable sti after idt is initialized
+
 
 ### KEYBOARD HANDLING
 

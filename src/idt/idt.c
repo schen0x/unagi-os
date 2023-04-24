@@ -5,6 +5,7 @@
 #include "pic/pic.h"
 #include "drivers/keyboard.h"
 #include "include/uapi/graphic.h"
+#include "util/printf.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -20,7 +21,6 @@ void idt_init()
 	/* The kmemset is not necessary though, because a global variable will be auto initialized to 0 */
 	// kmemset(idts, 0, sizeof(idts)); // Set the all idt entries to 0
 	// kmemset(&idtr, 0, sizeof(idtr)); // Set the all idtr entries to 0
-	// PIC_remap(0x20, 0x28);
 
 	/* Initialize the IDTR */
 	idtr.size = (uint16_t)(sizeof(idts) - 1);
@@ -32,6 +32,7 @@ void idt_init()
 
 	set_gatedesc(&idts[0x21], (intptr_t)&_int21h, OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
 	_idt_load(&idtr);
+	PIC_remap(0x20, 0x28);
 }
 
 /*
@@ -59,16 +60,22 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 {
 	(void)frame;
 
+	if(interrupt_number == 0x21)
+	{
+		_int21h();
+	}
 	if((interrupt_number >= 0x20 && interrupt_number < 0x27) ||
 			(interrupt_number >= 0x28 && interrupt_number < 0x30))
 	{
+		char s[50] = {0};
+		sprintf(s, "%x", interrupt_number);
+		kfprint(s, 4);
 		PIC_sendEOI((uint8_t)(interrupt_number & 0xff));
 		return;
 	}
 	if(interrupt_number == 99)
 	{
 		idt99();
-		return;
 	}
 }
 
@@ -87,34 +94,3 @@ void int21h_handler(uint16_t scancode)
 	PIC_sendEOI(0x2);
 }
 
-// TODO https://elixir.bootlin.com/linux/latest/source/drivers/input/input.c#L424
-void input_report_key(uint8_t scancode, uint8_t down)
-{
-	if(!down)
-	{
-		return;
-	}
-	switch(scancode)
-	{
-		case 2:
-			kfprint("1", 4);
-			break;
-		case 3:
-			kfprint("2", 4);
-			break;
-		case 4:
-			kfprint("3", 4);
-			break;
-		case 30:
-			kfprint("a", 4);
-			break;
-		case 31:
-			kfprint("s", 4);
-			break;
-		case 32:
-			kfprint("d", 4);
-			break;
-
-	}
-	return;
-}

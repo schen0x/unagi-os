@@ -149,3 +149,34 @@ void atakbd_interrupt(uint8_t rawscancode)
 	return;
 }
 
+// TODO https://elixir.bootlin.com/linux/latest/source/drivers/input/input.c#L424
+void input_report_key(uint8_t scancode, uint8_t down)
+{
+	if(!down)
+	{
+		return;
+	}
+	switch(scancode)
+	{
+		case 2:
+			kfprint("1", 4);
+			break;
+		case 3:
+			kfprint("2", 4);
+			break;
+		case 4:
+			kfprint("3", 4);
+			break;
+		case 30:
+			kfprint("a", 4);
+			break;
+		case 31:
+			kfprint("s", 4);
+			break;
+		case 32:
+			kfprint("d", 4);
+			break;
+
+	}
+	return;
+}

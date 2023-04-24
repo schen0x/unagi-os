@@ -27,7 +27,8 @@ rungui:
 
 gdb:
 	# qemu-system-x86_64 -hda ./bin/os.bin -curses -S -s
-	qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234 -curses
+	# qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234 -curses
+	qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234
 
 # The bootloader
 ./bin/boot.bin: ./src/boot/boot.asm
