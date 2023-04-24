@@ -14,4 +14,6 @@
 // #define OS_SHEAP_TABLE_ADDRESS
 #define OS_DISK_SECTOR_SIZE 512 // must be 512 or a multiple of 512
 #define OS_PATH_MAX_LENGTH 4096
+
+#define OS_HEAP_TABLE_ADDRESS 0x00009000
 #endif

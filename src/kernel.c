@@ -13,7 +13,7 @@
 #include "include/uapi/bootinfo.h"
 
 /* Kernel Page Directory */
-//static PAGE_DIRECTORY_4KB* kpd = 0;
+static PAGE_DIRECTORY_4KB* kpd = 0;
 
 void kernel_main()
 {
@@ -24,16 +24,14 @@ void kernel_main()
 	// TODO CACHE OFF && MEMORY TEST
 	// TODO e820 routine
 
-	//k_mm_init();
-	//// ==============
-	//uint32_t pd_entries_flags = 0b111;
-	//kpd = pd_init(pd_entries_flags);
-	//paging_switch(kpd);
-	//enable_paging();
+	k_mm_init();
+	// ==============
+	uint32_t pd_entries_flags = 0b111;
+	kpd = pd_init(pd_entries_flags);
+	paging_switch(kpd);
+	enable_paging();
 
-	//disk_search_and_init();
-
-	// asm("hlt");
+	disk_search_and_init();
 }
 
 

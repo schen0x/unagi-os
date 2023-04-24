@@ -3,6 +3,7 @@
 // #include "memory/memory.h"
 #include "config.h"
 #include "include/uapi/graphic.h"
+#include "memory/memory.h"
 
 struct heap kernel_heap;
 
@@ -16,7 +17,7 @@ struct heap_table kernel_heap_table;
 void k_heap_table_mm_init()
 {
 	int total_memory_blocks = OS_HEAP_SIZE_BYTES / OS_HEAP_BLOCK_SIZE;
-	kernel_heap_table.entries = (HEAP_BLOCK_TABLE_ENTRY*) 0x00007E00;
+	kernel_heap_table.entries = (HEAP_BLOCK_TABLE_ENTRY*) OS_HEAP_TABLE_ADDRESS;
 	kernel_heap_table.total_blocks = total_memory_blocks;
 	void* heap_end = (void*)(OS_HEAP_ADDRESS + OS_HEAP_SIZE_BYTES);
 	int res = heap_create(&kernel_heap, (void*)OS_HEAP_ADDRESS, heap_end, &kernel_heap_table);
