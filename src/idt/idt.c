@@ -6,6 +6,7 @@
 #include "drivers/keyboard.h"
 #include "include/uapi/graphic.h"
 #include "util/printf.h"
+#include "io/io.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -31,8 +32,8 @@ void idt_init()
 		set_gatedesc(&idts[i], _int_default_handlers[i], OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
 	}
 
-	/* Set int21 to use _int21h */
-	set_gatedesc(&idts[0x21], (intptr_t)&_int21h, OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
+	// /* Set int21 to use _int21h */
+	// set_gatedesc(&idts[0x21], (intptr_t)&_int21h, OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
 	_idt_load(&idtr);
 	// Remap PIC after idt setup.
 	PIC_remap(0x20, 0x28);
@@ -61,7 +62,7 @@ static void idt99()
 }
 
 /*
- * The default handler for interrupts.
+ * The default handler (dispatcher?) for interrupts.
  * Can be called by asm functions on interruptions,
  * receiving the interrupt_number and pointer to the stack frame.
  */
@@ -69,10 +70,11 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 {
 	(void)frame;
 
-//	if(interrupt_number == 0x21)
-//	{
-//		_int21h();
-//	}
+	if(interrupt_number == 0x21)
+	{
+		// _int21h();
+		int21h();
+	}
 	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
 	{
 		PIC_sendEOI((uint8_t)((interrupt_number & 0xff) - 0x20)); // for 0x20-0x27, report to PIC0, 0:7; otherwise to PIC1, 8:15;
@@ -93,12 +95,26 @@ void idt_zero()
 }
 
 /*
+ * Application should handle the buffer?
+ * TODO Timeout?
+ */
+void int21h()
+{
+	const int32_t PS2_KBD_KEYDATA_PORT = 0x60;
+	uint8_t data = _io_in8(PS2_KBD_KEYDATA_PORT);
+	int21h_handler(data);
+}
+
+/*
  * Keyboard interrupt handler
  * scancode: uint8_t _scancode + \0
  */
 void int21h_handler(uint16_t scancode)
 {
-	atakbd_interrupt(scancode);
+	char buf[20]={0};
+	sprintf(buf, "%02x", (uint8_t)scancode);
+	kfprint(buf, 4);
+	// atakbd_interrupt(scancode);
 	PIC_sendEOI(1); // 21h, IRQ1
 }
 

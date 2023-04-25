@@ -3,8 +3,8 @@
 section .text
 
 global _idt_load				; globally export the symbol
-global _int21h
-extern int21h_handler
+; global _int21h
+; extern int21h_handler
 global _int_default_handlers
 extern idt_int_default_handler
 
@@ -25,19 +25,19 @@ load_idtr: ; void load_idtr(int limit, int addr);
   LIDT [ESP+6]
   RET
 
-_int21h:					; ISA IRT 2, Keyboard Input
-    cli
-    pushad
-
-    xor eax, eax
-    in al, 60h				; Read key
-    push ax
-    call int21h_handler
-    pop ax				; Reverse esp
-
-    popad
-    sti
-    iretd				; IRET and IRETD are mnemonics for the same opcode. The IRETD mnemonic (interrupt return double) is intended for use when returning from an interrupt when using the 32-bit operand size; however, most assemblers use the IRET mnemonic interchangeably for both operand sizes
+; _int21h:					; ISA IRT 2, Keyboard Input
+;     cli
+;     pushad
+;
+;     xor eax, eax
+;     in al, 60h				; Read key, PS/2 Keyboard data port is 60h
+;     push ax
+;     call int21h_handler
+;     pop ax				; Reverse esp
+;
+;     popad
+;     sti
+;     iretd				; IRET and IRETD are mnemonics for the same opcode. The IRETD mnemonic (interrupt return double) is intended for use when returning from an interrupt when using the 32-bit operand size; however, most assemblers use the IRET mnemonic interchangeably for both operand sizes
 
 %macro interrupt 1
     global __int%{1}_auto
@@ -57,7 +57,7 @@ _int21h:					; ISA IRT 2, Keyboard Input
 	add esp, 8			; to reverse the two push
 
 	popad
-	iretd				; Redirect the codeflow and recover the registers that was auto pushed by CPU
+	iretd				; Redirect the codeflow and recover the registers that was auto pushed by CPU; IRET and IRETD are mnemonics for the same opcode. The IRETD mnemonic (interrupt return double) is intended for use when returning from an interrupt when using the 32-bit operand size; however, most assemblers use the IRET mnemonic interchangeably for both operand sizes
 %endmacro
 
 %assign i 0

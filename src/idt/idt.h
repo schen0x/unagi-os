@@ -40,7 +40,8 @@ void set_gatedesc(IDT_GATE_DESCRIPTOR_32* gd, intptr_t offset, uint16_t selector
 void idt_init();
 void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
 void int21h_handler(uint16_t keyPressed);
-extern void _int21h();
+void int21h();
+// extern void _int21h();
 
 void idt_zero();
 

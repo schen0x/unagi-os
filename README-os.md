@@ -368,6 +368,9 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 
 ### KEYBOARD HANDLING
 
+- [PS_2 Controller IO Ports](https://wiki.osdev.org/%228042%22_PS/2_Controller)
+- ![u16-keyboard_controller_IO_ports](./img/u16-keyboard_controller_IO_ports.png)
+
 - [scancode, atakbd](https://elixir.bootlin.com/linux/latest/source/drivers/input/keyboard/atakbd.c#L64)
 - [scancode](https://hp.vector.co.jp/authors/VA003720/lpproj/others/kbdjpn.htm)
 - [scancode](https://github.com/flosse/linuxconsole/blob/master/utils/scancodes.h)
