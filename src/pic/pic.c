@@ -24,14 +24,17 @@
 #define PIC_SIG_EOI	0x20		/* End-of-interrupt signal */
 
 
-// Let PIC know interrupt has been handled
-void PIC_sendEOI(unsigned char irq)
+/*
+ * Send PIC_SIG_EOI (0x20) to PIC0_COMMAND or PIC1_COMMAND,
+ * to let corresponding PIC to know the interrupt has been handled
+ * irq: 0-15
+ */
+void PIC_sendEOI(uint8_t irq)
 {
 	if(irq >= 8)
 	{
 		_io_out8(PIC1_COMMAND,PIC_SIG_EOI);
 	}
-
 	_io_out8(PIC0_COMMAND,PIC_SIG_EOI);
 }
 
@@ -46,7 +49,7 @@ void PIC_sendEOI(unsigned char irq)
  * 	vectors on the master become offset1..offset1+7
  * offset2 - same for slave PIC: offset2..offset2+7
  */
-void PIC_remap(int offset0, int offset1)
+void PIC_remap(uint8_t offset0, uint8_t offset1)
 {
 	_io_out8(PIC0_COMMAND, ICW1_INIT | ICW1_ICW4P);	// 0x11; init, icw4 present, cascade, edge mode
 	_io_out8(PIC0_DATA, offset0);			// ICW2: Set the new interrupt offset for the Master PIC
@@ -58,7 +61,7 @@ void PIC_remap(int offset0, int offset1)
 	_io_out8(PIC1_DATA, ICW4_8086);
 
 	// Optional
-	_io_out8(PIC0_DATA, 0xff & 1 << 1 & 1 << 2);	// OCW1(IMR): mask all, except keyboard and PCI1 interrupt
+	_io_out8(PIC0_DATA, 0xff ^ ( 1 << 1 | 1 << 2));	// OCW1(IMR): 1 is "masked"; mask all, except the keyboard interrupt (0x21) and PIC1 interrupt (IRQ2)
 	_io_out8(PIC1_DATA, 0xff);			// OCW1(IMR): mask all
 }
 

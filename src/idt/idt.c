@@ -13,7 +13,7 @@
  */
 extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 
-static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory, known in linktime.
+static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
 
 void idt_init()
@@ -25,18 +25,22 @@ void idt_init()
 	/* Initialize the IDTR */
 	idtr.size = (uint16_t)(sizeof(idts) - 1);
 	idtr.offset = (uint32_t) idts;
+	/* Set all interrupts to use the default handler */
 	for (int i = 0; i < OS_IDT_TOTAL_INTERRUPTS; i++)
 	{
 		set_gatedesc(&idts[i], _int_default_handlers[i], OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
 	}
 
+	/* Set int21 to use _int21h */
 	set_gatedesc(&idts[0x21], (intptr_t)&_int21h, OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
 	_idt_load(&idtr);
+	// Remap PIC after idt setup.
 	PIC_remap(0x20, 0x28);
 }
 
 /*
  * Set idt (Gate Descriptor)
+ * Example: set_gatedesc(&idts[0x21], (intptr_t)&_int21h, OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
  * selector: a valid code selector in gdt
  * offset: address to the routine, starting from the selector
  * access_right: e.g. AR_INTGATE32 0x8e
@@ -56,18 +60,23 @@ static void idt99()
 	kfprint(msg, 4);
 }
 
+/*
+ * The default handler for interrupts.
+ * Can be called by asm functions on interruptions,
+ * receiving the interrupt_number and pointer to the stack frame.
+ */
 void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 {
 	(void)frame;
 
-	if(interrupt_number == 0x21)
-	{
-		_int21h();
-	}
-	if((interrupt_number >= 0x20 && interrupt_number < 0x27) ||
+//	if(interrupt_number == 0x21)
+//	{
+//		_int21h();
+//	}
+	if((interrupt_number >= 0x20 && interrupt_number < 0x28) ||
 			(interrupt_number >= 0x28 && interrupt_number < 0x30))
 	{
-		PIC_sendEOI((uint8_t)(interrupt_number & 0xff));
+		PIC_sendEOI((uint8_t)((interrupt_number & 0xff) - 0x20)); // for 0x20-0x27, report to PIC0, otherwise to PIC1
 		return;
 	}
 	if(interrupt_number == 99)
@@ -84,10 +93,13 @@ void idt_zero()
 	kfprint(msg, 4);
 }
 
-/* keyPressed is key + \0 */
+/*
+ * Keyboard interrupt handler
+ * scancode: uint8_t _scancode + \0
+ */
 void int21h_handler(uint16_t scancode)
 {
 	atakbd_interrupt(scancode);
-	PIC_sendEOI(0x2);
+	PIC_sendEOI(1); // 21h, IRQ1
 }
 

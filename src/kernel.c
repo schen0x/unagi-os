@@ -32,6 +32,7 @@ void kernel_main()
 	enable_paging();
 
 	disk_search_and_init();
+	asm("hlt");
 }
 
 
