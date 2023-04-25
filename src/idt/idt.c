@@ -16,6 +16,7 @@ extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 
 static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
+KEYBUF keybuf = {0};
 
 void idt_init()
 {
@@ -73,7 +74,7 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 	if(interrupt_number == 0x21)
 	{
 		// _int21h();
-		int21h();
+		__int21h_buffed();
 	}
 	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
 	{
@@ -102,7 +103,27 @@ void int21h()
 {
 	const int32_t PS2_KBD_KEYDATA_PORT = 0x60;
 	uint8_t data = _io_in8(PS2_KBD_KEYDATA_PORT);
+	PIC_sendEOI(1); // 21h, IRQ1
 	int21h_handler(data);
+}
+
+/* ?Race condition/Memory corruption? */
+void __int21h_buffed()
+{
+	const int32_t PS2_KBD_KEYDATA_PORT = 0x60;
+	uint8_t data = _io_in8(PS2_KBD_KEYDATA_PORT);
+	if (keybuf.len < 32)
+	{
+		keybuf.data[keybuf.next_w] = data;
+		keybuf.len++;
+		keybuf.next_w++;
+		if (keybuf.next_w == 32)
+		{
+			keybuf.next_w = 0;
+		}
+	}
+	PIC_sendEOI(1); // 21h, IRQ1
+	return; // ? from sequential to cpu polling buffer. int21h_handler(data); in another thread?
 }
 
 /*
@@ -115,6 +136,5 @@ void int21h_handler(uint16_t scancode)
 	sprintf(buf, "%02x", (uint8_t)scancode);
 	kfprint(buf, 4);
 	// atakbd_interrupt(scancode);
-	PIC_sendEOI(1); // 21h, IRQ1
 }
 

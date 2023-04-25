@@ -32,7 +32,25 @@ void kernel_main()
 	enable_paging();
 
 	disk_search_and_init();
-	asm("hlt");
+
+
+	for(;;)
+	{
+		_io_cli();
+		if(keybuf.len == 0)
+		{
+			_io_stihlt();
+		}
+		int32_t i = keybuf.data[keybuf.next_r];
+		keybuf.len --;
+		keybuf.next_r++;
+		if (keybuf.next_r == 32)
+		{
+			keybuf.next_r = 0;
+		}
+		_io_sti();
+		int21h_handler(i);
+	}
 }
 
 
