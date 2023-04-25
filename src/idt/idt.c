@@ -73,10 +73,9 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 //	{
 //		_int21h();
 //	}
-	if((interrupt_number >= 0x20 && interrupt_number < 0x28) ||
-			(interrupt_number >= 0x28 && interrupt_number < 0x30))
+	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
 	{
-		PIC_sendEOI((uint8_t)((interrupt_number & 0xff) - 0x20)); // for 0x20-0x27, report to PIC0, otherwise to PIC1
+		PIC_sendEOI((uint8_t)((interrupt_number & 0xff) - 0x20)); // for 0x20-0x27, report to PIC0, 0:7; otherwise to PIC1, 8:15;
 		return;
 	}
 	if(interrupt_number == 99)

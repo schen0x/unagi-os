@@ -21,21 +21,28 @@
 #define ICW4_BUF_MASTER	0x0C		/* Buffered mode/master */
 #define ICW4_SFNM	0x10		/* Special fully nested (default not) */
 
-#define PIC_SIG_EOI	0x20		/* End-of-interrupt signal */
+#define PIC_SIG_EOI_ALL	0x20		/* Non-Specific End-of-interrupt signal, OCW2, D5==1 */
+#define PIC_SIG_EOI_SP	0x60		/* End-of-interrupt signal, OCW2; IRQ0 is 0x60 | 0, IRQ7 is 0x60 | 7 */
 
 
 /*
- * Send PIC_SIG_EOI (0x20) to PIC0_COMMAND or PIC1_COMMAND,
+ * Send PIC_SIG_EOI_ALL (0x20) to PIC0_COMMAND or PIC1_COMMAND,
  * to let corresponding PIC to know the interrupt has been handled
  * irq: 0-15
  */
 void PIC_sendEOI(uint8_t irq)
 {
-	if(irq >= 8)
+	// 0:7
+	if (irq < 8)
 	{
-		_io_out8(PIC1_COMMAND,PIC_SIG_EOI);
+		_io_out8(PIC0_COMMAND, PIC_SIG_EOI_SP | irq); // 0x60 to 0x67, send special EOI of IRQ0 to IRQ7
+		return;
 	}
-	_io_out8(PIC0_COMMAND,PIC_SIG_EOI);
+	// 8:15
+	if(irq < 16 && irq >= 8)
+	{
+		_io_out8(PIC1_COMMAND,PIC_SIG_EOI_SP | (irq - 8));
+	}
 }
 
 
