@@ -2,6 +2,8 @@
  * PS2 keyboard init process
  * But the proper way is to use ACPI
  * TODO ACPI
+ * TODO PS2KBC selftest. Assumed PS2MOUSE support, so kernel may likely crash
+ * on a platform without dual channel PS2 support
  *
  * To send a command to the controller, write the command byte to IO port 0x64.
  * If there is a "next byte" (the command is 2 bytes) then the next byte needs
@@ -17,9 +19,9 @@
 #include "util/kutil.h"
 #include <stdbool.h>
 
-#define PS2KBC_PORT_DATA_RW 0x60
-#define PS2KBC_PORT_STATUS_R 0x64
-#define PS2KBC_PORT_CMD_W 0x64
+#define PS2KBC_PORT_DATA_RW 0x0060
+#define PS2KBC_PORT_STATUS_R 0x0064
+#define PS2KBC_PORT_CMD_W 0x0064
 /*
  * Must be SET before attempting to read data from IO port 0x60
  * "Output buffer, 0x60", from the perspective of the PS2KBC
