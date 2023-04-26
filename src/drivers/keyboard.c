@@ -180,3 +180,4 @@ void input_report_key(uint8_t scancode, uint8_t down)
 	}
 	return;
 }
+

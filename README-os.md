@@ -584,6 +584,18 @@ struct firmware_map_entry {
 - ![B04-VGA_Color_Registers](./img/B04-VGA_Color_Registers.png)
 
 
+## B07 PS2 CONTROLLER (PS2KBC && PS2MOUSE)
+
+- To enable the mouse, set the Bit 1 (Second PS/2 port interrupt) of the Configuration Byte of the PS2KBC.
+- Then use the `0xD4` PS2KBC command to send the `0xF4`("Enable Data Reporting") command to the PS2MOUSE.
+- Enable the IRQ12 Mask.
+- [PS2KBC, OSDEV](https://wiki.osdev.org/%228042%22_PS/2_Controller)
+
+- PS/2 Controller Commands && Configuration Byte:
+- ![b07-PS2KBC_CMDs](./img/b07-PS2KBC_CMDs.png)
+- ![b07-PS2MOUSE_CMDs](./img/b07-PS2MOUSE_CMDs.png)
+
+
 ## ASSEMBLY
 
 - [NASM doc](https://www.nasm.us/xdoc/2.11.08/html/nasmdoc7.html)
