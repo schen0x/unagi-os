@@ -7,6 +7,7 @@
 #include "include/uapi/graphic.h"
 #include "util/printf.h"
 #include "io/io.h"
+#include "drivers/ps2kbc.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -22,6 +23,8 @@ void idt_init()
 {
 	uint8_t _keybuf[32] = {0};
 	fifo8_init(&keybuf, _keybuf, sizeof(_keybuf));
+	ps2kbc_KBC_init();
+	ps2kbc_MOUSE_init();
 	/* The kmemset is not necessary though, because a global variable will be auto initialized to 0 */
 	// kmemset(idts, 0, sizeof(idts)); // Set the all idt entries to 0
 	// kmemset(&idtr, 0, sizeof(idtr)); // Set the all idtr entries to 0
@@ -73,9 +76,13 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 {
 	(void)frame;
 
+	if(interrupt_number == (0x2c))
+	{
+		kfprint("0x2c", 4);
+	}
+
 	if(interrupt_number == 0x21)
 	{
-		// _int21h();
 		__int21h_buffed();
 	}
 	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
