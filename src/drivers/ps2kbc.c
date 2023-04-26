@@ -68,10 +68,8 @@ void ps2kbc_KBC_init(void)
 	 * Ensure the output buffer is not blocked before init.
 	 * If bit 0 is set -> buffer is full -> flush it
 	 */
-	ps2kbc_wait_KBC_readReady();
-	// Test bit 0, if 1 -> buffer is full -> flush before init
 	if ((_io_in8(PS2KBC_PORT_STATUS_R) & PS2KBC_STATUS_FLAG_OUTPUT_BUF_FULL) == 1)
-		_io_in8(PS2KBC_PORT_DATA_RW); // Flush. Read and discard.
+		_io_in8(PS2KBC_PORT_DATA_RW);
 
 	/* Get the existing flags */
 	ps2kbc_wait_KBC_writeReady();
