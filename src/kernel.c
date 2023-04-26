@@ -17,6 +17,9 @@ static PAGE_DIRECTORY_4KB* kpd = 0;
 
 void kernel_main()
 {
+	if (test_kutil() != true)
+		asm("HLT");
+
 	idt_init();
 	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	_io_sti();

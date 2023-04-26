@@ -102,3 +102,34 @@ int32_t kmemcmp(const void *str1, const void *str2, size_t n)
 	  }
 	return 0;
 }
+
+bool isMaskBitsAllSet (uint32_t data, uint32_t mask)
+{
+	if ((data & mask) == mask)
+		return true;
+	return false;
+}
+
+bool isMaskBitsAllClear (uint32_t data, uint32_t mask)
+{
+	if ((data & mask) == 0)
+		return true;
+	return false;
+}
+
+
+bool test_kutil()
+{
+	if (isMaskBitsAllSet(0b10111111, 0b1010) != true)
+		return false;
+	if (isMaskBitsAllSet(0b10111111, 0b11111111) != false)
+		return false;
+	if (isMaskBitsAllSet(0b10111111, 0b11011111) != false)
+		return false;
+	if (isMaskBitsAllClear(0b10111111, 0b01000000) != true)
+		return false;
+	if (isMaskBitsAllClear(0b1001, 0b0110) != true)
+		return false;
+	return true;
+}
+

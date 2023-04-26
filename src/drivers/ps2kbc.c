@@ -14,6 +14,7 @@
  */
 #include "drivers/ps2kbc.h"
 #include "io/io.h"
+#include "util/kutil.h"
 #include <stdbool.h>
 
 #define PS2KBC_PORT_DATA_RW 0x60
@@ -40,20 +41,6 @@
 #define PS2MOUSE_CMD_DATA_REPORTING_ENABLE 0xF4
 #define PS2MOUSE_CMD_DATA_REPORTING_DISABLE 0xF5
 #define PS2MOUSE_STATUS_ACK 0xFA
-
-bool isMaskBitsAllSet (uint32_t data, uint32_t mask)
-{
-	if ((data & mask) == mask)
-		return true;
-	return false;
-}
-
-bool isMaskBitsAllClear (uint32_t data, uint32_t mask)
-{
-	if ((data & mask) == 0)
-		return true;
-	return false;
-}
 
 void ps2kbc_wait_KBC_writeReady()
 {
