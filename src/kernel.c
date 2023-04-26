@@ -37,17 +37,11 @@ void kernel_main()
 	for(;;)
 	{
 		_io_cli();
-		if(keybuf.len == 0)
+		if(fifo8_status_getUsageB(&keybuf) == 0)
 		{
 			_io_stihlt();
 		}
-		int32_t i = keybuf.data[keybuf.next_r];
-		keybuf.len --;
-		keybuf.next_r++;
-		if (keybuf.next_r == 32)
-		{
-			keybuf.next_r = 0;
-		}
+		int32_t i = fifo8_dequeue(&keybuf);
 		_io_sti();
 		int21h_handler(i);
 	}

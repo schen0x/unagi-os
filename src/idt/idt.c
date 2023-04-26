@@ -16,10 +16,12 @@ extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 
 static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
-KEYBUF keybuf = {0};
+FIFO8 keybuf = {0};
 
 void idt_init()
 {
+	uint8_t _keybuf[32] = {0};
+	fifo8_init(&keybuf, _keybuf, sizeof(_keybuf));
 	/* The kmemset is not necessary though, because a global variable will be auto initialized to 0 */
 	// kmemset(idts, 0, sizeof(idts)); // Set the all idt entries to 0
 	// kmemset(&idtr, 0, sizeof(idtr)); // Set the all idtr entries to 0
@@ -112,17 +114,8 @@ void __int21h_buffed()
 {
 	const int32_t PS2_KBD_KEYDATA_PORT = 0x60;
 	uint8_t data = _io_in8(PS2_KBD_KEYDATA_PORT);
-	if (keybuf.len < 32)
-	{
-		keybuf.data[keybuf.next_w] = data;
-		keybuf.len++;
-		keybuf.next_w++;
-		if (keybuf.next_w == 32)
-		{
-			keybuf.next_w = 0;
-		}
-	}
 	PIC_sendEOI(1); // 21h, IRQ1
+	fifo8_enqueue(&keybuf, data);
 	return; // ? from sequential to cpu polling buffer. int21h_handler(data); in another thread?
 }
 

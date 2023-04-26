@@ -2,6 +2,7 @@
 #define IDT_IDT_H_
 
 #include <stdint.h>
+#include "util/fifo.h"
 typedef struct IDT_GATE_DESCRIPTOR_32
 {
 	/*
@@ -35,11 +36,6 @@ typedef struct IDT_IDTR_32
 	uint32_t offset;
 } __attribute__((packed)) IDT_IDTR_32;
 
-typedef struct KEYBUF {
-	uint8_t data[32];
-	int32_t next_r, next_w, len;
-} KEYBUF;
-
 extern void _idt_load(IDT_IDTR_32* idtr_ptr);
 void set_gatedesc(IDT_GATE_DESCRIPTOR_32* gd, intptr_t offset, uint16_t selector, uint8_t access_right);
 void idt_init();
@@ -47,7 +43,7 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
 void int21h_handler(uint16_t keyPressed);
 void int21h();
 void __int21h_buffed();
-extern KEYBUF keybuf;
+extern FIFO8 keybuf;
 
 void idt_zero();
 
