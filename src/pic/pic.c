@@ -1,8 +1,9 @@
+/* 8259 PIC */
 #include "pic/pic.h"
 #include "io/io.h"
 #include <stdint.h>
 
-// For each PCI controller, there are 4 "Initialization Command Words(ICWs)" need to be sent on init
+// For each PIC controller, there are 4 "Initialization Command Words(ICWs)" need to be sent on init
 // Then 3 "Operation Command Words(OCWs) can be sent"
 #define PIC0_COMMAND	0x20		/* IO base address for master PIC */
 #define PIC0_DATA	(PIC0_COMMAND+1)
@@ -42,6 +43,7 @@ void PIC_sendEOI(uint8_t irq)
 	if(irq < 16 && irq >= 8)
 	{
 		_io_out8(PIC1_COMMAND,PIC_SIG_EOI_SP | (irq - 8));
+		_io_out8(PIC0_COMMAND, PIC_SIG_EOI_SP | 2); // IRQ2
 	}
 }
 

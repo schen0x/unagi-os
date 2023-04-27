@@ -18,13 +18,18 @@ extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
 FIFO8 keybuf = {0};
+FIFO8 mousebuf = {0};
 
 void idt_init()
 {
+	/* TODO refactoring, find somewhere else for the buffer */
 	uint8_t _keybuf[32] = {0};
 	fifo8_init(&keybuf, _keybuf, sizeof(_keybuf));
+	uint8_t _mousebuf[128] = {0};
+	fifo8_init(&mousebuf, _mousebuf, sizeof(_mousebuf));
+
 	ps2kbc_KBC_init();
-	ps2kbc_MOUSE_init();
+	//ps2kbc_MOUSE_init();
 	/* The kmemset is not necessary though, because a global variable will be auto initialized to 0 */
 	// kmemset(idts, 0, sizeof(idts)); // Set the all idt entries to 0
 	// kmemset(&idtr, 0, sizeof(idtr)); // Set the all idtr entries to 0
@@ -78,12 +83,15 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 
 	if(interrupt_number == (0x2c))
 	{
-		kfprint("0x2c", 4);
+		int2ch();
+		return;
 	}
 
 	if(interrupt_number == 0x21)
 	{
-		__int21h_buffed();
+		int21h();
+		// __int21h_buffed();
+		return;
 	}
 	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
 	{
@@ -100,6 +108,28 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 }
 
 
+/*
+ * PS2KBC MOUSE Interrupt
+ */
+void int2ch(void)
+{
+	uint8_t data = _io_in8(PS2KBC_PORT_DATA_RW);
+	PIC_sendEOI(12); // 2ch, IRQ12
+	fifo8_enqueue(&mousebuf, data);
+	return;
+}
+
+/*
+ * MOUSE data handler
+ * scancode: uint8_t _scancode + \0
+ */
+void int2ch_handler(uint16_t scancode)
+{
+	char buf[20]={0};
+	sprintf(buf, "%02x", (uint8_t)scancode);
+	kfprint(buf, 4);
+}
+
 
 void idt_zero()
 {
@@ -107,14 +137,13 @@ void idt_zero()
 	kfprint(msg, 4);
 }
 
-/*
- * Application should handle the buffer?
- * TODO Timeout?
- */
+///*
+// * Application should handle the buffer?
+// * TODO Timeout?
+// */
 void int21h()
 {
-	const int32_t PS2_KBD_KEYDATA_PORT = 0x60;
-	uint8_t data = _io_in8(PS2_KBD_KEYDATA_PORT);
+	uint8_t data = _io_in8(PS2KBC_PORT_DATA_RW);
 	PIC_sendEOI(1); // 21h, IRQ1
 	int21h_handler(data);
 }
@@ -122,8 +151,10 @@ void int21h()
 /* ?Race condition/Memory corruption? */
 void __int21h_buffed()
 {
-	const int32_t PS2_KBD_KEYDATA_PORT = 0x60;
-	uint8_t data = _io_in8(PS2_KBD_KEYDATA_PORT);
+	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
+	// char buf[20]={0};
+	// sprintf(buf, "_%02x_", (uint8_t)data);
+	// kfprint(buf, 4);
 	PIC_sendEOI(1); // 21h, IRQ1
 	fifo8_enqueue(&keybuf, data);
 	return; // ? from sequential to cpu polling buffer. int21h_handler(data); in another thread?
@@ -135,9 +166,9 @@ void __int21h_buffed()
  */
 void int21h_handler(uint16_t scancode)
 {
-	char buf[20]={0};
-	sprintf(buf, "%02x", (uint8_t)scancode);
-	kfprint(buf, 4);
-	// atakbd_interrupt(scancode);
+	// char buf[20]={0};
+	// sprintf(buf, "%02x", (uint8_t)scancode);
+	// kfprint(buf, 4);
+	atakbd_interrupt(scancode);
 }
 

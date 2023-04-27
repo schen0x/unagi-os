@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-void kernel_main();
+void kernel_main(void);
+void eventloop(void);
 
 #endif

@@ -22,5 +22,6 @@ void fifo8_init(FIFO8 *fifo, uint8_t *buf, int32_t size);
 int32_t fifo8_enqueue(FIFO8 *fifo, uint8_t data);
 int32_t fifo8_dequeue(FIFO8 *fifo);
 int32_t fifo8_status_getUsageB(FIFO8 *fifo);
+bool test_fifo8(void);
 
 #endif

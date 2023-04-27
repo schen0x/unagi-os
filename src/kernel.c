@@ -15,9 +15,9 @@
 /* Kernel Page Directory */
 static PAGE_DIRECTORY_4KB* kpd = 0;
 
-void kernel_main()
+void kernel_main(void)
 {
-	if (test_kutil() != true)
+	if (test_kutil() != true || test_fifo8() != true)
 		asm("HLT");
 
 	idt_init();
@@ -36,18 +36,32 @@ void kernel_main()
 
 	disk_search_and_init();
 
+	eventloop();
+}
 
+void eventloop(void)
+{
+	int32_t usedBytes_keybuf, usedBytes_mousebuf = 0;
 	for(;;)
 	{
 		_io_cli();
-		if(fifo8_status_getUsageB(&keybuf) == 0)
+		usedBytes_keybuf = fifo8_status_getUsageB(&keybuf);
+		usedBytes_mousebuf = fifo8_status_getUsageB(&mousebuf);
+		if (usedBytes_keybuf != 0)
+		{
+			int21h_handler(fifo8_dequeue(&keybuf));
+			continue;
+		}
+		if (usedBytes_mousebuf != 0)
+			int2ch_handler(fifo8_dequeue(&mousebuf));
+		if (usedBytes_keybuf == 0 && \
+			usedBytes_mousebuf == 0
+		)
 		{
 			_io_stihlt();
 		}
-		int32_t i = fifo8_dequeue(&keybuf);
-		_io_sti();
-		int21h_handler(i);
 	}
+
 }
 
 
