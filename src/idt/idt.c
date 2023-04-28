@@ -8,6 +8,7 @@
 #include "util/printf.h"
 #include "io/io.h"
 #include "drivers/ps2kbc.h"
+#include "memory/memory.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -23,8 +24,9 @@ FIFO8 mousebuf = {0};
 void idt_init()
 {
 	/* TODO refactoring, find somewhere else for the buffer */
-	uint8_t _keybuf[32] = {0};
-	fifo8_init(&keybuf, _keybuf, sizeof(_keybuf));
+	// uint8_t _keybuf[32] = {0};
+	uint8_t *_keybuf = (uint8_t*) kzalloc(32);
+	fifo8_init(&keybuf, _keybuf, 32);
 	uint8_t _mousebuf[128] = {0};
 	fifo8_init(&mousebuf, _mousebuf, sizeof(_mousebuf));
 
@@ -162,13 +164,13 @@ void __int21h_buffed()
 
 /*
  * Keyboard interrupt handler
- * scancode: uint8_t _scancode + \0
+ * scancode: uint8_t _scancode
  */
-void int21h_handler(uint16_t scancode)
+void int21h_handler(uint8_t scancode)
 {
-	// char buf[20]={0};
-	// sprintf(buf, "%02x", (uint8_t)scancode);
-	// kfprint(buf, 4);
+	char buf[10]={0};
+	sprintf(buf, "+%02x+", scancode);
+	kfprint(buf, 4);
 	atakbd_interrupt(scancode);
 }
 

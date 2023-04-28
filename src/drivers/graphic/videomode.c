@@ -5,6 +5,7 @@
 #include "include/uapi/bootinfo.h"
 #include "font/hankaku.h"
 #include "util/printf.h"
+#include "util/kutil.h"
 #define COL8_000000 0 // 0:Black
 #define COL8_FF0000 1 // 1:Red+
 #define COL8_00FF00 2 // 2:Green+
@@ -27,6 +28,7 @@ static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer
 
 static int32_t posX = 16;
 static int32_t posY = 80;
+BOOTINFO bibk = {0};
 
 /*
  * Bitmap of font 'A'
@@ -107,19 +109,32 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 	}
 }
 
+static void display_scroll(uintptr_t vram, int32_t VGA_WIDTH, int32_t VGA_HEIGHT)
+{
+	// TODO Scroll
+	// Reset the screen for now
+	draw_windows(vram, VGA_WIDTH, VGA_HEIGHT);
+	posX = 16;
+	posY = 16;
+}
+
 void videomode_kfprint(const char* str, const uint8_t color)
 {
 	(void) color;
 	// putfonts8_asc((uintptr_t)0xa0000, 320, 16, 80, COL8_FFFFFF, (char *) str);
-	putfonts8_ascv2((uintptr_t)0xa0000, 320, posX, posY, COL8_FFFFFF, (char *) str);
+	// TODO should not use bibk
+	if (kstrlen(str) * 8 + posX > (uint64_t)((bibk.scrny - posY)/24 * bibk.scrnx))
+		display_scroll((uintptr_t)bibk.vram, bibk.scrnx, bibk.scrny);
+	putfonts8_ascv2((uintptr_t)0xa0000, bibk.scrnx, posX, posY, COL8_FFFFFF, (char *) str);
 }
 
 void videomode_window_initialize(BOOTINFO* bi)
 {
+	kmemcpy(&bibk, bi, sizeof(BOOTINFO));
 	// __draw_stripes();
 	init_palette();
 	// __draw_three_boxes();
-	draw_windows(bi);
+	draw_windows((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
 	// __write_some_chars(bi);
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "ABC 234");
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 31, 31, COL8_000000, "Haribote OS.");
@@ -296,12 +311,11 @@ static void __draw_three_boxes()
 	boxfill8(vram, 320, COL8_0000FF, 120, 80, 220, 180);
 }
 
-static void draw_windows(BOOTINFO* bi)
+static void draw_windows(uintptr_t vram, int32_t screenXsize, int32_t screenYsize)
 {
 	int32_t xsize, ysize;
-	uintptr_t vram = (uintptr_t) bi->vram;
-	xsize = bi->scrnx;
-	ysize = bi->scrny;
+	xsize = screenXsize;
+	ysize = screenYsize;
 
 	boxfill8(vram, xsize, COL8_008484, 0,		0,		xsize - 1,	ysize - 29); // Blue-, desktop
 	boxfill8(vram, xsize, COL8_C6C6C6, 0,		ysize - 28, 	xsize - 1, 	ysize - 28); // Gray, line as shadow, taskbar

@@ -37,6 +37,7 @@ void kernel_main(void)
 	disk_search_and_init();
 
 	eventloop();
+	// asm("hlt");
 }
 
 void eventloop(void)
@@ -47,18 +48,23 @@ void eventloop(void)
 		_io_cli();
 		usedBytes_keybuf = fifo8_status_getUsageB(&keybuf);
 		usedBytes_mousebuf = fifo8_status_getUsageB(&mousebuf);
-		if (usedBytes_keybuf != 0)
-		{
-			int21h_handler(fifo8_dequeue(&keybuf));
-			continue;
-		}
-		if (usedBytes_mousebuf != 0)
-			int2ch_handler(fifo8_dequeue(&mousebuf));
 		if (usedBytes_keybuf == 0 && \
-			usedBytes_mousebuf == 0
-		)
+			usedBytes_mousebuf == 0)
 		{
 			_io_stihlt();
+			continue;
+		}
+		if (usedBytes_keybuf != 0)
+		{
+			uint8_t kscancode = fifo8_dequeue(&keybuf) & 0xff;
+			if (kscancode > 0)
+				int21h_handler(kscancode);
+		}
+		if (usedBytes_mousebuf != 0)
+		{
+			uint8_t mscancode = fifo8_dequeue(&mousebuf) & 0xff;
+			if (mscancode > 0)
+				int2ch_handler(mscancode);
 		}
 	}
 

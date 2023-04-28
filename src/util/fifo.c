@@ -2,6 +2,8 @@
 #include "status.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "include/uapi/graphic.h"
+#include "util/printf.h"
 
 void fifo8_init(FIFO8 *fifo, uint8_t *buf, int32_t size)
 {
@@ -22,7 +24,7 @@ int32_t fifo8_enqueue(FIFO8 *fifo, uint8_t data)
 {
 	if (fifo->free == 0)
 	{
-		fifo->flags |= FIFO8_FLAG_OVERRUN; // TODO is this flag really necessary?
+	// 	fifo->flags |= FIFO8_FLAG_OVERRUN; // TODO is this flag really necessary?
 		return -EIO;
 	}
 	fifo->buf[fifo->next_w] = data;
@@ -33,6 +35,9 @@ int32_t fifo8_enqueue(FIFO8 *fifo, uint8_t data)
 		fifo->next_w = 0;
 	}
 	fifo->free--;
+	// char b[32] = {0};
+	// sprintf(b, "enqueue:%2x", data);
+	// kfprint(b, 4);
 	return 0;
 }
 
@@ -55,6 +60,9 @@ int32_t fifo8_dequeue(FIFO8 *fifo)
 		fifo->next_r = 0;
 	}
 	fifo->free++;
+	//char b[32] = {0};
+	//sprintf(b, "dequeue:%2x", data);
+	//kfprint(b, 4);
 	return data;
 }
 

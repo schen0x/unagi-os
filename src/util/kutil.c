@@ -2,6 +2,7 @@
 #include "config.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "memory/memory.h"
 
 void* kstrcpy(char* dest, const char* src)
@@ -40,6 +41,16 @@ void memset(void* ptr, int c, size_t size)
 	kmemset(ptr, c, size);
 }
 
+void* kmemcpy(void* dst, const void* src, size_t size)
+{
+	char* c_dst = dst;
+	const char* c_src = src;
+	for(size_t i=0; i < size; i++)
+	{
+		c_dst[i] = c_src[i];
+	}
+	return dst;
+}
 
 /*
  * Write the ascii representation of hex_number at &hex_number.
