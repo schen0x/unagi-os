@@ -10,6 +10,7 @@
 #include "drivers/ps2kbc.h"
 #include "memory/memory.h"
 #include "status.h"
+#include "drivers/graphic/videomode.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function

@@ -29,6 +29,7 @@ static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer
 static int32_t posX = 16;
 static int32_t posY = 80;
 BOOTINFO bibk = {0};
+int32_t mouseX, mouseY;
 
 /*
  * Bitmap of font 'A'
@@ -124,6 +125,9 @@ static void display_scroll(uintptr_t vram, int32_t VGA_WIDTH, int32_t VGA_HEIGHT
 	draw_windows(vram, VGA_WIDTH, VGA_HEIGHT);
 	posX = 0;
 	posY = 16;
+	uint8_t mouse[16*16] = {0};
+	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
+	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
 }
 
 void videomode_kfprint(const char* str, const uint8_t color)
@@ -139,11 +143,11 @@ void videomode_kfprint(const char* str, const uint8_t color)
 void videomode_window_initialize(BOOTINFO* bi)
 {
 	kmemcpy(&bibk, bi, sizeof(BOOTINFO));
-	// __draw_stripes();
+	mouseX = bi->scrnx/2;
+	mouseY = bi->scrny/2;
+
 	init_palette();
-	// __draw_three_boxes();
 	draw_windows((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
-	// __write_some_chars(bi);
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "ABC 234");
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 31, 31, COL8_000000, "Haribote OS.");
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 30, 30, COL8_FFFFFF, "Haribote OS.");
@@ -152,8 +156,27 @@ void videomode_window_initialize(BOOTINFO* bi)
 	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 16, 64, COL8_FFFFFF, s);
 	uint8_t mouse[16*16] = {0};
 	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
-	putblock8_8((uintptr_t)bi->vram, bi->scrnx, 16, 16, bi->scrnx/2, bi->scrny/2, mouse, 16);
+	putblock8_8((uintptr_t)bi->vram, bi->scrnx, 16, 16, mouseX, mouseY, mouse, 16);
 
+}
+
+/*
+ * TODO Erase old pixels instead of re-drawing?
+ * Move mouse on the screen based on the offsets
+ */
+void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
+{
+	uint8_t mouse[16*16] = {0};
+	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
+
+// 	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
+	int32_t newX = mouseX + mouse_one_move->x;
+	int32_t newY = mouseY + mouse_one_move->y;
+	if (newX > 0 && newX < bibk.scrnx)
+		mouseX = newX;
+	if (newY > 0 && newY < bibk.scrny)
+		mouseY = newY;
+	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
 }
 
 /*
@@ -201,11 +224,6 @@ void init_mouse_cursor8(intptr_t mouse, uint8_t back_color)
 		}
 	}
 	return;
-}
-void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
-{
-	// TODO
-
 }
 
 /*
