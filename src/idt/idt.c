@@ -91,8 +91,8 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 
 	if(interrupt_number == 0x21)
 	{
-		int21h();
-		// __int21h_buffed();
+		// int21h();
+		__int21h_buffed();
 		return;
 	}
 	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
@@ -168,9 +168,9 @@ void __int21h_buffed()
  */
 void int21h_handler(uint8_t scancode)
 {
-	char buf[10]={0};
-	sprintf(buf, "+%02x+", scancode);
-	kfprint(buf, 4);
+	//char buf[20]={0};
+	//sprintf(buf, "21h_handler:%02x ", scancode);
+	//kfprint(buf, 4);
 	atakbd_interrupt(scancode);
 }
 

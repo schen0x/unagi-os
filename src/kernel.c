@@ -17,9 +17,6 @@ static PAGE_DIRECTORY_4KB* kpd = 0;
 
 void kernel_main(void)
 {
-	if (test_kutil() != true || test_fifo8() != true)
-		asm("HLT");
-
 	idt_init();
 	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	_io_sti();
@@ -35,6 +32,9 @@ void kernel_main(void)
 	enable_paging();
 
 	disk_search_and_init();
+
+	if (test_kutil() != true || test_fifo8() != true)
+		asm("HLT");
 
 	eventloop();
 	// asm("hlt");

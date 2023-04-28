@@ -35,9 +35,9 @@ int32_t fifo8_enqueue(FIFO8 *fifo, uint8_t data)
 		fifo->next_w = 0;
 	}
 	fifo->free--;
-	// char b[32] = {0};
-	// sprintf(b, "enqueue:%2x", data);
-	// kfprint(b, 4);
+//	char b[12] = {0};
+//	sprintf(b, "enqueue:%2x", data);
+//	kfprint(b, 4);
 	return 0;
 }
 
@@ -60,9 +60,9 @@ int32_t fifo8_dequeue(FIFO8 *fifo)
 		fifo->next_r = 0;
 	}
 	fifo->free++;
-	//char b[32] = {0};
-	//sprintf(b, "dequeue:%2x", data);
-	//kfprint(b, 4);
+//	char b[12] = {0};
+//	sprintf(b, "dequeue:%2x", data);
+//	kfprint(b, 4);
 	return data;
 }
 
