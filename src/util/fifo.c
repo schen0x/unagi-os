@@ -61,9 +61,9 @@ int32_t fifo8_dequeue(FIFO8 *fifo)
 		fifo->next_r = 0;
 	}
 	fifo->free++;
-//	char b[12] = {0};
-//	sprintf(b, "dequeue:%2x", data);
-//	kfprint(b, 4);
+	//char b[12] = {0};
+	//sprintf(b, "dq:%2x", data);
+	//kfprint(b, 4);
 	return data;
 }
 

@@ -171,7 +171,7 @@ void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
 
 // 	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
 	int32_t newX = mouseX + mouse_one_move->x;
-	int32_t newY = mouseY + mouse_one_move->y;
+	int32_t newY = mouseY - mouse_one_move->y;
 	if (newX > 0 && newX < bibk.scrnx)
 		mouseX = newX;
 	if (newY > 0 && newY < bibk.scrny)

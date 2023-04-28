@@ -132,6 +132,9 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 void int2ch(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
+//	char i[10] = {0};
+//	sprintf(i, "KBCDT:%2x ", data);
+//	kfprint(i, 4);
 	PIC_sendEOI(12); // 2ch, IRQ12
 	fifo8_enqueue(&mousebuf, data);
 	return;

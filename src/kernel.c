@@ -77,13 +77,13 @@ void eventloop(void)
 			 * -> `scancode` becomes 0xff;
 			 */
 			int32_t kbdscancode = fifo8_dequeue(&keybuf);
-			if (kbdscancode > 0)
+			if (kbdscancode >= 0)
 				int21h_handler(kbdscancode & 0xff);
 		}
 		if (usedBytes_mousebuf != 0)
 		{
 			int32_t mousescancode = fifo8_dequeue(&mousebuf);
-			if (mousescancode > 0)
+			if (mousescancode >= 0)
 				int2ch_handler(mousescancode & 0xff);
 
 		}

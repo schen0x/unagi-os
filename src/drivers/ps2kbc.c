@@ -90,15 +90,14 @@ void ps2kbc_MOUSE_init(void)
 	ps2kbc_wait_KBC_readReady();
 	_io_in8(PS2KBC_PORT_DATA_RW); // 0x00?
 
-	ps2kbc_wait_KBC_writeReady();
-	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
-	ps2kbc_wait_KBC_writeReady();
-	_io_out8(PS2KBC_PORT_DATA_RW, PS2MOUSE_CMD_GET_DEVICE_ID);
-	ps2kbc_wait_KBC_readReady();
-	_io_in8(PS2KBC_PORT_DATA_RW); // 0xfa
-	ps2kbc_wait_KBC_readReady();
-	_io_in8(PS2KBC_PORT_DATA_RW); // 0x00
-	// FIXME need timer timeout
+	//ps2kbc_wait_KBC_writeReady();
+	//_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
+	//ps2kbc_wait_KBC_writeReady();
+	//_io_out8(PS2KBC_PORT_DATA_RW, PS2MOUSE_CMD_GET_DEVICE_ID);
+	//ps2kbc_wait_KBC_readReady();
+	//_io_in8(PS2KBC_PORT_DATA_RW); // 0xfa
+	//ps2kbc_wait_KBC_readReady();
+	//_io_in8(PS2KBC_PORT_DATA_RW); // 0x00
 
 	//ps2kbc_wait_KBC_writeReady();
 	//_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
