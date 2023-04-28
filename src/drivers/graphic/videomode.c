@@ -96,14 +96,22 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 {
 	posX = posXnew;
 	posY = posYnew;
+	const int32_t incrementX = 8;
+	const int32_t incrementY = 24;
 	for(; *s != 0; s++)
 	{
+		if (*s == '\n')
+		{
+			posX = 0;
+			posY += incrementY;
+			continue;
+		}
 		putfont8(vram, xsize, posX, posY, color, hankaku + *s * 16);
-		posX += 8;
+		posX += incrementX;
 		if (posX > xsize - 16)
 		{
 			posX = 0;
-			posY += 24;
+			posY += incrementY;
 		}
 
 	}
@@ -114,7 +122,7 @@ static void display_scroll(uintptr_t vram, int32_t VGA_WIDTH, int32_t VGA_HEIGHT
 	// TODO Scroll
 	// Reset the screen for now
 	draw_windows(vram, VGA_WIDTH, VGA_HEIGHT);
-	posX = 16;
+	posX = 0;
 	posY = 16;
 }
 
@@ -123,7 +131,7 @@ void videomode_kfprint(const char* str, const uint8_t color)
 	(void) color;
 	// putfonts8_asc((uintptr_t)0xa0000, 320, 16, 80, COL8_FFFFFF, (char *) str);
 	// TODO should not use bibk
-	if (kstrlen(str) * 8 + posX > (uint64_t)((bibk.scrny - posY)/24 * bibk.scrnx))
+	if ((int64_t)kstrlen(str) * 8 + posX > (int64_t)((bibk.scrny - posY)/24 * bibk.scrnx))
 		display_scroll((uintptr_t)bibk.vram, bibk.scrnx, bibk.scrny);
 	putfonts8_ascv2((uintptr_t)0xa0000, bibk.scrnx, posX, posY, COL8_FFFFFF, (char *) str);
 }
@@ -193,6 +201,11 @@ void init_mouse_cursor8(intptr_t mouse, uint8_t back_color)
 		}
 	}
 	return;
+}
+void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
+{
+	// TODO
+
 }
 
 /*

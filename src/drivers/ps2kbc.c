@@ -17,6 +17,7 @@
 #include "drivers/ps2kbc.h"
 #include "io/io.h"
 #include "util/kutil.h"
+#include "util/printf.h"
 #include <stdbool.h>
 
 void ps2kbc_wait_KBC_writeReady()
@@ -72,9 +73,38 @@ void ps2kbc_KBC_init(void)
  * Enable the Second PS/2 Controller (mouse)
  * Which is by default disabled.
  * Because enabling it in an unsupported device may cause crash.
+ * TODO add timeout in case only 1 byte is sent from the device after ACK(0xfa)
  */
 void ps2kbc_MOUSE_init(void)
 {
+	ps2kbc_wait_KBC_writeReady();
+	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
+	ps2kbc_wait_KBC_writeReady();
+	_io_out8(PS2KBC_PORT_DATA_RW, PS2MOUSE_CMD_RESET);
+	ps2kbc_wait_KBC_readReady();
+	_io_in8(PS2KBC_PORT_DATA_RW); // 0xfa
+
+	/* In emulation, ~500 milliseconds after powerup, transmit "0xAA, 0x00" */
+	ps2kbc_wait_KBC_readReady();
+	_io_in8(PS2KBC_PORT_DATA_RW); // 0xaa
+	ps2kbc_wait_KBC_readReady();
+	_io_in8(PS2KBC_PORT_DATA_RW); // 0x00?
+
+	ps2kbc_wait_KBC_writeReady();
+	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
+	ps2kbc_wait_KBC_writeReady();
+	_io_out8(PS2KBC_PORT_DATA_RW, PS2MOUSE_CMD_GET_DEVICE_ID);
+	ps2kbc_wait_KBC_readReady();
+	_io_in8(PS2KBC_PORT_DATA_RW); // 0xfa
+	ps2kbc_wait_KBC_readReady();
+	_io_in8(PS2KBC_PORT_DATA_RW); // 0x00
+	// FIXME need timer timeout
+
+	//ps2kbc_wait_KBC_writeReady();
+	//_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
+	//ps2kbc_wait_KBC_writeReady();
+	//_io_out8(PS2KBC_PORT_DATA_RW, PS2MOUSE_CMD_SET_STREAM_MODE);
+
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
 	ps2kbc_wait_KBC_writeReady();

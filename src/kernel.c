@@ -1,6 +1,7 @@
 #include "kernel.h"
 #include "config.h"
 #include "util/kutil.h"
+#include "util/printf.h"
 #include "idt/idt.h"
 #include "io/io.h"
 #include "memory/memory.h"
@@ -40,6 +41,13 @@ void kernel_main(void)
 	{
 		kfprint("Function test PASS.", 4);
 	}
+	uint8_t i0 = 0x28;
+	int32_t i1 = 1- ((i0<< 3) & 0x100);
+	char c1[20] = {0};
+	sprintf(c1, "%4x", i1);
+	kfprint(c1, 4);
+
+
 
 	eventloop();
 	// asm("hlt");
@@ -56,20 +64,28 @@ void eventloop(void)
 		if (usedBytes_keybuf == 0 && \
 			usedBytes_mousebuf == 0)
 		{
-			_io_stihlt();
+			_io_sti();
+			asm("pause");
 			continue;
 		}
 		if (usedBytes_keybuf != 0)
 		{
-			uint8_t kscancode = fifo8_dequeue(&keybuf) & 0xff;
-			if (kscancode > 0)
-				int21h_handler(kscancode);
+			/*
+			 * Because if error returns a int32_t negative number,
+			 * when autocasted, the sign digit is NOT discarded by default.
+			 * uint8_t scancode = (uint32_t) -1;
+			 * -> `scancode` becomes 0xff;
+			 */
+			int32_t kbdscancode = fifo8_dequeue(&keybuf);
+			if (kbdscancode > 0)
+				int21h_handler(kbdscancode & 0xff);
 		}
 		if (usedBytes_mousebuf != 0)
 		{
-			uint8_t mscancode = fifo8_dequeue(&mousebuf) & 0xff;
-			if (mscancode > 0)
-				int2ch_handler(mscancode);
+			int32_t mousescancode = fifo8_dequeue(&mousebuf);
+			if (mousescancode > 0)
+				int2ch_handler(mousescancode & 0xff);
+
 		}
 	}
 

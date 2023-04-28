@@ -97,7 +97,22 @@ bool test_fifo8(void)
 		if (fifo8_status_getUsageB(&f) != (0x48 - i - 1))
 			return false;
 	}
-	// testing wrap loop
+	// test null bytes
+	for (uint8_t i = 0x40; i < 0x48; i++)
+	{
+		fifo8_enqueue(&f, 0);
+		if (fifo8_status_getUsageB(&f) != (i - 0x40 + 1))
+			return false;
+	}
+	for (uint8_t i = 0x40; i < 0x48; i++)
+	{
+		uint8_t d = fifo8_dequeue(&f);
+		if (d != 0)
+			return false;
+		if (fifo8_status_getUsageB(&f) != (0x48 - i - 1))
+			return false;
+	}
+	// test wrap loop
 	for (uint8_t i = 0x40; i < 0x44; i++)
 	{
 		fifo8_enqueue(&f, i);

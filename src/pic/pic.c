@@ -65,7 +65,7 @@ void PIC_remap(uint8_t offset0, uint8_t offset1)
 	_io_out8(PIC0_DATA, offset0);			// ICW2: Set the new interrupt offset for the Master PIC
 	_io_out8(PIC0_DATA, 1 << 2);			// ICW3: Set Master PIC, take slave interrupt at IRQ2 (let IRQ be 0 based, 0000 0100)
 	_io_out8(PIC0_DATA, ICW4_8086);			// ICW4: non buffered mode
-	_io_out8(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4P);
+	_io_out8(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4P | ICW1_LEVEL);
 	_io_out8(PIC1_DATA, offset1);
 	_io_out8(PIC1_DATA, 2);				// ICW3: 0b10, set slave interrupt at IRQ2
 	_io_out8(PIC1_DATA, ICW4_8086);
