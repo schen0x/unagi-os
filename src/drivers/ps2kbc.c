@@ -68,6 +68,11 @@ void ps2kbc_KBC_init(void)
 	_io_out8(PS2KBC_PORT_DATA_RW, kbc_conf0);
 }
 
+/*
+ * Enable the Second PS/2 Controller (mouse)
+ * Which is by default disabled.
+ * Because enabling it in an unsupported device may cause crash.
+ */
 void ps2kbc_MOUSE_init(void)
 {
 	ps2kbc_wait_KBC_writeReady();

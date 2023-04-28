@@ -34,7 +34,12 @@ void kernel_main(void)
 	disk_search_and_init();
 
 	if (test_kutil() != true || test_fifo8() != true)
-		asm("HLT");
+	{
+		kfprint("Function test FAIL.", 4);
+	} else
+	{
+		kfprint("Function test PASS.", 4);
+	}
 
 	eventloop();
 	// asm("hlt");

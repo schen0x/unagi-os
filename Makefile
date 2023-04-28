@@ -1,6 +1,6 @@
 FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o ./build/memory/heap.o ./build/memory/kheap.o ./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o ./build/disk/disk.o ./build/fs/pathparser.o ./build/include/uapi/graphic.o ./build/drivers/graphic/colortextmode.o ./build/disk/dstream.o ./build/drivers/graphic/videomode.o ./build/font/hankaku.o ./build/util/printf.o ./build/util/arith64.o ./build/util/fifo.o ./build/drivers/ps2kbc.o
 GCC_KERNEL_INCLUDES = -I./src
-GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -O0 -Iinc
+GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -fvar-tracking -O0 -Iinc
 TOOLPATH = $(HOME)/opt/cross/bin
 
 all: clean builddir compile run

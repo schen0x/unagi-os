@@ -5,6 +5,7 @@
 #include "include/uapi/graphic.h"
 #include "util/printf.h"
 
+/* Consider the Lifecycle of *buf carefully  */
 void fifo8_init(FIFO8 *fifo, uint8_t *buf, int32_t size)
 {
 	fifo->size = size;

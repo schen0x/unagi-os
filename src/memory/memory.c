@@ -17,13 +17,18 @@ void* kmemset(void* ptr, int c, size_t size)
 	return ptr;
 }
 
+
+/*
+ * Must check if NULL before using!
+ * Return a pointer
+ */
 void* kzalloc(size_t size)
 {
 
 	void* ptr = kmalloc(size);
 	if (!ptr)
 	{
-		return 0;
+		return NULL;
 	}
 	kmemset(ptr, 0, size);
 	return ptr;

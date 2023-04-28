@@ -43,7 +43,7 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
 void __int21h_buffed();
 void int21h_handler(uint8_t scancode);
 void int2ch(void);
-void int2ch_handler(uint16_t scancode);
+void int2ch_handler(uint8_t scancode);
 extern FIFO8 keybuf;
 extern FIFO8 mousebuf;
 

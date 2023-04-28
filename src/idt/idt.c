@@ -20,18 +20,22 @@ static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
 FIFO8 keybuf = {0};
 FIFO8 mousebuf = {0};
+uint8_t _keybuf[32] = {0};
+uint8_t _mousebuf[128] = {0};
 
 void idt_init()
 {
 	/* TODO refactoring, find somewhere else for the buffer */
 	// uint8_t _keybuf[32] = {0};
-	uint8_t *_keybuf = (uint8_t*) kzalloc(32);
-	fifo8_init(&keybuf, _keybuf, 32);
-	uint8_t _mousebuf[128] = {0};
+	// uint8_t *_keybuf = (uint8_t*) kzalloc(32); // of course if memory it not yet initialized, this is not possible.
+	//! So the problem is that the idt_init() will return, while eventloop running
+	//! So if _keybuf uses a stack address, it causes panic
+	//! uint8_t _keybuf[32] = {0};
+	fifo8_init(&keybuf, _keybuf, sizeof(_keybuf));
 	fifo8_init(&mousebuf, _mousebuf, sizeof(_mousebuf));
 
 	ps2kbc_KBC_init();
-	//ps2kbc_MOUSE_init();
+	ps2kbc_MOUSE_init();
 	/* The kmemset is not necessary though, because a global variable will be auto initialized to 0 */
 	// kmemset(idts, 0, sizeof(idts)); // Set the all idt entries to 0
 	// kmemset(&idtr, 0, sizeof(idtr)); // Set the all idtr entries to 0
@@ -123,9 +127,9 @@ void int2ch(void)
 
 /*
  * MOUSE data handler
- * scancode: uint8_t _scancode + \0
+ * scancode: uint8_t _scancode
  */
-void int2ch_handler(uint16_t scancode)
+void int2ch_handler(uint8_t scancode)
 {
 	char buf[20]={0};
 	sprintf(buf, "%02x", (uint8_t)scancode);

@@ -44,6 +44,7 @@ void PIC_sendEOI(uint8_t irq)
 	{
 		_io_out8(PIC1_COMMAND,PIC_SIG_EOI_SP | (irq - 8));
 		_io_out8(PIC0_COMMAND, PIC_SIG_EOI_SP | 2); // IRQ2
+		return;
 	}
 }
 
