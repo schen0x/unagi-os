@@ -36,10 +36,32 @@ size_t kstrnlen(const char *str, size_t max)
 	return len;
 }
 
+/*
+ * This function is required by gcc compiler
+ * Probably when dynamic sized initialization is asked in the stack.
+ * e.g.: struct PATH_PART* pt_ptr[OS_PATH_MAX_LENGTH] = {0}; // (a line in the stack)
+ * */
 void memset(void* ptr, int c, size_t size)
 {
 	kmemset(ptr, c, size);
+	return;
 }
+
+
+/* Fill "*ptr" with (char)"c" * "size" */
+void* kmemset(void* ptr, int c, size_t size)
+{
+	/* write size * c to (*ptr) */
+	char* dst = ptr;
+//	while (size--)
+//		*dst++ = c;
+	for(size_t i=0; i < size; i++)
+	{
+		dst[i] = (char) c;
+	}
+	return ptr;
+}
+
 
 void* kmemcpy(void* dst, const void* src, size_t size)
 {

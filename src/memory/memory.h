@@ -4,7 +4,6 @@
 
 #include <stddef.h>
 
-void* kmemset(void* ptr, int c, size_t size);
 void kmemory_init(void *mem, size_t size);
 void *k_dl_mm_malloc(size_t size);
 void k_dl_mm_free(void *mem);

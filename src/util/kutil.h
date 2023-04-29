@@ -14,6 +14,7 @@ bool is_digit(char c);
 int32_t to_digit(char c);
 int32_t kmemcmp(const void *str1, const void *str2, size_t n);
 void memset(void* ptr, int c, size_t size);
+void* kmemset(void* ptr, int c, size_t size);
 bool isMaskBitsAllSet (uint32_t data, uint32_t mask);
 bool isMaskBitsAllClear (uint32_t data, uint32_t mask);
 

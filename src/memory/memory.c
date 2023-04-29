@@ -1,21 +1,10 @@
 // memory/memory.c
 #include "memory/memory.h"
 #include "memory/kheap.h"
+#include "util/kutil.h"
 #include <stddef.h>
 #include <stdint.h>
 #include "config.h"
-
-/* Fill "*ptr" with (char)"c" * "size" */
-void* kmemset(void* ptr, int c, size_t size)
-{
-	/* write size * c to (*ptr) */
-	char* c_ptr = (char*)ptr;
-	for(size_t i=0; i < size; i++)
-	{
-		c_ptr[i] = (char) c;
-	}
-	return ptr;
-}
 
 
 /*

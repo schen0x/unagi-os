@@ -2,7 +2,7 @@
 #include "disk/disk.h"
 #include <stdint.h>
 #include <stddef.h>
-#include "memory/memory.h"
+#include "util/kutil.h"
 #include "status.h"
 #include "config.h"
 

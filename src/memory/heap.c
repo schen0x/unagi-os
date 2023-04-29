@@ -2,6 +2,7 @@
 #include "heap.h"
 #include "status.h"
 #include "memory/memory.h"
+#include "util/kutil.h"
 
 static uint32_t HBLOCK_SIZE = OS_HEAP_BLOCK_SIZE; // HEAP TABLE HEAP BLOCK SIZE
 
