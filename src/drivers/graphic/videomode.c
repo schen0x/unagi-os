@@ -26,8 +26,9 @@
 static uintptr_t video_mem_start = (uintptr_t)(0xa0000); /* create a local pointer to the absolute address */
 static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer to the absolute address */
 
-static int32_t posX = 16;
-static int32_t posY = 80;
+static const int32_t padding_l = 8;
+static int32_t posX = padding_l;
+static int32_t posY = 54;
 BOOTINFO bibk = {0};
 int32_t mouseX, mouseY;
 
@@ -103,7 +104,7 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 	{
 		if (*s == '\n')
 		{
-			posX = 0;
+			posX = padding_l;
 			posY += incrementY;
 			continue;
 		}
@@ -111,7 +112,7 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 		posX += incrementX;
 		if (posX > xsize - 16)
 		{
-			posX = 0;
+			posX = padding_l;
 			posY += incrementY;
 		}
 
@@ -123,7 +124,7 @@ static void display_scroll(uintptr_t vram, int32_t VGA_WIDTH, int32_t VGA_HEIGHT
 	// TODO Scroll
 	// Reset the screen for now
 	draw_windows(vram, VGA_WIDTH, VGA_HEIGHT);
-	posX = 0;
+	posX = padding_l;
 	posY = 16;
 	uint8_t mouse[16*16] = {0};
 	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
@@ -146,12 +147,11 @@ void videomode_window_initialize(BOOTINFO* bi)
 
 	init_palette();
 	draw_windows((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
-	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "ABC 234");
-	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 31, 31, COL8_000000, "Haribote OS.");
-	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 30, 30, COL8_FFFFFF, "Haribote OS.");
+	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 9, 9, COL8_000000, "Haribote OS");
+	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "Haribote OS");
 	char s[16] = {0};
 	sprintf(s, "scrnx = %d", bi->scrnx);
-	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 16, 64, COL8_FFFFFF, s);
+	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 16, 30, COL8_FFFFFF, s);
 	uint8_t mouse[16*16] = {0};
 	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
 	putblock8_8((uintptr_t)bi->vram, bi->scrnx, 16, 16, mouseX, mouseY, mouse, 16);

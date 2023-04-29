@@ -20,9 +20,17 @@ void kernel_main(void)
 {
 	idt_init();
 	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
+
+	uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
+	char _mbuf0[40] = {0};
+	sprintf(_mbuf0, "mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
+	kfprint(_mbuf0, 4);
+	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
+	char _mbuf[40] = {0};
+	sprintf(_mbuf, "mem_test OK from addr %dMB to %dMB \n", OS_HEAP_ADDRESS/1024/1024, mem);
+	kfprint(_mbuf, 4);
 	_io_sti();
 	asm("int $99");
-	// TODO CACHE OFF && MEMORY TEST
 	// TODO e820 routine
 
 	k_mm_init();
@@ -36,16 +44,16 @@ void kernel_main(void)
 
 	if (test_kutil() != true || test_fifo8() != true)
 	{
-		kfprint("Function test FAIL.", 4);
+		kfprint("\nFunction test FAIL.", 4);
 	} else
 	{
-		kfprint("Function test PASS.", 4);
+		kfprint("\nFunction test PASS.", 4);
 	}
-	uint8_t i0 = 0x28;
-	int32_t i1 = 1- ((i0<< 3) & 0x100);
-	char c1[20] = {0};
-	sprintf(c1, "%4x", i1);
-	kfprint(c1, 4);
+//	uint8_t i0 = 0x28;
+//	int32_t i1 = 1- ((i0<< 3) & 0x100);
+//	char c1[20] = {0};
+//	sprintf(c1, "%4x", i1);
+//	kfprint(c1, 4);
 
 
 

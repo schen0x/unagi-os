@@ -8,7 +8,7 @@ global _io_write_mem8:function
 global _io_hlt, _io_cli, _io_sti, _io_stihlt
 global _io_in8, _io_in16, _io_in32
 global _io_out8, _io_out16, _io_out32
-global _io_get_eflags, _io_set_eflags
+global _io_get_eflags, _io_set_eflags, _io_get_cr0, _io_set_cr0
 
 _io_hlt: ; void _io_hlt(void);
     HLT
@@ -102,6 +102,21 @@ _io_set_eflags: ; uint32_t _io_set_eflags(uint32_t eflags);
     mov eax, [ebp+8]
     push eax
     popfd
+
+    pop ebp
+    ret
+
+
+_io_get_cr0: ; uint32_t _io_get_cr0(void);
+    mov eax,cr0
+    ret
+
+_io_set_cr0: ; uint32_t _io_set_cr0(uint32_t cr0);
+    push ebp
+    mov ebp, esp
+
+    mov eax, [ebp+8]
+    mov cr0,eax
 
     pop ebp
     ret
