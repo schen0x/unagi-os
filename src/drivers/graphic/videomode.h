@@ -14,6 +14,7 @@ static void __draw_three_boxes();
 static void __write_some_chars(BOOTINFO* bi);
 static void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1);
 static void set_palette(uint8_t start, uint8_t end, unsigned char *rgb);
+static void init_block_fill(uint8_t *block_start, const uint8_t filling_color, const size_t block_size_in_bytes);
 static void init_palette(void);
 static void draw_windows(uintptr_t vram, int32_t screenXsize, int32_t screenYsize);
 void init_mouse_cursor8(intptr_t vram_mouse_address, uint8_t back_color);

@@ -133,8 +133,6 @@ static void display_scroll(uintptr_t vram, int32_t VGA_WIDTH, int32_t VGA_HEIGHT
 void videomode_kfprint(const char* str, const uint8_t color)
 {
 	(void) color;
-	// putfonts8_asc((uintptr_t)0xa0000, 320, 16, 80, COL8_FFFFFF, (char *) str);
-	// TODO should not use bibk
 	if ((int64_t)kstrlen(str) * 8 + posX > (int64_t)((bibk.scrny - posY)/24 * bibk.scrnx))
 		display_scroll((uintptr_t)bibk.vram, bibk.scrnx, bibk.scrny);
 	putfonts8_ascv2((uintptr_t)0xa0000, bibk.scrnx, posX, posY, COL8_FFFFFF, (char *) str);
@@ -161,6 +159,20 @@ void videomode_window_initialize(BOOTINFO* bi)
 }
 
 /*
+ * Fill the array
+ * int array[1024] = {[0 ... 1023] = COL8_008484}; // same thing with gcc GNU extension
+ */
+static void init_block_fill(uint8_t *block_start, const uint8_t filling_color, const size_t block_size_in_bytes)
+{
+	uint8_t *b = (uint8_t*) block_start;
+	for (size_t i = 0; i < block_size_in_bytes; i++)
+	{
+		b[i] = filling_color;
+	}
+	return;
+}
+
+/*
  * TODO Erase old pixels instead of re-drawing?
  * TODO Z buffer implementation
  * Move mouse on the screen based on the offsets
@@ -169,8 +181,11 @@ void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
 {
 	uint8_t mouse[16*16] = {0};
 	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
+	/* TODO Replace the makeshift bg */
+	uint8_t bg[16*16] = { 0 };
+	init_block_fill(bg, COL8_008484, sizeof(bg));
 
-// 	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
+ 	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, bg, 16);
 	int32_t newX = mouseX + mouse_one_move->x;
 	int32_t newY = mouseY - mouse_one_move->y;
 	if (newX > 0 && newX < bibk.scrnx)
