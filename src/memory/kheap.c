@@ -5,9 +5,9 @@
 #include "include/uapi/graphic.h"
 #include "memory/memory.h"
 
-struct heap kernel_heap;
+HEAP kernel_heap = {0};
 
-struct heap_table kernel_heap_table;
+HEAP_TABLE kernel_heap_table = {0};
 
 /*
  * 1024 * 1024 * 100 = 100 MB heap size
@@ -17,7 +17,7 @@ struct heap_table kernel_heap_table;
 void k_heap_table_mm_init()
 {
 	int total_memory_blocks = OS_HEAP_SIZE_BYTES / OS_HEAP_BLOCK_SIZE;
-	kernel_heap_table.entries = (HEAP_BLOCK_TABLE_ENTRY*) OS_HEAP_TABLE_ADDRESS;
+	kernel_heap_table.entries = (uint8_t*) OS_HEAP_TABLE_ADDRESS;
 	kernel_heap_table.total_blocks = total_memory_blocks;
 	void* heap_end = (void*)(OS_HEAP_ADDRESS + OS_HEAP_SIZE_BYTES);
 	int res = heap_create(&kernel_heap, (void*)OS_HEAP_ADDRESS, heap_end, &kernel_heap_table);

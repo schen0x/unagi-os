@@ -38,6 +38,7 @@
 
 #include "printf.h"
 #include "kernel.h"
+#include "include/uapi/graphic.h"
 
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
@@ -917,9 +918,11 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
   return ret;
 }
 
-// TODO
 void _putchar(char character)
 {
 	(void) character;
+	char s[2] = {0};
+	s[0] = character;
+	kfprint(s, 4);
 }
 

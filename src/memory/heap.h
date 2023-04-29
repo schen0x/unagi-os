@@ -2,8 +2,8 @@
 #ifndef MEMORY_HEAP_H_
 #define MEMORY_HEAP_H_
 #include "config.h"
-#include "stdint.h"
-#include "stddef.h"
+#include <stdint.h>
+#include <stddef.h>
 
 #define HEAP_BLOCK_TABLE_ENTRY_TAKEN 0x01
 #define HEAP_BLOCK_TABLE_ENTRY_FREE 0x00
@@ -13,17 +13,17 @@
 
 typedef uint8_t HEAP_BLOCK_TABLE_ENTRY; // The address of heap_table
 
-struct heap_table
+typedef struct heap_table
 {
 	HEAP_BLOCK_TABLE_ENTRY* entries;
 	size_t total_blocks; // total table entries count
-};
+} HEAP_TABLE;
 
-struct heap
+typedef struct heap
 {
-	struct heap_table* table;
+	HEAP_TABLE* table;
 	void* start_addr;
-};
+} HEAP;
 
 
 int heap_create(struct heap* heap, void* heap_start, void* heap_end, struct heap_table* table);

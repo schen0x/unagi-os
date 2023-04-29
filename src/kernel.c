@@ -14,7 +14,7 @@
 #include "include/uapi/bootinfo.h"
 
 /* Kernel Page Directory */
-static PAGE_DIRECTORY_4KB* kpd = 0;
+PAGE_DIRECTORY_4KB* kpd = 0;
 
 void kernel_main(void)
 {
@@ -22,23 +22,20 @@ void kernel_main(void)
 	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 
 	uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
-	char _mbuf0[40] = {0};
-	sprintf(_mbuf0, "mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
-	kfprint(_mbuf0, 4);
+	printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
 	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
-	char _mbuf[40] = {0};
-	sprintf(_mbuf, "mem_test OK from addr %dMB to %dMB \n", OS_HEAP_ADDRESS/1024/1024, mem);
-	kfprint(_mbuf, 4);
+	printf("mem_test OK from addr %dMB to %dMB \n", OS_HEAP_ADDRESS/1024/1024, mem);
 	_io_sti();
 	asm("int $99");
 	// TODO e820 routine
 
 	k_mm_init();
 	// ==============
-	uint32_t pd_entries_flags = 0b111;
-	kpd = pd_init(pd_entries_flags);
-	paging_switch(kpd);
-	enable_paging();
+	(void) kpd;
+//	uint32_t pd_entries_flags = 0b111;
+//	kpd = pd_init(pd_entries_flags);
+//	paging_switch(kpd);
+	//enable_paging();
 
 	disk_search_and_init();
 
