@@ -162,6 +162,7 @@ void videomode_window_initialize(BOOTINFO* bi)
 
 /*
  * TODO Erase old pixels instead of re-drawing?
+ * TODO Z buffer implementation
  * Move mouse on the screen based on the offsets
  */
 void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)

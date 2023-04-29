@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "include/uapi/bootinfo.h"
+#include "include/uapi/input-mouse-event.h"
 #include "idt/idt.h"
 void videomode_window_initialize(BOOTINFO* bi);
 // void videomode_terminal_put_char(const int64_t x, const int64_t y, const char c, const uint8_t color);
