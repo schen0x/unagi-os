@@ -8,6 +8,7 @@
 #define OS_IDT_AR_INTGATE32 0x8e // access bit for intgate32
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
+#define OS_MEMORY_ALIGN 16
 #define OS_HEAP_ADDRESS 0x01000000 // Extended Memory; 0x0100_0000 - 0xC000_0000; 3056 MB;
 #define OS_HEAP_SIZE_BYTES 1024 * 1024 * 112 // 128MB - OS_HEAP_ADDRESS = 112 MB
 #define OS_HEAP_BLOCK_SIZE 4096

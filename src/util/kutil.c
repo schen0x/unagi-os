@@ -149,6 +149,37 @@ bool isMaskBitsAllClear (uint32_t data, uint32_t mask)
 		return true;
 	return false;
 }
+/*
+ * Return the closest upper value that align.
+ * @addr memory address
+ * @ALIGN in bytes; e.g., 16, 4096
+ * e.g., 50->4096; 4097 -> 8192;
+ */
+uintptr_t align_address_to_upper(uintptr_t addr, uint32_t ALIGN)
+{
+	uintptr_t residual = addr % ALIGN;
+    	if (residual == 0)
+    	        return addr;
+	addr += (ALIGN - residual); // ALIGN >= residual
+    	return addr;
+}
+
+/*
+ * Return the closest lower value that align.
+ * @addr memory address
+ * @ALIGN in bytes; e.g., 16, 4096
+ * e.g., 4097 -> 4096; 8193 -> 8192;
+ */
+uintptr_t align_address_to_lower(uintptr_t addr, uint32_t ALIGN)
+{
+	uintptr_t residual = addr % ALIGN;
+    	if (residual == 0)
+    	{
+    	        return addr;
+    	}
+    	addr -= residual; // val >= residual
+    	return addr;
+}
 
 
 bool test_kutil()

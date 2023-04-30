@@ -43,69 +43,69 @@ gdb:
 ./build/kernel.asm.o: ./src/kernel.asm
 	nasm -f elf -g ./src/kernel.asm -o ./build/kernel.asm.o
 ./build/kernel.o: ./src/kernel.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/kernel.c -o ./build/kernel.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/kernel.c -o ./build/kernel.o
 ./build/idt/idt.asm.o: ./src/idt/idt.asm
 	nasm -f elf -g ./src/idt/idt.asm -o ./build/idt/idt.asm.o
 ./build/idt/idt.o: ./src/idt/idt.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/idt/idt.c -o ./build/idt/idt.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/idt/idt.c -o ./build/idt/idt.o
 ./build/memory/memory.o: ./src/memory/memory.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/memory/memory.c -o ./build/memory/memory.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/memory/memory.c -o ./build/memory/memory.o
 ./build/util/kutil.o: ./src/util/kutil.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/kutil.c -o ./build/util/kutil.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/util/kutil.c -o ./build/util/kutil.o
 # ./build/gdt/gdt.asm.o: ./src/gdt/gdt.asm
 	# nasm -f elf -g ./src/gdt/gdt.asm -o ./build/gdt/gdt.asm.o
 # ./build/gdt/gdt.o: ./src/gdt/gdt.c
-	# $(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/gdt/gdt.c -o ./build/gdt/gdt.o
+	# $(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/gdt/gdt.c -o ./build/gdt/gdt.o
 ./build/io/io.asm.o: ./src/io/io.asm
 	# nasm -f elf -g ./src/io/io.asm -o ./build/io/io.asm.elf
 	#$(TOOLPATH)/i686-elf-ld -m elf_i386 -o ./build/io/io.asm.o ./build/io/io.asm.elf
 	nasm -f elf -F dwarf -g ./src/io/io.asm -o ./build/io/io.asm.o
 ./build/io/io.o: ./src/io/io.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/io/io.c -o ./build/io/io.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/io/io.c -o ./build/io/io.o
 ./build/pic/pic.asm.o: ./src/pic/pic.asm
 	nasm -f elf -F dwarf -g ./src/pic/pic.asm -o ./build/pic/pic.asm.o
 ./build/pic/pic.o: ./src/pic/pic.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/pic/pic.c -o ./build/pic/pic.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/pic/pic.c -o ./build/pic/pic.o
 ./build/drivers/keyboard.o: ./src/drivers/keyboard.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/keyboard.c -o ./build/drivers/keyboard.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/drivers/keyboard.c -o ./build/drivers/keyboard.o
 ./build/memory/heap.o: ./src/memory/heap.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/memory/heap.c -o ./build/memory/heap.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/memory/heap.c -o ./build/memory/heap.o
 ./build/memory/kheap.o: ./src/memory/kheap.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/memory/kheap.c -o ./build/memory/kheap.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/memory/kheap.c -o ./build/memory/kheap.o
 ./build/memory/paging/paging.o: ./src/memory/paging/paging.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/memory/paging/paging.c -o ./build/memory/paging/paging.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/memory/paging/paging.c -o ./build/memory/paging/paging.o
 ./build/memory/paging/paging.asm.o: ./src/memory/paging/paging.asm
 	nasm -f elf -F dwarf -g ./src/memory/paging/paging.asm -o ./build/memory/paging/paging.asm.o
 ./build/util/printf.o: ./src/util/printf.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/printf.c -o ./build/util/printf.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/util/printf.c -o ./build/util/printf.o
 ./build/disk/disk.o: ./src/disk/disk.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/disk/disk.c -o ./build/disk/disk.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/disk/disk.c -o ./build/disk/disk.o
 ./build/fs/pathparser.o: ./src/fs/pathparser.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/fs/pathparser.c -o ./build/fs/pathparser.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/fs/pathparser.c -o ./build/fs/pathparser.o
 ./build/include/uapi/graphic.o: ./src/include/uapi/graphic.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/include/uapi/graphic.c -o ./build/include/uapi/graphic.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/include/uapi/graphic.c -o ./build/include/uapi/graphic.o
 ./build/drivers/graphic/colortextmode.o: ./src/drivers/graphic/colortextmode.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/graphic/colortextmode.c -o ./build/drivers/graphic/colortextmode.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/drivers/graphic/colortextmode.c -o ./build/drivers/graphic/colortextmode.o
 ./build/disk/dstream.o: ./src/disk/dstream.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/disk/dstream.c -o ./build/disk/dstream.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/disk/dstream.c -o ./build/disk/dstream.o
 ./build/drivers/graphic/videomode.o: ./src/drivers/graphic/videomode.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/graphic/videomode.c -o ./build/drivers/graphic/videomode.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/drivers/graphic/videomode.c -o ./build/drivers/graphic/videomode.o
 ./build/font/hankaku.o: ./src/font/hankaku.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/font/hankaku.c -o ./build/font/hankaku.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/font/hankaku.c -o ./build/font/hankaku.o
 ./build/util/arith64.o: ./src/util/arith64.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/arith64.c -o ./build/util/arith64.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/util/arith64.c -o ./build/util/arith64.o
 ./build/util/fifo.o: ./src/util/fifo.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/fifo.c -o ./build/util/fifo.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/util/fifo.c -o ./build/util/fifo.o
 ./build/drivers/ps2kbc.o: ./src/drivers/ps2kbc.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/ps2kbc.c -o ./build/drivers/ps2kbc.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/drivers/ps2kbc.c -o ./build/drivers/ps2kbc.o
 ./build/drivers/ps2mouse.o: ./src/drivers/ps2mouse.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/drivers/ps2mouse.c -o ./build/drivers/ps2mouse.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/drivers/ps2mouse.c -o ./build/drivers/ps2mouse.o
 ./build/test.o: ./src/test.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/test.c -o ./build/test.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/test.c -o ./build/test.o
 ./build/util/dlist.o: ./src/util/dlist.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/util/dlist.c -o ./build/util/dlist.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/util/dlist.c -o ./build/util/dlist.o
 ./build/memory/heapdl.o: ./src/memory/heapdl.c
-	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu99 -c ./src/memory/heapdl.c -o ./build/memory/heapdl.o
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/memory/heapdl.c -o ./build/memory/heapdl.o
 clean:
 	rm -rf ./bin/os.bin
 	rm -rf ./bin/boot.bin

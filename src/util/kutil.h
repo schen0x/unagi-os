@@ -17,5 +17,7 @@ void memset(void* ptr, int c, size_t size);
 void* kmemset(void* ptr, int c, size_t size);
 bool isMaskBitsAllSet (uint32_t data, uint32_t mask);
 bool isMaskBitsAllClear (uint32_t data, uint32_t mask);
+uintptr_t align_address_to_upper(uintptr_t addr, uint32_t ALIGN);
+uintptr_t align_address_to_lower(uintptr_t val, uint32_t ALIGN);
 
 #endif
