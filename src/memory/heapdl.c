@@ -4,14 +4,15 @@
 #include <stddef.h>
 #include "util/kutil.h"
 #include "config.h"
+#include "util/printf.h"
 
 CHUNK *first = NULL, *last = NULL; // Store the head, tail ptr in .data
 /*
  * The head of the free CHUNKs
  * NULL if no memory is free.
  */
-CHUNK *firstfree = NULL;
-static size_t mem_free = 0;
+CHUNK *free_chunk_head = NULL;
+volatile size_t mem_free = 0;
 
 void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
 {
@@ -34,11 +35,15 @@ void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
    	last->isUsed = true;
 
 	/* Update the size for chunk 2 */
-	second->size = last - second;
+	second->size = (uintptr_t)last - (uintptr_t)second;
 
 	/* Update the firstfree pointer */
-	firstfree = second;
-   	mem_free = second->size - align_address_to_upper(sizeof(*second), OS_MEMORY_ALIGN);
+	free_chunk_head = first; // Because head does not loop... So this is always the "first"
+				  // The real first free chunk is first->free.next
+	dlist_insert_after(&first->free, &second->free);
+   	mem_free = second->size - align_address_to_upper(sizeof(CHUNK), OS_MEMORY_ALIGN);
+	printf("mf:%4d", mem_free/1024/1024);
+	// printf("chunk2:%p", second);
 }
 
 /*
@@ -49,10 +54,12 @@ static void chunk_init(CHUNK *chunk)
 	/* Zero out the HEADER region */
 	kmemset(chunk, 0, sizeof(CHUNK));
 
-	chunk->all = chunk->all;
+	chunk->all.next = &chunk->all;
+	chunk->all.prev = &chunk->all;
 	chunk->isUsed = false;
 	chunk->size = align_address_to_upper(sizeof(CHUNK), OS_MEMORY_ALIGN); // Initialize to the size of the header after alignment
-	chunk->free = chunk->free;
+	chunk->free.next = &chunk->free;
+	chunk->free.prev = &chunk->free;
 }
 
 /*
@@ -62,9 +69,13 @@ static CHUNK* chunk_slice(CHUNK *chunk, size_t s)
 {
 	CHUNK *chunkB;
 	/* chunkB HEADER address should be at (the original free area + s) */
-	chunkB = (CHUNK *) (chunk_calc_free_offset(chunk) + s);
+	chunkB = (CHUNK *)(((uintptr_t)chunk_calc_free_offset(chunk) + s));
+	// printf("chunkB:%p", chunkB);
+	// isUsed == false
 	chunk_init(chunkB);
+	// size
 	chunkB->size = chunk_calc_actual_free(chunk) - s;
+	// all, free
 	dlist_insert_after(&chunk->all, &chunkB->all);
 	dlist_insert_after(&chunk->free, &chunkB->free);
 
@@ -81,11 +92,36 @@ static void chunk_engage(CHUNK *chunk)
 	return;
 }
 
+
 static void chunk_free(CHUNK *chunk)
 {
 	chunk->isUsed = false;
-	// TODO
+
+	CHUNK *prevChunk = container_of(chunk->all.prev, CHUNK, all);
+	CHUNK *nextChunk = container_of(chunk->all.next, CHUNK, all);
+	if (!(prevChunk->isUsed))
+	{
+		dlist_insert_after(&prevChunk->free, &chunk->free);
+		chunk_merge(prevChunk, chunk);
+	}
+	if (!(nextChunk->isUsed))
+	{
+		dlist_insert_before(&nextChunk->free, &chunk->free);
+		chunk_merge(chunk, nextChunk);
+	}
+
+	dlist_insert_after(&free_chunk_head->free, &chunk->free);
 	return;
+}
+
+/*
+ * Merge the two chunk to chunkA.
+ */
+static CHUNK* chunk_merge(CHUNK *chunkA, CHUNK *chunkB)
+{
+	dlist_remove(&chunkB->all);
+	dlist_remove(&chunkB->free);
+	return chunkA;
 }
 
 /*
@@ -98,7 +134,7 @@ static size_t chunk_calc_actual_free(CHUNK *chunk)
 }
 
 /*
- * Return the usable free bytes of a chunk, chunk->size - "header_size(aligned)"
+ * Return the offset where the usable free bytes of a chunk starts, chunk->size - "header_size(aligned)"
  */
 static uintptr_t chunk_calc_free_offset(CHUNK *chunk)
 {
@@ -113,11 +149,15 @@ size_t k_heapdl_mm_get_usage()
 
 void* k_heapdl_mm_malloc(size_t s)
 {
-	if (s > mem_free || !mem_free || !firstfree )
+	if (s > mem_free || !mem_free || free_chunk_head->free.next == &free_chunk_head->free )
 		return NULL;
 	/* Iterate all "free" CHUNKs */
 	CHUNK *pos;
-	DLIST *head = &firstfree->free;
+	DLIST *head = &free_chunk_head->free;
+	/*
+	 * CHUNK *pos = head->next; &pos->free != head;
+	 * Does not loop when array.len == 1
+	 */
 	list_for_each_entry(pos, head, free)
 	{
 		if (pos->size < s)
@@ -159,6 +199,5 @@ void k_heapdl_mm_free(void *ptr)
 	CHUNK *chunk = chunk_calc_chunk_by_ptr(ptr);
 	if (chunk->isUsed)
 		chunk_free(chunk);
-
 	return;
 }

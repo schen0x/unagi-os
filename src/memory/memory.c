@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "memory/heapdl.h"
 
 /*
  * Must check if NULL before using!
@@ -27,23 +28,22 @@ void* kzalloc(size_t size)
 
 void k_mm_init()
 {
-	k_heap_table_mm_init(); // managemend by simple heap table
-
-	// uint8_t* memory_start = (uint8_t*) OS_HEAP_ADDRESS;
-	// kmemory_init(memory_start, OS_HEAP_SIZE_BYTES); // ? -1 FIXME FIX & CONFIRM LATER
+	// k_heap_table_mm_init(); // managemend by simple heap table
+	k_heapdl_mm_init(OS_HEAP_ADDRESS, OS_HEAP_ADDRESS + OS_HEAP_SIZE_BYTES); // ~128MB
 }
 
 void* kmalloc(size_t size)
 {
-	return k_heap_table_mm_malloc(size);
 	// return k_heap_table_mm_malloc(size);
+	return k_heapdl_mm_malloc(size);
 }
 
 
 void kfree(void *ptr)
 {
-	k_heap_table_mm_free(ptr);
+	// k_heap_table_mm_free(ptr);
 	// k_dl_mm_free(ptr);
+	k_heapdl_mm_free(ptr);
 }
 
 /* Memory Test */
@@ -117,96 +117,6 @@ uintptr_t kmemtest(uintptr_t mem_start, uintptr_t mem_end)
 
 
 
-
-/*
- * Linked List Bucket Heap 2013 Goswin von Brederlow <goswin-v-b@web.de>
- *
- * COPY PASTE FROM:
- * https://wiki.osdev.org/User:Mrvn/LinkedListBucketHeapImplementation
- *
- * Usage:
- *     kmemory_init(memory, size);
- *     ptr = (<ptrtype>)kmalloc(size);
- *     kfree((void*)ptr);
- */
-typedef struct DLIST {
-    struct DLIST *next;
-    struct DLIST *prev;
-} DLIST;
-
-/* Initialize a one element *circular Doubly-Linked list* */
-static inline void dlist_init(DLIST *dlist) {
-	//printf("%s(%p)\n", __FUNCTION__, dlist);
-    dlist->next = dlist;
-    dlist->prev = dlist;
-}
-
-/* Insert dnew after d0 */
-static inline void dlist_insert_after(DLIST *d0, DLIST *dnew) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d0, dnew);
-    DLIST *n1 = d0->next; // save the original next node
-    DLIST *e2 = dnew->prev; // save the original "tail" node of the 2nd DLIST, the DLIST is circular
-
-    d0->next = dnew;
-    dnew->prev = d0;
-
-    e2->next = n1; // end of 2nd DLIST, points to original next node
-    n1->prev = e2; // original next node, points to original "nail" node of 2nd DLIST
-}
-
-/* Insert dnew before d0 */
-static inline void dlist_insert_before(DLIST *d0, DLIST *dnew) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d0, dnew);
-    DLIST *e1 = d0->prev; // save the end of the original list
-    DLIST *e2 = dnew->prev; // save the end of the 2nd list
-
-    e1->next = dnew; // end of 1, next be the 2
-    dnew->prev = e1; // dnew, prev be the original list
-    e2->next = d0; // e2, d0
-    d0->prev = e2; // d0, e2
-}
-
-/* Remove d from the list */
-static inline void dlist_remove(DLIST *d) {
-	//printf("%s(%p)\n", __FUNCTION__, d);
-    d->prev->next = d->next;
-    d->next->prev = d->prev;
-    d->next = d;
-    d->prev = d;
-}
-
-/* push dnew to the front of the d0p list */
-static inline void dlist_push(DLIST **d0p, DLIST *dnew) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d0p, dnew);
-    if (*d0p != NULL) {
-	dlist_insert_before(*d0p, dnew);
-    }
-    *d0p = dnew;
-}
-
-// pop the front of the dp list
-static inline DLIST * dlist_pop(DLIST **d0p) {
-	//printf("%s(%p)\n", __FUNCTION__, d0p);
-    DLIST *d0 = *d0p;
-    DLIST *dnew = d0->next;
-    dlist_remove(d0);
-    if (d0 == dnew) {
-	*d0p = NULL;
-    } else {
-	*d0p = dnew;
-    }
-    return d0;
-}
-
-// remove dnew from the list, advancing d0p if needed
-static inline void dlist_remove_from(DLIST **d0p, DLIST *dnew) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d0p, dnew);
-    if (*d0p == dnew) {
-	dlist_pop(d0p);
-    } else {
-	dlist_remove(dnew);
-    }
-}
 
 
 // #define CONTAINER(C, l, v) ((C*)(((char*)v) - (intptr_t)&(((C*)0)->l)))

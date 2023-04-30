@@ -32,6 +32,9 @@ static uintptr_t chunk_calc_free_offset(CHUNK *chunk);
 size_t k_heapdl_mm_get_usage();
 static void chunk_engage(CHUNK *chunk);
 static void chunk_free(CHUNK *chunk);
+static CHUNK* chunk_merge(CHUNK *chunkA, CHUNK *chunkB);
+void* k_heapdl_mm_malloc(size_t s);
+void k_heapdl_mm_free(void *ptr);
 
 #endif
 

@@ -31,6 +31,15 @@ void kernel_main(void)
 	// TODO e820 routine
 
 	k_mm_init();
+	char *s = (char *)kmalloc(100);
+	printf("*s:%p ", s);
+	char *s2 = (char *)kmalloc(100);
+	printf("*s2:%p ", s2);
+	kfree(s);
+	char *s3 = (char *)kmalloc(10);
+	printf("*s3:%p ", s3);
+
+
 	// ==============
 	(void) kpd;
 //	uint32_t pd_entries_flags = 0b111;
