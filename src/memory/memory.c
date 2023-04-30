@@ -30,6 +30,7 @@ void k_mm_init()
 {
 	// k_heap_table_mm_init(); // managemend by simple heap table
 	k_heapdl_mm_init(OS_HEAP_ADDRESS, OS_HEAP_ADDRESS + OS_HEAP_SIZE_BYTES); // ~128MB
+	// k_heapdl_mm_init(0x7c00, 0x7ffff); // ~475KB (aligned), no crash
 }
 
 void* kmalloc(size_t size)

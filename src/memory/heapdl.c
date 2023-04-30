@@ -17,7 +17,7 @@ volatile size_t mem_free = 0;
 void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
 {
 	uint8_t *aligned_m_start = (uint8_t *)align_address_to_upper(mem_start, OS_HEAP_BLOCK_SIZE);
-	uint8_t *aligned_m_end = (uint8_t *)align_address_to_lower(mem_end, OS_HEAP_ADDRESS);
+	uint8_t *aligned_m_end = (uint8_t *)align_address_to_lower(mem_end, OS_HEAP_BLOCK_SIZE);
    	first = (CHUNK*)aligned_m_start;
    	CHUNK *second = first + 1;
    	last = (CHUNK*)aligned_m_end - 1;
@@ -42,7 +42,7 @@ void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
 				  // The real first free chunk is first->free.next
 	dlist_insert_after(&first->free, &second->free);
    	mem_free = second->size - align_address_to_upper(sizeof(CHUNK), OS_MEMORY_ALIGN);
-	printf("mf:%4d", mem_free/1024/1024);
+	printf("mf:%4d ", mem_free/1024/1024);
 	// printf("chunk2:%p", second);
 }
 
@@ -75,6 +75,7 @@ static CHUNK* chunk_slice(CHUNK *chunk, size_t s)
 	chunk_init(chunkB);
 	// size
 	chunkB->size = chunk_calc_actual_free(chunk) - s;
+	chunk->size -= chunkB->size;
 	// all, free
 	dlist_insert_after(&chunk->all, &chunkB->all);
 	dlist_insert_after(&chunk->free, &chunkB->free);
@@ -96,18 +97,19 @@ static void chunk_engage(CHUNK *chunk)
 static void chunk_free(CHUNK *chunk)
 {
 	chunk->isUsed = false;
-
 	CHUNK *prevChunk = container_of(chunk->all.prev, CHUNK, all);
 	CHUNK *nextChunk = container_of(chunk->all.next, CHUNK, all);
 	if (!(prevChunk->isUsed))
 	{
 		dlist_insert_after(&prevChunk->free, &chunk->free);
 		chunk_merge(prevChunk, chunk);
+		return;
 	}
 	if (!(nextChunk->isUsed))
 	{
 		dlist_insert_before(&nextChunk->free, &chunk->free);
 		chunk_merge(chunk, nextChunk);
+		return;
 	}
 
 	dlist_insert_after(&free_chunk_head->free, &chunk->free);

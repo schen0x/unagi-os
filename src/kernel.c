@@ -35,9 +35,14 @@ void kernel_main(void)
 	printf("*s:%p ", s);
 	char *s2 = (char *)kmalloc(100);
 	printf("*s2:%p ", s2);
-	kfree(s);
 	char *s3 = (char *)kmalloc(10);
 	printf("*s3:%p ", s3);
+	kfree(s2);
+	kfree(s3);
+	char *s4 = (char *)kmalloc(10);
+	printf("*s4:%p ", s4);
+	char *s5 = (char *)kmalloc(10);
+	printf("*s5:%p ", s5);
 
 
 	// ==============
