@@ -129,46 +129,45 @@ uintptr_t kmemtest(uintptr_t mem_start, uintptr_t mem_end)
  *     ptr = (<ptrtype>)kmalloc(size);
  *     kfree((void*)ptr);
  */
-typedef struct DList DList;
-struct DList {
-    DList *next;
-    DList *prev;
-};
+typedef struct DLIST {
+    struct DLIST *next;
+    struct DLIST *prev;
+} DLIST;
 
-// initialize a one element *circular Doubly-Linked list*
-static inline void dlist_init(DList *dlist) {
+/* Initialize a one element *circular Doubly-Linked list* */
+static inline void dlist_init(DLIST *dlist) {
 	//printf("%s(%p)\n", __FUNCTION__, dlist);
     dlist->next = dlist;
     dlist->prev = dlist;
 }
 
-// insert d2 after d1
-static inline void dlist_insert_after(DList *d1, DList *d2) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d1, d2);
-    DList *n1 = d1->next; // save the original next node
-    DList *e2 = d2->prev; // save the original "tail" node of the 2nd DList, the DList is circular
+/* Insert dnew after d0 */
+static inline void dlist_insert_after(DLIST *d0, DLIST *dnew) {
+	//printf("%s(%p, %p)\n", __FUNCTION__, d0, dnew);
+    DLIST *n1 = d0->next; // save the original next node
+    DLIST *e2 = dnew->prev; // save the original "tail" node of the 2nd DLIST, the DLIST is circular
 
-    d1->next = d2;
-    d2->prev = d1;
+    d0->next = dnew;
+    dnew->prev = d0;
 
-    e2->next = n1; // end of 2nd DList, points to original next node
-    n1->prev = e2; // original next node, points to original "nail" node of 2nd DList
+    e2->next = n1; // end of 2nd DLIST, points to original next node
+    n1->prev = e2; // original next node, points to original "nail" node of 2nd DLIST
 }
 
-// insert d2 before d1
-static inline void dlist_insert_before(DList *d1, DList *d2) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d1, d2);
-    DList *e1 = d1->prev; // save the end of the original list
-    DList *e2 = d2->prev; // save the end of the 2nd list
+/* Insert dnew before d0 */
+static inline void dlist_insert_before(DLIST *d0, DLIST *dnew) {
+	//printf("%s(%p, %p)\n", __FUNCTION__, d0, dnew);
+    DLIST *e1 = d0->prev; // save the end of the original list
+    DLIST *e2 = dnew->prev; // save the end of the 2nd list
 
-    e1->next = d2; // end of 1, next be the 2
-    d2->prev = e1; // d2, prev be the original list
-    e2->next = d1; // e2, d1
-    d1->prev = e2; // d1, e2
+    e1->next = dnew; // end of 1, next be the 2
+    dnew->prev = e1; // dnew, prev be the original list
+    e2->next = d0; // e2, d0
+    d0->prev = e2; // d0, e2
 }
 
-// remove d from the list
-static inline void dlist_remove(DList *d) {
+/* Remove d from the list */
+static inline void dlist_remove(DLIST *d) {
 	//printf("%s(%p)\n", __FUNCTION__, d);
     d->prev->next = d->next;
     d->next->prev = d->prev;
@@ -176,255 +175,317 @@ static inline void dlist_remove(DList *d) {
     d->prev = d;
 }
 
-// push d2 to the front of the d1p list
-static inline void dlist_push(DList **d1p, DList *d2) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d1p, d2);
-    if (*d1p != NULL) {
-	dlist_insert_before(*d1p, d2);
+/* push dnew to the front of the d0p list */
+static inline void dlist_push(DLIST **d0p, DLIST *dnew) {
+	//printf("%s(%p, %p)\n", __FUNCTION__, d0p, dnew);
+    if (*d0p != NULL) {
+	dlist_insert_before(*d0p, dnew);
     }
-    *d1p = d2;
+    *d0p = dnew;
 }
 
 // pop the front of the dp list
-static inline DList * dlist_pop(DList **dp) {
-	//printf("%s(%p)\n", __FUNCTION__, dp);
-    DList *d1 = *dp;
-    DList *d2 = d1->next;
-    dlist_remove(d1);
-    if (d1 == d2) {
-	*dp = NULL;
+static inline DLIST * dlist_pop(DLIST **d0p) {
+	//printf("%s(%p)\n", __FUNCTION__, d0p);
+    DLIST *d0 = *d0p;
+    DLIST *dnew = d0->next;
+    dlist_remove(d0);
+    if (d0 == dnew) {
+	*d0p = NULL;
     } else {
-	*dp = d2;
+	*d0p = dnew;
     }
-    return d1;
+    return d0;
 }
 
-// remove d2 from the list, advancing d1p if needed
-static inline void dlist_remove_from(DList **d1p, DList *d2) {
-	//printf("%s(%p, %p)\n", __FUNCTION__, d1p, d2);
-    if (*d1p == d2) {
-	dlist_pop(d1p);
+// remove dnew from the list, advancing d0p if needed
+static inline void dlist_remove_from(DLIST **d0p, DLIST *dnew) {
+	//printf("%s(%p, %p)\n", __FUNCTION__, d0p, dnew);
+    if (*d0p == dnew) {
+	dlist_pop(d0p);
     } else {
-	dlist_remove(d2);
+	dlist_remove(dnew);
     }
 }
 
-#define CONTAINER(C, l, v) ((C*)(((char*)v) - (intptr_t)&(((C*)0)->l)))
-#define OFFSETOF(TYPE, MEMBER)  __builtin_offsetof (TYPE, MEMBER)
-/* Init the DList* &v->l. Set (&v->l)->next, (&v->l)->prev = &v->l */
-#define DLIST_INIT(v, l) dlist_init(&v->l)
 
-#define DLIST_REMOVE_FROM(h, d, l)					\
-    {									\
-	typeof(**h) **h_ = h, *d_ = d;					\
-	DList *head = &(*h_)->l;					\
-	dlist_remove_from(&head, &d_->l);					\
-	if (head == NULL) {						\
-	    *h_ = NULL;							\
-	} else {							\
-	    *h_ = CONTAINER(typeof(**h), l, head);			\
-	}								\
-    }
-
-#define DLIST_PUSH(h, v, l)						\
-    {									\
-	typeof(*v) **h_ = h, *v_ = v;					\
-	DList *head = &(*h_)->l;					\
-	if (*h_ == NULL) head = NULL;					\
-	dlist_push(&head, &v_->l);					\
-	*h_ = CONTAINER(typeof(*v), l, head);				\
-    }
-
-#define DLIST_POP(h, l)							\
-    ({									\
-	typeof(**h) **h_ = h;						\
-	DList *head = &(*h_)->l;					\
-	DList *res = dlist_pop(&head);					\
-	if (head == NULL) {						\
-	    *h_ = NULL;							\
-	} else {							\
-	    *h_ = CONTAINER(typeof(**h), l, head);			\
-	}								\
-	CONTAINER(typeof(**h), l, res);					\
-    })
-
-#define DLIST_ITERATOR_BEGIN(h, l, it)					\
-    {									\
-        typeof(*h) *h_ = h;						\
-	DList *last_##it = h_->l.prev, *iter_##it = &h_->l, *next_##it;	\
-	do {								\
-	    if (iter_##it == last_##it) {				\
-		next_##it = NULL;					\
-	    } else {							\
-		next_##it = iter_##it->next;				\
-	    }								\
-	    typeof(*h)* it = CONTAINER(typeof(*h), l, iter_##it);
-
-#define DLIST_ITERATOR_END(it)						\
-	} while((iter_##it = next_##it));				\
-    }
-
-#define DLIST_ITERATOR_REMOVE_FROM(h, it, l) DLIST_REMOVE_FROM(h, iter_##it, l)
-
-typedef struct Chunk Chunk;
-struct Chunk {
-    DList all;			// track all memory chunks in the system
-    int used;			// is chunk in use, if not, may try merge chunks
-    union {			// a union is large enough to hold its largest member
-	char data[0];
-	DList free;		// track free memory chunks that can be reused
-    };
-};
-
-enum {
-    NUM_SIZES = OS_HEAP_SIZE_BYTES / OS_HEAP_BLOCK_SIZE,
-    ALIGN = OS_HEAP_BLOCK_SIZE,
-    MIN_SIZE = sizeof(DList),
-    HEADER_SIZE = OFFSETOF(Chunk, data),
-};
-
-Chunk *free_chunk[NUM_SIZES] = { NULL };
-size_t mem_free = 0;
-size_t mem_used = 0;
-size_t mem_meta = 0;
-Chunk *first = NULL;
-Chunk *last = NULL;
-
-static void memory_chunk_init(Chunk *chunk) {
-	//printf("%s(%p)\n", __FUNCTION__, chunk);
-    DLIST_INIT(chunk, all);
-    chunk->used = 0; // set the used to 0
-    DLIST_INIT(chunk, free);
-}
-
-static size_t memory_chunk_size(const Chunk *chunk) {
-	//printf("%s(%p)\n", __FUNCTION__, chunk);
-    char *end = (char*)(chunk->all.next);
-    char *start = (char*)(&chunk->all);
-    return (end - start) - HEADER_SIZE;
-}
-
-static int memory_chunk_slot(size_t size) {
-    int n = -1;
-    while(size > 0) {
-	++n;
-	size /= 2;
-    }
-    return n;
-}
-
-void kmemory_init(void *mem, size_t size) {
-    char *mem_start = (char *)(((uintptr_t)mem + ALIGN - 1) & (~(ALIGN - 1)));
-    char *mem_end = (char *)(((uintptr_t)mem + size) & (~(ALIGN - 1)));
-    first = (Chunk*)mem_start;
-    Chunk *second = first + 1;
-    last = ((Chunk*)mem_end) - 1;
-    memory_chunk_init(first);
-    memory_chunk_init(second);
-    memory_chunk_init(last);
-    dlist_insert_after(&first->all, &second->all);
-    dlist_insert_after(&second->all, &last->all);
-    // make first/last as used so they never get merged
-    first->used = 1;
-    last->used = 1;
-
-    size_t len = memory_chunk_size(second);
-    int n = memory_chunk_slot(len);
-    //printf("%s(%p, %#lx) : adding chunk %#lx [%d]\n", __FUNCTION__, mem, size, len, n);
-    DLIST_PUSH(&free_chunk[n], second, free);
-    mem_free = len - HEADER_SIZE;
-    mem_meta = sizeof(Chunk) * 2 + HEADER_SIZE;
-}
-
-void *k_dl_mm_malloc(size_t size) {
-    //printf("%s(%#lx)\n", __FUNCTION__, size);
-    size = (size + ALIGN - 1) & (~(ALIGN - 1));
-
-	if (size < MIN_SIZE) size = MIN_SIZE;
-
-	int n = memory_chunk_slot(size - 1) + 1;
-
-	if (n >= NUM_SIZES) return NULL;
-
-	while(!free_chunk[n]) {
-		++n;
-		if (n >= NUM_SIZES) return NULL;
-    }
-
-	Chunk *chunk = DLIST_POP(&free_chunk[n], free);
-    size_t size2 = memory_chunk_size(chunk);
-	//printf("@ %p [%#lx]\n", chunk, size2);
-    size_t len = 0;
-
-	if (size + sizeof(Chunk) <= size2) {
-		Chunk *chunk2 = (Chunk*)(((char*)chunk) + HEADER_SIZE + size);
-		memory_chunk_init(chunk2);
-		dlist_insert_after(&chunk->all, &chunk2->all);
-		len = memory_chunk_size(chunk2);
-		int n = memory_chunk_slot(len);
-		//printf("  adding chunk @ %p %#lx [%d]\n", chunk2, len, n);
-		DLIST_PUSH(&free_chunk[n], chunk2, free);
-		mem_meta += HEADER_SIZE;
-		mem_free += len - HEADER_SIZE;
-    }
-
-	chunk->used = 1;
-    //memset(chunk->data, 0xAA, size);
-	//printf("AAAA\n");
-    mem_free -= size2;
-    mem_used += size2 - len - HEADER_SIZE;
-    //printf("  = %p [%p]\n", chunk->data, chunk);
-    return chunk->data;
-}
-
-static void remove_free(Chunk *chunk) {
-    size_t len = memory_chunk_size(chunk);
-    int n = memory_chunk_slot(len);
-    //printf("%s(%p) : removing chunk %#lx [%d]\n", __FUNCTION__, chunk, len, n);
-    DLIST_REMOVE_FROM(&free_chunk[n], chunk, free);
-    mem_free -= len - HEADER_SIZE;
-}
-
-static void push_free(Chunk *chunk) {
-    size_t len = memory_chunk_size(chunk);
-    int n = memory_chunk_slot(len);
-    //printf("%s(%p) : adding chunk %#lx [%d]\n", __FUNCTION__, chunk, len, n);
-    DLIST_PUSH(&free_chunk[n], chunk, free);
-    mem_free += len - HEADER_SIZE;
-}
-
-void k_dl_mm_free(void *mem) {
-    Chunk *chunk = (Chunk*)((char*)mem - HEADER_SIZE);
-    Chunk *next = CONTAINER(Chunk, all, chunk->all.next);
-    Chunk *prev = CONTAINER(Chunk, all, chunk->all.prev);
-
-	//printf("%s(%p): @%p %#lx [%d]\n", __FUNCTION__, mem, chunk, memory_chunk_size(chunk), memory_chunk_slot(memory_chunk_size(chunk)));
-    mem_used -= memory_chunk_size(chunk);
-
-    if (next->used == 0) {
-		// merge in next
-		remove_free(next);
-		dlist_remove(&next->all);
-		//memset(next, 0xDD, sizeof(Chunk));
-		mem_meta -= HEADER_SIZE;
-		mem_free += HEADER_SIZE;
-    }
-    if (prev->used == 0) {
-		// merge to prev
-		remove_free(prev);
-		dlist_remove(&chunk->all);
-		//memset(chunk, 0xDD, sizeof(Chunk));
-		push_free(prev);
-		mem_meta -= HEADER_SIZE;
-		mem_free += HEADER_SIZE;
-    } else {
-		// make chunk as free
-		chunk->used = 0;
-		DLIST_INIT(chunk, free);
-		push_free(chunk);
-    }
-}
-
+// #define CONTAINER(C, l, v) ((C*)(((char*)v) - (intptr_t)&(((C*)0)->l)))
+/* gcc extension, returns the member's position in type (e.g. a struct) in bytes */
+/*
+* #define OFFSETOF(TYPE, MEMBER)  __builtin_offsetof (TYPE, MEMBER)
+* #define DLIST_INIT(v, l) dlist_init(&v->l)
+* 
+* #define DLIST_REMOVE_FROM(h, d, l)					\
+*     {									\
+* 	typeof(**h) **h_ = h, *d_ = d;					\
+* 	DLIST *head = &(*h_)->l;					\
+* 	dlist_remove_from(&head, &d_->l);					\
+* 	if (head == NULL) {						\
+* 	    *h_ = NULL;							\
+* 	} else {							\
+* 	    *h_ = CONTAINER(typeof(**h), l, head);			\
+* 	}								\
+*     }
+* 
+* // DLIST_PUSH(header=(CHUNK **)&free_chunk[n], val= (CHUNK *)second, dlist="free");
+* #define DLIST_PUSH(header, val, dl_name)				\
+*     {									\
+* 	typeof(*val) **h_ = header, *v_ = val;				\
+* 	DLIST *head = &(*h_)->dl_name;					\
+* 	if (*h_ == NULL) head = NULL;					\
+* 	dlist_insert_before(head, &v_->dl_name)			\
+* 	*h_ = CONTAINER(typeof(*val), dl_name, head);			\
+*     }
+* 
+* #define DLIST_POP(h, l)							\
+*     ({									\
+* 	typeof(**h) **h_ = h;						\
+* 	DLIST *head = &(*h_)->l;					\
+* 	DLIST *res = dlist_pop(&head);					\
+* 	if (head == NULL) {						\
+* 	    *h_ = NULL;							\
+* 	} else {							\
+* 	    *h_ = CONTAINER(typeof(**h), l, head);			\
+* 	}								\
+* 	CONTAINER(typeof(**h), l, res);					\
+*     })
+* 
+* #define DLIST_ITERATOR_BEGIN(h, l, it)					\
+*     {									\
+*         typeof(*h) *h_ = h;						\
+* 	DLIST *last_##it = h_->l.prev, *iter_##it = &h_->l, *next_##it;	\
+* 	do {								\
+* 	    if (iter_##it == last_##it) {				\
+* 		next_##it = NULL;					\
+* 	    } else {							\
+* 		next_##it = iter_##it->next;				\
+* 	    }								\
+* 	    typeof(*h)* it = CONTAINER(typeof(*h), l, iter_##it);
+* 
+* #define DLIST_ITERATOR_END(it)						\
+* 	} while((iter_##it = next_##it));				\
+*     }
+* 
+* #define DLIST_ITERATOR_REMOVE_FROM(h, it, l) DLIST_REMOVE_FROM(h, iter_##it, l)
+*/
+//  /*
+//   * The heap.
+//   * HEADER + HEAP_DATA
+//   * DLIST all, is not a circle, connected to next CHUNK->DLIST
+//   */
+//  typedef struct CHUNK {
+//      DLIST all;			// track all memory chunks in the system
+//      bool isUsed;		// is chunk in use, if not, may try merge chunks
+//      union {			// a union is large enough to hold its largest member
+//  	char data[0];
+//  	DLIST free;		// track free memory chunks that can be reused
+//      };
+//  } CHUNK;
+//  
+//  enum {
+//  	/* 112MB / 4096 = Max CHUNK numbers */
+//  	MAX_TOTAL_CHUNKS = OS_HEAP_SIZE_BYTES / OS_HEAP_BLOCK_SIZE,
+//      	ALIGN = OS_HEAP_BLOCK_SIZE,
+//      	MIN_SIZE = sizeof(DLIST),
+//      	/*  sizeof(DLIST) + sizeof(uint32_t) ? */
+//      	HEADER_SIZE = OFFSETOF(CHUNK, data),
+//  };
+//  
+//  CHUNK *free_chunk[MAX_TOTAL_CHUNKS] = { NULL };
+//  size_t mem_free = 0;
+//  size_t mem_used = 0;
+//  size_t mem_meta = 0;
+//  CHUNK *first = NULL;
+//  CHUNK *last = NULL;
+//  
+//  /*
+//   * Init a CHUNK
+//   * chunk->all = &chunk->all;
+//   * chunk->free = &chunk->free;
+//   * isused = false;
+//   * Everything is supposed to be available and unused.
+//   */
+//  static void memory_chunk_init(CHUNK *chunk) {
+//  	//printf("%s(%p)\n", __FUNCTION__, chunk);
+//      DLIST_INIT(chunk, all);
+//      chunk->isUsed = false;
+//      DLIST_INIT(chunk, free);
+//  }
+//  
+//  /* Return the available size of a CHUNK */
+//  static size_t memory_chunk_size(const CHUNK *chunk) {
+//  	//printf("%s(%p)\n", __FUNCTION__, chunk);
+//      char *end = (char*)(chunk->all.next);
+//      char *start = (char*)(&chunk->all);
+//      return (end - start) - HEADER_SIZE;
+//  }
+//  
+//  static int32_t memory_chunk_slot(size_t size) {
+//      int n = -1;
+//      while(size > 0) {
+//  	++n;
+//  	size /= 2;
+//      }
+//      return n;
+//  }
+//  
+//  /*
+//   * Return the closest upper value that align.
+//   * e.g., 50->4096; 4097 -> 8192;
+//   */
+//  static uintptr_t align_address_to_upper(uintptr_t val)
+//  {
+//  	uintptr_t residual = val % ALIGN;
+//      	if (residual == 0)
+//      	        return val;
+//  	val += (ALIGN - residual); // ALIGN >= residual
+//      	return val;
+//  }
+//  
+//  /*
+//   * Return the closest lower value that align.
+//   * e.g., 4097 -> 4096; 8193 -> 8192;
+//   */
+//  static uintptr_t align_address_to_lower(uintptr_t val)
+//  {
+//  	uintptr_t residual = val % ALIGN;
+//      	if (residual == 0)
+//      	{
+//      	        return val;
+//      	}
+//      	val -= residual; // val >= residual
+//      	return val;
+//  }
+//  
+//  void kmemory_init(void *mem, size_t size) {
+//  	uint8_t *mem_start = (uint8_t *)align_address_to_upper((uintptr_t)mem);
+//  	uint8_t *mem_end = (uint8_t *)align_address_to_lower((uintptr_t)mem + size);
+//     	first = (CHUNK*)mem_start;
+//     	CHUNK *second = first + 1;
+//     	last = ((CHUNK*)mem_end) - 1;
+//     	memory_chunk_init(first);
+//     	memory_chunk_init(second);
+//     	memory_chunk_init(last);
+//  	/* &Chunk->DLIST, link `DLIST all` */
+//     	dlist_insert_after(&first->all, &second->all);
+//     	dlist_insert_after(&second->all, &last->all);
+//     	/* Make first/last as used so they never get merged */
+//     	first->isUsed = true;
+//     	last->isUsed = true;
+//  
+//     	size_t free_bytes_in_chunk_2 = memory_chunk_size(second);
+//  	/* log(2) */
+//     	int32_t n = memory_chunk_slot(free_bytes_in_chunk_2);
+//  	/*
+//  	 * CHUNK *free_chunk[MAX_TOTAL_CHUNKS] = { NULL };
+//  	 *
+//  	 * DLIST_PUSH(header=&free_chunk[n], val=second, dlist=free);
+//  	 * {
+//  	 * 	typeof(*second) **h_ = &free_chunk[19] // CHUNK **h_ = (CHUNK **) free_chunk
+//  	 * 	DLIST *head = &((CHUNK *)(*free_chunk))->free
+//  	 * 	if ((CHUNK *)(*free_chunk) == NULL) head = NULL; // after using null ptr?
+//  	 * 	// dlist_push() // ? why not using pointer directly?
+//  	 *	// dlist_insert_before(DLIST *d0, DLIST *dnew)
+//  	 *	CHUNK *v_= (CHUNK *)second;
+//  	 *	dlist_insert_before(head, &second->free)
+//  	 *
+//  	 * }
+//  	 *
+//  	 */
+//     	DLIST_PUSH(&free_chunk[n], second, free);
+//     	mem_free = free_bytes_in_chunk_2 - HEADER_SIZE;
+//     	mem_meta = sizeof(CHUNK) * 2 + HEADER_SIZE;
+//  }
+//  
+//  void *k_dl_mm_malloc(size_t size) {
+//      //printf("%s(%#lx)\n", __FUNCTION__, size);
+//      size = align_address_to_upper(size);
+//  
+//  	if (size < MIN_SIZE) size = MIN_SIZE;
+//  
+//  	int32_t n = memory_chunk_slot(size - 1) + 1;
+//  
+//  	if (n >= MAX_TOTAL_CHUNKS) return NULL;
+//  
+//  	while(!free_chunk[n]) {
+//  		++n;
+//  		if (n >= MAX_TOTAL_CHUNKS) return NULL;
+//      }
+//  
+//  	CHUNK *chunk = DLIST_POP(&free_chunk[n], free);
+//      size_t size2 = memory_chunk_size(chunk);
+//  	//printf("@ %p [%#lx]\n", chunk, size2);
+//      size_t len = 0;
+//  
+//  	if (size + sizeof(CHUNK) <= size2) {
+//  		CHUNK *chunk2 = (CHUNK*)(((char*)chunk) + HEADER_SIZE + size);
+//  		memory_chunk_init(chunk2);
+//  		dlist_insert_after(&chunk->all, &chunk2->all);
+//  		len = memory_chunk_size(chunk2);
+//  		int n = memory_chunk_slot(len);
+//  		//printf("  adding chunk @ %p %#lx [%d]\n", chunk2, len, n);
+//  		DLIST_PUSH(&free_chunk[n], chunk2, free);
+//  		mem_meta += HEADER_SIZE;
+//  		mem_free += len - HEADER_SIZE;
+//      }
+//  
+//  	chunk->isUsed = 1;
+//      //memset(chunk->data, 0xAA, size);
+//  	//printf("AAAA\n");
+//      mem_free -= size2;
+//      mem_used += size2 - len - HEADER_SIZE;
+//      //printf("  = %p [%p]\n", chunk->data, chunk);
+//      return chunk->data;
+//  }
+//  
+//  static void remove_free(CHUNK *chunk) {
+//      size_t len = memory_chunk_size(chunk);
+//      int n = memory_chunk_slot(len);
+//      //printf("%s(%p) : removing chunk %#lx [%d]\n", __FUNCTION__, chunk, len, n);
+//      DLIST_REMOVE_FROM(&free_chunk[n], chunk, free);
+//      mem_free -= len - HEADER_SIZE;
+//  }
+//  
+//  static void push_free(CHUNK *chunk) {
+//      size_t len = memory_chunk_size(chunk);
+//      int32_t n = memory_chunk_slot(len);
+//      //printf("%s(%p) : adding chunk %#lx [%d]\n", __FUNCTION__, chunk, len, n);
+//      DLIST_PUSH(&free_chunk[n], chunk, free);
+//      mem_free += len - HEADER_SIZE;
+//  }
+//  
+//  void k_dl_mm_free(void *mem) {
+//      CHUNK *chunk = (CHUNK*)((char*)mem - HEADER_SIZE);
+//      CHUNK *next = CONTAINER(CHUNK, all, chunk->all.next);
+//      CHUNK *prev = CONTAINER(CHUNK, all, chunk->all.prev);
+//  
+//  	//printf("%s(%p): @%p %#lx [%d]\n", __FUNCTION__, mem, chunk, memory_chunk_size(chunk), memory_chunk_slot(memory_chunk_size(chunk)));
+//      mem_used -= memory_chunk_size(chunk);
+//  
+//      if (next->isUsed == 0) {
+//  		// merge in next
+//  		remove_free(next);
+//  		dlist_remove(&next->all);
+//  		//memset(next, 0xDD, sizeof(CHUNK));
+//  		mem_meta -= HEADER_SIZE;
+//  		mem_free += HEADER_SIZE;
+//      }
+//      if (prev->isUsed == 0) {
+//  		// merge to prev
+//  		remove_free(prev);
+//  		dlist_remove(&chunk->all);
+//  		//memset(chunk, 0xDD, sizeof(CHUNK));
+//  		push_free(prev);
+//  		mem_meta -= HEADER_SIZE;
+//  		mem_free += HEADER_SIZE;
+//      } else {
+//  		// make chunk as free
+//  		chunk->isUsed = 0;
+//  		DLIST_INIT(chunk, free);
+//  		push_free(chunk);
+//      }
+//  }
+//  
 //#define MEM_SIZE (1024*1024*256)
 //char MEM[MEM_SIZE] = { 0 };
 //
@@ -434,18 +495,18 @@ void k_dl_mm_free(void *mem) {
 
 //void check(void) {
 //	int	i;
-//    Chunk *t = last;
+//    CHUNK *t = last;
 //
 //	DLIST_ITERATOR_BEGIN(first, all, it) {
-//		assert(CONTAINER(Chunk, all, it->all.prev) == t);
+//		assert(CONTAINER(CHUNK, all, it->all.prev) == t);
 //		t = it;
 //    } DLIST_ITERATOR_END(it);
 //
 //    for(i = 0; i < NUM_SIZES; ++i) {
 //		if (free_chunk[i]) {
-//			t = CONTAINER(Chunk, free, free_chunk[i]->free.prev);
+//			t = CONTAINER(CHUNK, free, free_chunk[i]->free.prev);
 //			DLIST_ITERATOR_BEGIN(free_chunk[i], free, it) {
-//			assert(CONTAINER(Chunk, free, it->free.prev) == t);
+//			assert(CONTAINER(CHUNK, free, it->free.prev) == t);
 //			t = it;
 //			} DLIST_ITERATOR_END(it);
 //		}

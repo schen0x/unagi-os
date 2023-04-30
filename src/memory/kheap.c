@@ -1,9 +1,9 @@
 #include "memory/kheap.h"
 #include "memory/heap.h"
-// #include "memory/memory.h"
 #include "config.h"
 #include "include/uapi/graphic.h"
 #include "memory/memory.h"
+#include <stdint.h>
 
 HEAP kernel_heap = {0};
 

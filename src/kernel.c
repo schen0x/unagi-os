@@ -12,6 +12,7 @@
 #include "include/uapi/graphic.h"
 #include "disk/dstream.h"
 #include "include/uapi/bootinfo.h"
+#include "test.h"
 
 /* Kernel Page Directory */
 PAGE_DIRECTORY_4KB* kpd = 0;
@@ -39,21 +40,13 @@ void kernel_main(void)
 
 	disk_search_and_init();
 
-	if (test_kutil() != true || test_fifo8() != true)
+	if (!test_all())
 	{
 		kfprint("\nFunction test FAIL.", 4);
 	} else
 	{
 		kfprint("\nFunction test PASS.", 4);
 	}
-//	uint8_t i0 = 0x28;
-//	int32_t i1 = 1- ((i0<< 3) & 0x100);
-//	char c1[20] = {0};
-//	sprintf(c1, "%4x", i1);
-//	kfprint(c1, 4);
-
-
-
 	eventloop();
 	// asm("hlt");
 }
