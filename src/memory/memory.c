@@ -33,10 +33,17 @@ void k_mm_init()
 	// k_heapdl_mm_init(0x7c00, 0x7ffff); // ~475KB (aligned), no crash
 }
 
-void* kmalloc(size_t size)
+void* __kmalloc(size_t size)
 {
 	// return k_heap_table_mm_malloc(size);
 	return k_heapdl_mm_malloc(size);
+}
+
+/* 4k aligned */
+void* kmalloc(size_t size)
+{
+	size = align_address_to_upper(size, OS_HEAP_BLOCK_SIZE);
+	return __kmalloc(size);
 }
 
 
