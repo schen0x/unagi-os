@@ -6,7 +6,7 @@ typedef struct BOOTINFO
 {
 	uint8_t cyls, leds, vmode, reserve;
 	int16_t scrnx, scrny;
-	uint32_t *vram; // uintptr_t
+	uint8_t *vram; // uintptr_t
 } BOOTINFO;
 
 #endif

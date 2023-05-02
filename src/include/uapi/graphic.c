@@ -3,7 +3,7 @@
 #include "drivers/graphic/videomode.h"
 #include "include/uapi/bootinfo.h"
 
-void graphic_initialize(BOOTINFO* bi)
+void graphic_init(BOOTINFO* bi)
 {
 	// colortextmode_terminal_initialize();
 	videomode_window_initialize(bi);
@@ -20,3 +20,7 @@ void kfprint(const char* str, const uint8_t color)
 	videomode_kfprint(str, color);
 }
 
+void graphic_window_manager_init(BOOTINFO* bi)
+{
+	sheet_initialize((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
+}

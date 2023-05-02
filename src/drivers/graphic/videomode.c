@@ -6,22 +6,8 @@
 #include "font/hankaku.h"
 #include "util/printf.h"
 #include "util/kutil.h"
-#define COL8_000000 0 // 0:Black
-#define COL8_FF0000 1 // 1:Red+
-#define COL8_00FF00 2 // 2:Green+
-#define COL8_FFFF00 3 // 3:Yellow+
-#define COL8_0000FF 4 // 4:Cyan+
-#define COL8_FF00FF 5 // 5:Purple+
-#define COL8_00FFFF 6 // 6:Blue+
-#define COL8_FFFFFF 7 // 7:White
-#define COL8_C6C6C6 8 // 8:Gray+
-#define COL8_840000 9 // 9:Red-
-#define COL8_008400 10 // 10:Green-
-#define COL8_848400 11 // 11:Yellow-
-#define COL8_000084 12 // 12:Cyan-
-#define COL8_840084 13 // 13:Purple-
-#define COL8_008484 14 // 14:Blue-
-#define COL8_848484 15 // 15:Gray-
+#include "drivers/graphic/sheet.h"
+#include "memory/memory.h"
 
 static uintptr_t video_mem_start = (uintptr_t)(0xa0000); /* create a local pointer to the absolute address */
 static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer to the absolute address */
@@ -31,6 +17,67 @@ static int32_t posX = padding_l;
 static int32_t posY = 54;
 BOOTINFO bibk = {0};
 int32_t mouseX, mouseY;
+
+SHTCTL *ctl = NULL;
+SHEET *sheet_desktop = NULL;
+SHEET *sheet_mouse = NULL;
+
+void videomode_window_initialize(BOOTINFO* bi)
+{
+	kmemcpy(&bibk, bi, sizeof(BOOTINFO));
+	mouseX = bi->scrnx/2;
+	mouseY = bi->scrny/2;
+
+	init_palette();
+
+	/* Write directly to the vram, or use a sheet manager etc. */
+	draw_windows((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
+	// putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 9, 9, COL8_000000, "Haribote OS");
+	// putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "Haribote OS");
+	// uint8_t mouse[16*16] = {0};
+	// init_mouse_cursor8((intptr_t)mouse, COL8_008484);
+	// putblock8_8((uintptr_t)bi->vram, bi->scrnx, 16, 16, mouseX, mouseY, mouse, 16);
+
+	/*
+	 * Only available after memory manager initialization.
+	 * Call later for the sake of modularity.
+	 */
+	// sheet_initialize((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
+	return;
+}
+
+SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
+{
+	ctl = shtctl_init(vram, scrnx, scrny);
+	sheet_desktop = sheet_alloc(ctl);
+	sheet_mouse = sheet_alloc(ctl);
+	uint8_t *buf_desktop = (uint8_t *) kmalloc(scrnx * scrny);
+	uint8_t *buf_mouse = (uint8_t *) kmalloc(16 * 16);
+
+	draw_windows((uintptr_t)buf_desktop, scrnx, scrny);
+	putfonts8_asc((uintptr_t)buf_desktop, scrnx, 9, 9, COL8_000000, "Haribote OS");
+	putfonts8_asc((uintptr_t)buf_desktop, scrnx, 8, 8, COL8_FFFFFF, "Haribote OS");
+
+	sheet_setbuf(sheet_desktop, buf_desktop, scrnx, scrny, -1);
+	/* Set the `color_invisible` of `buf_mouse` buffer to color 99 */
+	sheet_setbuf(sheet_mouse, buf_mouse, 16, 16, 99);
+	/* Also mouse block bg color to 99 */
+	init_mouse_cursor8((intptr_t)buf_mouse, 99);
+
+	/* Set the starting positon of `st_desktop` */
+	sheet_slide(ctl, sheet_desktop, 0, 0);
+
+	/* Set the starting positon of `st_mouse` */
+	int32_t mouseX = (scrnx - 16) / 2;
+	int32_t mouseY = (scrny - 16) / 2;
+	sheet_slide(ctl, sheet_mouse, mouseX, mouseY);
+
+	sheet_updown(ctl, sheet_desktop, 0);
+	sheet_updown(ctl, sheet_mouse, 1);
+
+	sheet_refresh(ctl);
+	return ctl;
+}
 
 /*
  * Bitmap of font 'A'
@@ -54,6 +101,11 @@ static uint8_t font_A[16] = {
 	0x24, 0x7e, 0x42, 0x42, 0x42, 0xe7, 0x00, 0x00
 };
 
+/**
+ * Put a 16 bytes (8(w) * 16(h)) font to the VRAM
+ * In (uint8_t *)vram, each byte is a pixel on the `xsize` * `ysize` screen
+ * In 256 color mode, each byte is an index representing a 16-bit color (#FFFFFF), registered in the palette
+ */
 void putfont8(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, int8_t color, uint8_t *font)
 {
 	uint8_t row = 0;
@@ -117,13 +169,14 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 		}
 
 	}
+	return;
 }
 
-static void display_scroll(uintptr_t vram, int32_t VGA_WIDTH, int32_t VGA_HEIGHT)
+static void display_scroll(uintptr_t vram, int32_t vga_width, int32_t vga_height)
 {
 	// TODO Scroll
 	// Reset the screen for now
-	draw_windows(vram, VGA_WIDTH, VGA_HEIGHT);
+	draw_windows(vram, vga_width, vga_height);
 	posX = padding_l;
 	posY = 16;
 	uint8_t mouse[16*16] = {0};
@@ -131,32 +184,28 @@ static void display_scroll(uintptr_t vram, int32_t VGA_WIDTH, int32_t VGA_HEIGHT
 	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
 }
 
-void videomode_kfprint(const char* str, const uint8_t color)
+void videomode_kfprint(const char* str, uint8_t color)
 {
-	(void) color;
-	if ((int64_t)kstrlen(str) * 8 + posX > (int64_t)((bibk.scrny - posY)/24 * bibk.scrnx))
-		display_scroll((uintptr_t)bibk.vram, bibk.scrnx, bibk.scrny);
-	putfonts8_ascv2((uintptr_t)0xa0000, bibk.scrnx, posX, posY, COL8_FFFFFF, (char *) str);
+	uint8_t *buf = bibk.vram;
+	int32_t canvasWidth = bibk.scrnx;
+	int32_t canvasHeight = bibk.scrny;
+	if (sheet_desktop != NULL)
+	{
+		buf = sheet_desktop->buf;
+		canvasWidth = bibk.scrnx;
+		canvasHeight = bibk.scrny;
+	}
+	if (!color)
+		color = COL8_FFFFFF;
+	(void) canvasHeight;
+	// if ((int64_t)kstrlen(str) * 8 + posX > (int64_t)((canvasHeight - posY)/24 * canvasWidth))
+		// display_scroll((uintptr_t)buf, canvasWidth, canvasHeight);
+	putfonts8_ascv2((uintptr_t)buf, canvasWidth, posX, posY, color, (char *) str);
+	if (ctl)
+		sheet_refresh(ctl);
+	return;
 }
 
-void videomode_window_initialize(BOOTINFO* bi)
-{
-	kmemcpy(&bibk, bi, sizeof(BOOTINFO));
-	mouseX = bi->scrnx/2;
-	mouseY = bi->scrny/2;
-
-	init_palette();
-	draw_windows((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
-	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 9, 9, COL8_000000, "Haribote OS");
-	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "Haribote OS");
-	char s[16] = {0};
-	sprintf(s, "scrnx = %d", bi->scrnx);
-	putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 16, 30, COL8_FFFFFF, s);
-	uint8_t mouse[16*16] = {0};
-	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
-	putblock8_8((uintptr_t)bi->vram, bi->scrnx, 16, 16, mouseX, mouseY, mouse, 16);
-
-}
 
 /*
  * Fill the array
@@ -173,26 +222,25 @@ static void init_block_fill(uint8_t *block_start, const uint8_t filling_color, c
 }
 
 /*
- * TODO Erase old pixels instead of re-drawing?
- * TODO Z buffer implementation
  * Move mouse on the screen based on the offsets
  */
 void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
 {
+ 	if (!ctl)
+		return;
+	if (!sheet_mouse)
+		return;
 	uint8_t mouse[16*16] = {0};
-	init_mouse_cursor8((intptr_t)mouse, COL8_008484);
-	/* TODO Replace the makeshift bg */
-	uint8_t bg[16*16] = { 0 };
-	init_block_fill(bg, COL8_008484, sizeof(bg));
+	init_mouse_cursor8((intptr_t)mouse, 99);
 
- 	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, bg, 16);
 	int32_t newX = mouseX + mouse_one_move->x;
 	int32_t newY = mouseY - mouse_one_move->y;
-	if (newX > 0 && newX < bibk.scrnx)
+	if (newX > 0 && newX < bibk.scrnx - 16)
 		mouseX = newX;
-	if (newY > 0 && newY < bibk.scrny)
+	if (newY > 0 && newY < bibk.scrny - 16)
 		mouseY = newY;
-	putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
+	// putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
+	sheet_slide(ctl, sheet_mouse, mouseX, mouseY);
 }
 
 /*
@@ -358,6 +406,7 @@ static void __draw_three_boxes()
 	boxfill8(vram, 320, COL8_0000FF, 120, 80, 220, 180);
 }
 
+/* Draw the desktop */
 static void draw_windows(uintptr_t vram, int32_t screenXsize, int32_t screenYsize)
 {
 	int32_t xsize, ysize;
@@ -380,6 +429,5 @@ static void draw_windows(uintptr_t vram, int32_t screenXsize, int32_t screenYsiz
 	boxfill8(vram, xsize, COL8_848484, xsize - 47,	ysize - 23, xsize - 47,	ysize - 4); // Gray-, tray.l.edge
 	boxfill8(vram, xsize, COL8_FFFFFF, xsize - 47,	ysize - 3, xsize - 4,	ysize - 3); // White, tray.b.edge
 	boxfill8(vram, xsize, COL8_FFFFFF, xsize - 3,	ysize - 24, xsize - 3,	ysize - 3); // White, tray.r.edge
-
 }
 

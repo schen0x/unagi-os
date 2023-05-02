@@ -923,6 +923,6 @@ void _putchar(char character)
 	(void) character;
 	char s[2] = {0};
 	s[0] = character;
-	kfprint(s, 4);
+	kfprint(s, 0);
 }
 

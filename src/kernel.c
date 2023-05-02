@@ -20,7 +20,7 @@ PAGE_DIRECTORY_4KB* kpd = 0;
 void kernel_main(void)
 {
 	idt_init();
-	graphic_initialize((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
+	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 
 	uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
 	printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
@@ -31,6 +31,7 @@ void kernel_main(void)
 	// TODO e820 routine
 
 	k_mm_init();
+	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	char *s = (char *)kmalloc(100);
 	printf("*s:%p ", s);
 	char *s2 = (char *)kmalloc(100);
@@ -56,10 +57,10 @@ void kernel_main(void)
 
 	if (!test_all())
 	{
-		kfprint("\nFunction test FAIL.", 4);
+		printf("\nFunction test FAIL.");
 	} else
 	{
-		kfprint("\nFunction test PASS.", 4);
+		printf("\nFunction test PASS.");
 	}
 	eventloop();
 	// asm("hlt");

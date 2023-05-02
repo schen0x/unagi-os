@@ -46,9 +46,7 @@ void ps2mouse_decode(uint8_t scancode, MOUSE_DATA_BUNDLE *m)
 		m->buf[2] = scancode;
 		ps2mouse_parse_three_bytes(m);
 		m->phase = 1;
-		char _p[20]={0};
-		sprintf(_p, "%02d %02d %02x %02x %02x \n", m->x, m->y, m->buf[0], m->buf[1], m->buf[2]);
-		kfprint(_p, 4);
+		// printf("%02d %02d %02x %02x %02x \n", m->x, m->y, m->buf[0], m->buf[1], m->buf[2]);
 		return;
 	}
 }
