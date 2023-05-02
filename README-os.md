@@ -635,3 +635,19 @@ mov [ds:ax], 1 ; 0x82 << 4 + 0x81 == mov [0x8A1], 1
 
 - In the header file write it with `extern`. And at the global scope of one of the c files declare it without `extern`.
 
+### ARRAY OF POINTERS VS POINTER OF AN ARRAY
+
+- [C11 Standard - 6.7.6.2 Array declarators](http://port70.net/~nsz/c/c11/n1570.html#6.7.6.2)
+
+```c
+(a)      int			// int
+(b)      int   *		// pointer to int
+(c)      int   *[3]		// array of 3 pointers to int
+(d)      int   (*)[3]		// pointer of an array of 3 int
+(e)      int   (*)[*]		// pointer to a variable length array of an unspecified number of ints
+
+(f)      int   *()		// function with no parameter specification returning a pointer to int
+(g)      int   (*)(void)	// pointer to function with no parameters returning an int
+(h)      int   (*const [])(unsigned int, ...) // array of an unspecified number of constant pointers to functions, each with one parameter that has type unsigned int and an unspecified number of other parameters, returning an int.
+```
+
