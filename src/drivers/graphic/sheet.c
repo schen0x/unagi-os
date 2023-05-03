@@ -59,6 +59,27 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 	uint8_t *buf, color;
 	uint8_t *vram = (uint8_t *) ctl->vram;
 	SHEET *sheet;
+	/**
+	 * Discard out of screen pixels
+	 * Because otherwise it may cause wrap of undefined behavior
+	 */
+	if (xStartOnScreen < 0)
+		xStartOnScreen = 0;
+	if (xStartOnScreen > ctl->xsize)
+		xStartOnScreen = ctl->xsize;
+	if (xEndOnScreen < 0)
+		xEndOnScreen = 0;
+	if (xEndOnScreen > ctl->xsize)
+		xEndOnScreen = ctl->xsize;
+	if (yStartOnScreen < 0)
+		yStartOnScreen = 0;
+	if (yStartOnScreen > ctl->ysize)
+		yStartOnScreen = ctl->ysize;
+	if (yEndOnScreen < 0)
+		yEndOnScreen = 0;
+	if (yEndOnScreen > ctl->ysize)
+		yEndOnScreen = ctl->ysize;
+
 
 	/* Loop and draw all visible SHEETs from bottom to top */
 	for (int32_t z = 0; z <= ctl->zTop; z++)

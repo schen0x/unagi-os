@@ -46,6 +46,9 @@ void videomode_window_initialize(BOOTINFO* bi)
 	return;
 }
 
+/**
+ * TODO add comment
+ */
 SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 {
 	ctl = shtctl_init(vram, scrnx, scrny);
@@ -75,7 +78,7 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_updown(ctl, sheet_desktop, 0);
 	sheet_updown(ctl, sheet_mouse, 1);
 
-	sheet_update_with_bufxy(ctl, sheet_desktop, 0, 0, scrnx, scrny);
+	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny);
 
 	return ctl;
 }
@@ -236,10 +239,16 @@ void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
 
 	int32_t newX = mouseX + mouse_one_move->x;
 	int32_t newY = mouseY - mouse_one_move->y;
-	if (newX > 0 && newX < bibk.scrnx - 16)
-		mouseX = newX;
-	if (newY > 0 && newY < bibk.scrny - 16)
-		mouseY = newY;
+	if (newX < 0)
+		newX = 0;
+	if (newX > bibk.scrnx - 1)
+		newX = bibk.scrnx - 1;
+	if (newY < 0)
+		newY = 0;
+	if (newY > bibk.scrny - 1)
+		newY = bibk.scrny - 1;
+	mouseX = newX;
+	mouseY = newY;
 	// putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
 	sheet_slide(ctl, sheet_mouse, mouseX, mouseY);
 }
