@@ -22,15 +22,15 @@ SHTCTL* shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize)
 
 SHEET* sheet_alloc(SHTCTL *ctl)
 {
-	SHEET *sht;
+	SHEET *sheet;
 	for (int32_t i = 0; i < OS_VGA_MAX_SHEETS; i++)
 	{
 		if (ctl->sheet0[i].flags == 0)
 		{
-			sht = &ctl->sheet0[i];
-			sht->flags = SHEET_IN_USE; // in use
-			sht->z = -1; // is hidden
-			return sht;
+			sheet = &ctl->sheet0[i];
+			sheet->flags = SHEET_IN_USE; // in use
+			sheet->z = -1; // is hidden
+			return sheet;
 		}
 	}
 	return NULL; // all sheets are occupied
@@ -46,15 +46,65 @@ void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int3
 }
 
 /**
- * Update the window
+ * Update the window, given an area.
+ * TODO maybe in all situations xDst == xStart + ctl->sheets[z]->bufXsize
+ *
+ * @xStart: the real coordinate (screen) x of the sheet when start moving
+ * @yStart: the real coordinate (screen) y of the sheet when start moving
+ * @xEnd: the destination x, real coordinate (screen)
+ * @yEnd: the destination y, real coordinate (screen)
  */
-void sheet_refresh(SHTCTL *ctl)
+void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen)
 {
 	uint8_t *buf, color;
 	uint8_t *vram = (uint8_t *) ctl->vram;
 	SHEET *sheet;
 
-	/* Loop throgth all visible SHEETs */
+	/* Loop and draw all visible SHEETs from bottom to top */
+	for (int32_t z = 0; z <= ctl->zTop; z++)
+	{
+		sheet = ctl->sheets[z];
+		buf = sheet->buf;
+		for (int32_t bufY = 0; bufY < sheet->bufYsize; bufY++)
+		{
+			int32_t y = sheet->yStart + bufY;
+			for (int32_t bufX = 0; bufX < sheet->bufXsize; bufX++)
+			{
+				int32_t x = sheet->xStart + bufX;
+				/* Skip if not in range */
+				if (x < xStartOnScreen || y < yStartOnScreen || x > xEndOnScreen || y > yEndOnScreen)
+					continue;
+				color = buf[bufY * sheet->bufXsize + bufX];
+				if (color != sheet->color_invisible)
+				{
+					vram[y * ctl->xsize + x] = color;
+				}
+			}
+		}
+	}
+	return;
+}
+/**
+ * Update a sheet
+ */
+void sheet_update_with_bufxy(SHTCTL *ctl, SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf)
+{
+	if (s->z < 0)
+		return;
+	sheet_update_with_screenxy(ctl, s->xStart + xStartInBuf, s->yStart + yStartInBuf, s->xStart + xEndInBuf, s->yStart + yEndInBuf);
+	return;
+}
+
+/**
+ * Update all sheets
+ */
+void sheet_update_all(SHTCTL *ctl)
+{
+	uint8_t *buf, color;
+	uint8_t *vram = (uint8_t *) ctl->vram;
+	SHEET *sheet;
+
+	/* Loop and draw all visible SHEETs from bottom to top */
 	for (int32_t z = 0; z <= ctl->zTop; z++)
 	{
 		sheet = ctl->sheets[z];
@@ -114,7 +164,7 @@ void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew)
 		}
 		/* As a result, total height is 1 less */
 		ctl->zTop--;
-		sheet_refresh(ctl);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
 		return;
 	}
 
@@ -131,7 +181,7 @@ void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew)
 		ctl->sheets[zNew] = sheet;
 		/* As a result, total height is 1 higher */
 		ctl->zTop++;
-		sheet_refresh(ctl);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
 		return;
 	}
 
@@ -146,7 +196,7 @@ void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew)
 		}
 		/* Destined position is now empty, write it */
 		ctl->sheets[zNew] = sheet;
-		sheet_refresh(ctl);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
 		return;
 	}
 
@@ -161,19 +211,27 @@ void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew)
 	}
 	/* Destined position is now empty, write it */
 	ctl->sheets[zNew] = sheet;
-	sheet_refresh(ctl);
+	sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
 	return;
 }
 
-/* Set the starting coordinate on the screen of the sheet */
-void sheet_slide(SHTCTL *ctl, SHEET *sheet, int32_t xStart, int32_t yStart)
+/**
+ * Move the sheet to a new coordinate on the screen
+ * @xDst Destination x
+ * @yDst Destination y
+ */
+void sheet_slide(SHTCTL *ctl, SHEET *sheet, int32_t xDst, int32_t yDst)
 {
-	sheet->xStart = xStart;
-	sheet->yStart = yStart;
-	if (sheet->z >= 0)
-	{
-		sheet_refresh(ctl);
-	}
+	if (sheet->z < 0)
+		return;
+	int32_t xStart = sheet->xStart;
+	int32_t yStart = sheet->yStart;
+	sheet->xStart = xDst;
+	sheet->yStart = yDst;
+
+	// sheet_refresh(ctl);
+	sheet_update_with_screenxy(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize);
+	sheet_update_with_screenxy(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize);
 	return;
 }
 

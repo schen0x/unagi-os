@@ -41,6 +41,5 @@ void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move);
 static void display_scroll(uintptr_t vram, int32_t vga_width, int32_t vga_height);
 SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny);
 void putfonts8_asc(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, uint8_t color, char *s);
-SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny);
 
 #endif

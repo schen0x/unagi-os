@@ -75,7 +75,8 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_updown(ctl, sheet_desktop, 0);
 	sheet_updown(ctl, sheet_mouse, 1);
 
-	sheet_refresh(ctl);
+	sheet_update_with_bufxy(ctl, sheet_desktop, 0, 0, scrnx, scrny);
+
 	return ctl;
 }
 
@@ -197,12 +198,12 @@ void videomode_kfprint(const char* str, uint8_t color)
 	}
 	if (!color)
 		color = COL8_FFFFFF;
-	(void) canvasHeight;
+
 	// if ((int64_t)kstrlen(str) * 8 + posX > (int64_t)((canvasHeight - posY)/24 * canvasWidth))
 		// display_scroll((uintptr_t)buf, canvasWidth, canvasHeight);
 	putfonts8_ascv2((uintptr_t)buf, canvasWidth, posX, posY, color, (char *) str);
 	if (ctl)
-		sheet_refresh(ctl);
+		sheet_update_with_bufxy(ctl, sheet_desktop, 0, 0, canvasWidth, canvasHeight);
 	return;
 }
 
