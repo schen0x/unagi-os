@@ -101,6 +101,13 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 {
 	(void)frame;
 
+	/* int3 handler */
+	if(interrupt_number == (0x3))
+	{
+		int3h();
+		return;
+	}
+
 	if(interrupt_number == (0x2c))
 	{
 		int2ch();
@@ -125,6 +132,16 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 	{
 		idt99();
 	}
+}
+
+/*
+ * `int3` handler
+ * Allow inline breakpoint and resume execution
+ */
+
+void int3h(void)
+{
+	return;
 }
 
 

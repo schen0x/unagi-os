@@ -40,6 +40,7 @@ extern void _idt_load(IDT_IDTR_32* idtr_ptr);
 void set_gatedesc(IDT_GATE_DESCRIPTOR_32* gd, intptr_t offset, uint16_t selector, uint8_t access_right);
 void idt_init();
 void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
+void int3h(void);
 void __int21h_buffed();
 void int21h_handler(uint8_t scancode);
 void int2ch(void);

@@ -20,6 +20,12 @@ SHTCTL* shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize)
 }
 
 
+/**
+ * Loop through ctl->sheet0, find a free sheet
+ * Marks the sheet inUse, and z = -1
+ * Return the pointer
+ * Return NULL if all sheets are occupied
+ */
 SHEET* sheet_alloc(SHTCTL *ctl)
 {
 	SHEET *sheet;
@@ -258,13 +264,14 @@ void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew)
  */
 void sheet_slide(SHTCTL *ctl, SHEET *sheet, int32_t xDst, int32_t yDst)
 {
-	if (sheet->z < 0)
-		return;
 	int32_t xStart = sheet->xStart;
 	int32_t yStart = sheet->yStart;
 	sheet->xStart = xDst;
 	sheet->yStart = yDst;
 
+	/* If sheet is hidden, the position should still be updated, but do not render */
+	if (sheet->z < 0)
+		return;
 	// sheet_refresh(ctl);
 	sheet_update_with_screenxy(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize);
 	sheet_update_with_screenxy(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize);

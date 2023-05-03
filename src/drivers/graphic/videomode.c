@@ -256,9 +256,9 @@ void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
 /*
  * Parse video_mem ready data for the mouse cursor, store at *(uint8_t*)mouse
  */
-void init_mouse_cursor8(intptr_t mouse, uint8_t back_color)
+void init_mouse_cursor8(intptr_t mouseBuf, uint8_t back_color)
 {
-	uint8_t *m = (uint8_t *) mouse;
+	uint8_t *m = (uint8_t *) mouseBuf;
 	static char cursor[16][16] = {
 		"**************..",
 		"*OOOOOOOOOOO*...",
