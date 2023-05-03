@@ -65,15 +65,29 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 	{
 		sheet = ctl->sheets[z];
 		buf = sheet->buf;
-		for (int32_t bufY = 0; bufY < sheet->bufYsize; bufY++)
+
+		/* Calculate the relative xy in a buffer, from the screen xy */
+		int32_t xStartInBuf = xStartOnScreen - sheet->xStart;
+		int32_t yStartInBuf = yStartOnScreen - sheet->yStart;
+		int32_t xEndInBuf = xEndOnScreen - sheet->xStart;
+		int32_t yEndInBuf = yEndOnScreen - sheet->yStart;
+
+		/* Only loop through the affected part */
+		if (xStartInBuf < 0)
+			xStartInBuf = 0;
+		if (yStartInBuf < 0)
+			yStartInBuf = 0;
+		if (xEndInBuf > sheet->bufXsize)
+			xEndInBuf = sheet->bufXsize;
+		if (yEndInBuf > sheet->bufYsize)
+			yEndInBuf = sheet->bufYsize;
+
+		for (int32_t bufY = yStartInBuf; bufY < yEndInBuf; bufY++)
 		{
 			int32_t y = sheet->yStart + bufY;
-			for (int32_t bufX = 0; bufX < sheet->bufXsize; bufX++)
+			for (int32_t bufX = xStartInBuf; bufX < xEndInBuf; bufX++)
 			{
 				int32_t x = sheet->xStart + bufX;
-				/* Skip if not in range */
-				if (x < xStartOnScreen || y < yStartOnScreen || x > xEndOnScreen || y > yEndOnScreen)
-					continue;
 				color = buf[bufY * sheet->bufXsize + bufX];
 				if (color != sheet->color_invisible)
 				{
@@ -97,6 +111,7 @@ void sheet_update_with_bufxy(SHTCTL *ctl, SHEET *s, int32_t xStartInBuf, int32_t
 
 /**
  * Update all sheets
+ * TODO
  */
 void sheet_update_all(SHTCTL *ctl)
 {
