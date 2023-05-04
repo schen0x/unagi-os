@@ -8,6 +8,12 @@ SHTCTL* shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize)
 	ctl = (SHTCTL *)kzalloc(sizeof(SHTCTL));
 	if (ctl == NULL)
 		return NULL;
+	ctl->zMap = (uint8_t *) kzalloc(xsize * ysize);
+	if (ctl->zMap == NULL)
+	{
+		kfree(ctl);
+		return NULL;
+	}
 	ctl->vram = vram;
 	ctl->xsize = xsize;
 	ctl->ysize = ysize;
@@ -52,20 +58,19 @@ void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int3
 	return;
 }
 
+
 /**
- * Update the window, given an area.
- * TODO maybe in all situations xDst == xStart + ctl->sheets[z]->bufXsize
- *
+ * Update the zMap given a region on the screen
  * @xStart: the real coordinate (screen) x of the sheet when start moving
  * @yStart: the real coordinate (screen) y of the sheet when start moving
  * @xEnd: the destination x, real coordinate (screen)
  * @yEnd: the destination y, real coordinate (screen)
  * @zStart: sheet->z; (to update only the sheets with z >= zStart)
  */
-void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart)
+void sheet_update_zmap(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart)
 {
 	uint8_t *buf, color;
-	uint8_t *vram = (uint8_t *) ctl->vram;
+	uint8_t *zMap = (uint8_t *) ctl->zMap;
 	SHEET *sheet;
 	/**
 	 * Discard out of screen pixels
@@ -97,6 +102,13 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 	for (int32_t z = zStart; z <= ctl->zTop; z++)
 	{
 		sheet = ctl->sheets[z];
+		/**
+		 * Calculate the index of the "buffer" in `sheet0`
+		 * sheet == sheet0[sheetId] is the real memory location of the graphic
+		 * But sheeId does not change when moving up or down
+		 * Write it to the `zMap`
+		 */
+		int32_t sheetId = sheet - ctl->sheet0; // pointer arithmetic, gives index
 		buf = sheet->buf;
 
 		/* Calculate the relative xy in a buffer, from the screen xy */
@@ -124,7 +136,92 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 				color = buf[bufY * sheet->bufXsize + bufX];
 				if (color != sheet->color_invisible)
 				{
-					vram[y * ctl->xsize + x] = color;
+					zMap[ctl->xsize * y + x] = sheetId;
+				}
+			}
+		}
+	}
+	return;
+}
+
+/**
+ * Update the window, given an area.
+ * TODO maybe in all situations xDst == xStart + ctl->sheets[z]->bufXsize
+ *
+ * @xStart: the real coordinate (screen) x of the sheet when start moving
+ * @yStart: the real coordinate (screen) y of the sheet when start moving
+ * @xEnd: the destination x, real coordinate (screen)
+ * @yEnd: the destination y, real coordinate (screen)
+ * @zStart: sheet->z; (to update only the sheets with z >= zStart)
+ * @zEnd: sheet->z; (to update only the sheets with z <= zEnd), if zEnd == -1, set zEnd to `ctl->zTop`
+ */
+void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart, int32_t zEnd)
+{
+	uint8_t *buf, color;
+	uint8_t *vram = (uint8_t *) ctl->vram;
+	uint8_t *zMap = (uint8_t *) ctl->zMap;
+	SHEET *sheet;
+	/**
+	 * Discard out of screen pixels
+	 * Because otherwise it may cause wrap of undefined behavior
+	 */
+	if (xStartOnScreen < 0)
+		xStartOnScreen = 0;
+	if (xStartOnScreen > ctl->xsize)
+		xStartOnScreen = ctl->xsize;
+	if (xEndOnScreen < 0)
+		xEndOnScreen = 0;
+	if (xEndOnScreen > ctl->xsize)
+		xEndOnScreen = ctl->xsize;
+	if (yStartOnScreen < 0)
+		yStartOnScreen = 0;
+	if (yStartOnScreen > ctl->ysize)
+		yStartOnScreen = ctl->ysize;
+	if (yEndOnScreen < 0)
+		yEndOnScreen = 0;
+	if (yEndOnScreen > ctl->ysize)
+		yEndOnScreen = ctl->ysize;
+
+	if (zEnd == -1)
+		zEnd = ctl->zTop;
+
+	/**
+	 * Loop and draw all visible SHEETs from bottom to top,
+	 * starting from the zStart
+	 * (the highest SHEET known visible that is changed)
+	 */
+	for (int32_t z = zStart; z <= zEnd; z++)
+	{
+		sheet = ctl->sheets[z];
+		buf = sheet->buf;
+		int32_t sheetId = sheet - ctl->sheet0;
+
+		/* Calculate the relative xy in a buffer, from the screen xy */
+		int32_t xStartInBuf = xStartOnScreen - sheet->xStart;
+		int32_t yStartInBuf = yStartOnScreen - sheet->yStart;
+		int32_t xEndInBuf = xEndOnScreen - sheet->xStart;
+		int32_t yEndInBuf = yEndOnScreen - sheet->yStart;
+
+		/* Only loop through the affected part */
+		if (xStartInBuf < 0)
+			xStartInBuf = 0;
+		if (yStartInBuf < 0)
+			yStartInBuf = 0;
+		if (xEndInBuf > sheet->bufXsize)
+			xEndInBuf = sheet->bufXsize;
+		if (yEndInBuf > sheet->bufYsize)
+			yEndInBuf = sheet->bufYsize;
+
+		for (int32_t bufY = yStartInBuf; bufY < yEndInBuf; bufY++)
+		{
+			int32_t y = sheet->yStart + bufY;
+			for (int32_t bufX = xStartInBuf; bufX < xEndInBuf; bufX++)
+			{
+				int32_t x = sheet->xStart + bufX;
+				color = buf[sheet->bufXsize * bufY + bufX];
+				if (zMap[ctl->xsize * y + x] == sheetId)
+				{
+					vram[ctl->xsize * y + x] = color;
 				}
 			}
 		}
@@ -133,13 +230,19 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 }
 /**
  * Update a sheet and redraw all sheets above
+ * @s SHEET*
+ * @xStartInBuf relative coordinate in the buffer
+ * @yStartInBuf relative coordinate in the buffer
+ * @xEndInBuf relative coordinate in the buffer
+ * @yEndInBuf relative coordinate in the buffer
+ *
  */
 void sheet_update_sheet(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf)
 {
 	if (s->z < 0)
 		return;
-	SHTCTL *ctl = s->ctl;
-	sheet_update_with_screenxy(ctl, s->xStart + xStartInBuf, s->yStart + yStartInBuf, s->xStart + xEndInBuf, s->yStart + yEndInBuf, s->z);
+	/* Assume the zMap is correct, only one (this) sheet needs redraw */
+	sheet_update_with_screenxy(s->ctl, s->xStart + xStartInBuf, s->yStart + yStartInBuf, s->xStart + xEndInBuf, s->yStart + yEndInBuf, s->z, s->z);
 	return;
 }
 
@@ -152,20 +255,22 @@ void sheet_update_all(SHTCTL *ctl)
 	uint8_t *buf, color;
 	uint8_t *vram = (uint8_t *) ctl->vram;
 	SHEET *sheet;
+	uint8_t *zMap = (uint8_t *) ctl->zMap;
 
 	/* Loop and draw all visible SHEETs from bottom to top */
 	for (int32_t z = 0; z <= ctl->zTop; z++)
 	{
 		sheet = ctl->sheets[z];
 		buf = sheet->buf;
+		int32_t sheetId = sheet - ctl->sheet0;
 		for (int32_t bufY = 0; bufY < sheet->bufYsize; bufY++)
 		{
 			int32_t y = sheet->yStart + bufY;
 			for (int32_t bufX = 0; bufX < sheet->bufXsize; bufX++)
 			{
 				int32_t x = sheet->xStart + bufX;
-				color = buf[bufY * sheet->bufXsize + bufX];
-				if (color != sheet->color_invisible)
+				color = buf[sheet->bufXsize * bufY + bufX];
+				if (zMap[ctl->xsize * y + x] == sheetId)
 				{
 					vram[y * ctl->xsize + x] = color;
 				}
@@ -214,7 +319,8 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 		}
 		/* As a result, total height is 1 less */
 		ctl->zTop--;
-		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, 0);
+		sheet_update_zmap(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, 0);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, 0, zOriginal - 1);
 		return;
 	}
 
@@ -231,7 +337,8 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 		ctl->sheets[zNew] = sheet;
 		/* As a result, total height is 1 higher */
 		ctl->zTop++;
-		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
+		sheet_update_zmap(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew, zNew);
 		return;
 	}
 
@@ -246,7 +353,8 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 		}
 		/* Destined position is now empty, write it */
 		ctl->sheets[zNew] = sheet;
-		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
+		sheet_update_zmap(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew, zOriginal - 1);
 		return;
 	}
 
@@ -261,7 +369,8 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 	}
 	/* Destined position is now empty, write it */
 	ctl->sheets[zNew] = sheet;
-	sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
+	sheet_update_zmap(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
+	sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew, zNew);
 	return;
 }
 
@@ -281,10 +390,12 @@ void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst)
 	/* If sheet is hidden, the position should still be updated, but do not render */
 	if (sheet->z < 0)
 		return;
-	/* Redraw the background when leaving */
-	sheet_update_with_screenxy(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize, 0);
+	sheet_update_zmap(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize, 0);
+	sheet_update_zmap(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize, sheet->z);
+	/* Redraw the background (z < this.z) when leaving */
+	sheet_update_with_screenxy(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize, 0, sheet->z - 1);
 	/* Redraw the dst */
-	sheet_update_with_screenxy(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize, sheet->z);
+	sheet_update_with_screenxy(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize, sheet->z, sheet->z);
 	return;
 }
 

@@ -87,8 +87,8 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_updown(sheet_window, 1);
 	sheet_updown(sheet_mouse, 2);
 
-	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny, 0);
-
+	sheet_update_zmap(ctl, 0, 0, scrnx, scrny, 0);
+	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny, 0, -1);
 	return ctl;
 }
 

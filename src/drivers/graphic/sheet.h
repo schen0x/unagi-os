@@ -28,6 +28,8 @@ typedef struct SHEET
 typedef struct SHTCTL
 {
 	uintptr_t vram;
+	/* @map: map<pos, z>; Find the top-most sheet that should be rendered, given a position */
+	uint8_t* zMap;
 	int32_t xsize, ysize;
 	/* @top: max z of the top sheet */
 	int32_t zTop;
@@ -36,14 +38,15 @@ typedef struct SHTCTL
 	 * i.e., sheet with z==0 is sheets[0], for z==3 is sheets[3]
 	 */
 	SHEET *sheets[OS_VGA_MAX_SHEETS];
-	/* @sheet0: an array of SHEET structure */
+	/* @sheet0: an array of SHEET structure; size: sizeof(SHEET) * OS_VGA_MAX_SHEETS */
 	SHEET sheet0[OS_VGA_MAX_SHEETS];
 } SHTCTL;
 SHTCTL *shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize);
 SHEET *sheet_alloc(SHTCTL *ctl);
 void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int32_t color_invisible);
 void sheet_update_all(SHTCTL *ctl);
-void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart);
+void sheet_update_zmap(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart);
+void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart, int32_t zEnd);
 
 void sheet_update_sheet(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf);
 void sheet_updown(SHEET *sheet, int32_t zNew);
