@@ -14,7 +14,7 @@ static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer
 
 static const int32_t padding_l = 8;
 static int32_t posX = padding_l;
-static int32_t posY = 54;
+static int32_t posY = 30;
 BOOTINFO bibk = {0};
 int32_t mouseX, mouseY;
 

@@ -24,46 +24,34 @@ void kernel_main(void)
 	idt_init();
 	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 
-	uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
-	printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
+	// uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
 	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
-	printf("mem_test OK from addr %dMB to %dMB \n", OS_HEAP_ADDRESS/1024/1024, mem);
 	_io_sti();
-	asm("int $99");
+	// asm("int $99");
 	// TODO e820 routine
 
 	k_mm_init();
 
 	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
-	char *s = (char *)kmalloc(100);
-	printf("*s:%p ", s);
-	char *s2 = (char *)kmalloc(100);
-	printf("*s2:%p ", s2);
-	char *s3 = (char *)kmalloc(10);
-	printf("*s3:%p ", s3);
-	kfree(s2);
-	kfree(s3);
-	char *s4 = (char *)kmalloc(10);
-	printf("*s4:%p ", s4);
-	char *s5 = (char *)kmalloc(10);
-	printf("*s5:%p ", s5);
+	// printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
+	printf("mem_test OK from addr %dMB to %dMB \n", OS_HEAP_ADDRESS/1024/1024, mem);
 
 
 	// ==============
-	(void) kpd;
-//	uint32_t pd_entries_flags = 0b111;
-//	kpd = pd_init(pd_entries_flags);
-//	paging_switch(kpd);
-	//enable_paging();
+	// (void) kpd;
+	// uint32_t pd_entries_flags = 0b111;
+	// kpd = pd_init(pd_entries_flags);
+	// paging_switch(kpd);
+	// enable_paging();
 
 	disk_search_and_init();
 
 	if (!test_all())
 	{
-		printf("\nFunction test FAIL.");
+		printf("Function test FAIL\n");
 	} else
 	{
-		printf("\nFunction test PASS.");
+		printf("Function test PASS\n");
 	}
 	eventloop();
 	// asm("hlt");

@@ -42,8 +42,6 @@ void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
 				  // The real first free chunk is first->free.next
 	dlist_insert_after(&first->free, &second->free);
    	mem_free = second->size - align_address_to_upper(sizeof(CHUNK), OS_MEMORY_ALIGN);
-	printf("mf:%4d ", mem_free/1024/1024);
-	// printf("chunk2:%p", second);
 }
 
 /*
@@ -144,7 +142,7 @@ static uintptr_t chunk_calc_free_offset(CHUNK *chunk)
 }
 
 
-size_t k_heapdl_mm_get_usage()
+size_t k_heapdl_mm_get_free()
 {
 	return mem_free;
 }
