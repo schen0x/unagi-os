@@ -33,8 +33,9 @@ static void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, i
 static void set_palette(uint8_t start, uint8_t end, unsigned char *rgb);
 static void init_block_fill(uint8_t *block_start, const uint8_t filling_color, const size_t block_size_in_bytes);
 static void init_palette(void);
-static void draw_windows(uintptr_t vram, int32_t screenXsize, int32_t screenYsize);
+static void draw_desktop(uintptr_t vram, int32_t screenXsize, int32_t screenYsize);
 void init_mouse_cursor8(intptr_t mouseBuf, uint8_t back_color);
+void make_window8(uintptr_t buf, int xsize, int ysize, char *title);
 void putblock8_8(intptr_t vram, int32_t vxsize, int32_t pxsize, int32_t pysize, int32_t px0, int32_t py0, uint8_t* buf, int32_t bxsize);
 void videomode_kfprint(const char* str, uint8_t color);
 void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move);

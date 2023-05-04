@@ -31,7 +31,7 @@ void videomode_window_initialize(BOOTINFO* bi)
 	init_palette();
 
 	/* Write directly to the vram, or use a sheet manager etc. */
-	draw_windows((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
+	draw_desktop((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
 	// putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 9, 9, COL8_000000, "Haribote OS");
 	// putfonts8_asc((uintptr_t)bi->vram, bi->scrnx, 8, 8, COL8_FFFFFF, "Haribote OS");
 	// uint8_t mouse[16*16] = {0};
@@ -57,7 +57,7 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	uint8_t *buf_desktop = (uint8_t *) kmalloc(scrnx * scrny);
 	uint8_t *buf_mouse = (uint8_t *) kmalloc(16 * 16);
 
-	draw_windows((uintptr_t)buf_desktop, scrnx, scrny);
+	draw_desktop((uintptr_t)buf_desktop, scrnx, scrny);
 	putfonts8_asc((uintptr_t)buf_desktop, scrnx, 9, 9, COL8_000000, "Haribote OS");
 	putfonts8_asc((uintptr_t)buf_desktop, scrnx, 8, 8, COL8_FFFFFF, "Haribote OS");
 
@@ -76,7 +76,21 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_slide(sheet_mouse, mouseX, mouseY);
 
 	sheet_updown(sheet_desktop, 0);
-	sheet_updown(sheet_mouse, 1);
+	sheet_updown(sheet_mouse, 99);
+
+
+	SHEET *sheet_window = sheet_alloc(ctl);
+	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
+	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
+	make_window8((uintptr_t)buf_window, 160, 68, "window");
+	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 28, COL8_000000, "Welcome to");
+	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 44, COL8_000000, "  Haribote OS");
+
+	sheet_slide(sheet_window, 80, 72);
+	sheet_updown(sheet_window, 1);
+
+
+
 
 	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny);
 
@@ -180,7 +194,7 @@ static void display_scroll(uintptr_t vram, int32_t vga_width, int32_t vga_height
 {
 	// TODO Scroll
 	// Reset the screen for now
-	draw_windows(vram, vga_width, vga_height);
+	draw_desktop(vram, vga_width, vga_height);
 	posX = padding_l;
 	posY = 16;
 	uint8_t mouse[16*16] = {0};
@@ -395,6 +409,68 @@ static void set_palette(uint8_t start, uint8_t end, unsigned char *rgb)
 }
 
 
+/**
+ * Draw a notification in the buffer
+ * e.g. make_window8(buf_window, 160, 68, "window");
+ */
+void make_window8(uintptr_t buf, int xsize, int ysize, char *title)
+{
+    static char closebtn[14][16] = {
+        "OOOOOOOOOOOOOOO@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQQQ@@QQQQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "O$$$$$$$$$$$$$$@",
+        "@@@@@@@@@@@@@@@@"
+    };
+    int x, y;
+    char c;
+    boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         xsize - 1, 0        );
+    boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         xsize - 2, 1        );
+    boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         0,         ysize - 1);
+    boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         1,         ysize - 2);
+    boxfill8(buf, xsize, COL8_848484, xsize - 2, 1,         xsize - 2, ysize - 2);
+    boxfill8(buf, xsize, COL8_000000, xsize - 1, 0,         xsize - 1, ysize - 1);
+    /* The window body */
+    boxfill8(buf, xsize, COL8_C6C6C6, 2,         2,         xsize - 3, ysize - 3);
+    /* The title bar */
+    boxfill8(buf, xsize, COL8_000084, 3,         3,         xsize - 4, 20       );
+    boxfill8(buf, xsize, COL8_848484, 1,         ysize - 2, xsize - 2, ysize - 2);
+    boxfill8(buf, xsize, COL8_000000, 0,         ysize - 1, xsize - 1, ysize - 1);
+    putfonts8_asc(buf, xsize, 24, 4, COL8_FFFFFF, title);
+    for (y = 0; y < 14; y++) {
+        for (x = 0; x < 16; x++) {
+            c = closebtn[y][x];
+            if (c == '@') {
+		/* Black */
+                c = COL8_000000;
+            } else if (c == '$') {
+		/* Gray - */
+                c = COL8_848484;
+            } else if (c == 'Q') {
+		/* Gray + */
+                c = COL8_C6C6C6;
+            } else {
+		/* White */
+                c = COL8_FFFFFF;
+            }
+	    /* Start pos: (xsize - 21, 5) */
+            ((uint8_t *)buf)[(5 + y) * xsize + (xsize - 21 + x)] = c;
+        }
+    }
+    return;
+}
+
+
+
 /* Draw stripes on the screen */
 static void __draw_stripes()
 {
@@ -417,7 +493,7 @@ static void __draw_three_boxes()
 }
 
 /* Draw the desktop */
-static void draw_windows(uintptr_t vram, int32_t screenXsize, int32_t screenYsize)
+static void draw_desktop(uintptr_t vram, int32_t screenXsize, int32_t screenYsize)
 {
 	int32_t xsize, ysize;
 	xsize = screenXsize;
