@@ -17,7 +17,6 @@
 
 /* Kernel Page Directory */
 PAGE_DIRECTORY_4KB* kpd = 0;
-SHEET *sheet_window = NULL;
 
 void kernel_main(void)
 {
@@ -35,17 +34,7 @@ void kernel_main(void)
 
 	k_mm_init();
 
-	SHTCTL *ctl = graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
-	sheet_window = sheet_alloc(ctl);
-	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
-	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
-	make_window8((uintptr_t)buf_window, 160, 68, "window");
-	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 28, COL8_000000, "Welcome to");
-	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 44, COL8_000000, "  Haribote OS");
-
-	sheet_slide(sheet_window, 80, 72);
-	sheet_updown(sheet_window, 1);
-
+	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	char *s = (char *)kmalloc(100);
 	printf("*s:%p ", s);
 	char *s2 = (char *)kmalloc(100);
@@ -83,18 +72,18 @@ void kernel_main(void)
 void eventloop(void)
 {
 	int32_t usedBytes_keybuf, usedBytes_mousebuf = 0;
+	SHEET* sw = get_sheet_window();
 	int64_t count = 0;
 	for(;;)
 	{
-		if (sheet_window)
+		if (sw)
 		{
 			count++;
-			SHEET *sw = sheet_window;
 			char ctc[40] = {0};
 			sprintf(ctc, "%010ld", count);
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
 			putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
-			sheet_update_with_bufxy(sheet_window, 40, 28, 120, 44);
+			sheet_update_sheet(sw, 40, 28, 120, 44);
 		}
 
 
@@ -107,9 +96,7 @@ void eventloop(void)
 		if (usedBytes_keybuf == 0 && \
 			usedBytes_mousebuf == 0)
 		{
-			_io_sti();
-			asm("pause");
-			continue;
+			goto next0;
 		}
 		if (usedBytes_keybuf != 0)
 		{
@@ -130,6 +117,10 @@ void eventloop(void)
 				int2ch_handler(mousescancode & 0xff);
 
 		}
+next0:
+		_io_sti();
+		asm("pause");
+		continue;
 	}
 
 }

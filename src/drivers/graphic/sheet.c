@@ -60,8 +60,9 @@ void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int3
  * @yStart: the real coordinate (screen) y of the sheet when start moving
  * @xEnd: the destination x, real coordinate (screen)
  * @yEnd: the destination y, real coordinate (screen)
+ * @zStart: sheet->z; (to update only the sheets with z >= zStart)
  */
-void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen)
+void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart)
 {
 	uint8_t *buf, color;
 	uint8_t *vram = (uint8_t *) ctl->vram;
@@ -88,8 +89,12 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 		yEndOnScreen = ctl->ysize;
 
 
-	/* Loop and draw all visible SHEETs from bottom to top */
-	for (int32_t z = 0; z <= ctl->zTop; z++)
+	/**
+	 * Loop and draw all visible SHEETs from bottom to top,
+	 * starting from the zStart
+	 * (the highest SHEET known visible that is changed)
+	 */
+	for (int32_t z = zStart; z <= ctl->zTop; z++)
 	{
 		sheet = ctl->sheets[z];
 		buf = sheet->buf;
@@ -127,14 +132,14 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 	return;
 }
 /**
- * Update a sheet
+ * Update a sheet and redraw all sheets above
  */
-void sheet_update_with_bufxy(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf)
+void sheet_update_sheet(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf)
 {
 	if (s->z < 0)
 		return;
 	SHTCTL *ctl = s->ctl;
-	sheet_update_with_screenxy(ctl, s->xStart + xStartInBuf, s->yStart + yStartInBuf, s->xStart + xEndInBuf, s->yStart + yEndInBuf);
+	sheet_update_with_screenxy(ctl, s->xStart + xStartInBuf, s->yStart + yStartInBuf, s->xStart + xEndInBuf, s->yStart + yEndInBuf, s->z);
 	return;
 }
 
@@ -209,7 +214,7 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 		}
 		/* As a result, total height is 1 less */
 		ctl->zTop--;
-		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, 0);
 		return;
 	}
 
@@ -226,7 +231,7 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 		ctl->sheets[zNew] = sheet;
 		/* As a result, total height is 1 higher */
 		ctl->zTop++;
-		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
 		return;
 	}
 
@@ -241,7 +246,7 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 		}
 		/* Destined position is now empty, write it */
 		ctl->sheets[zNew] = sheet;
-		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
+		sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
 		return;
 	}
 
@@ -256,7 +261,7 @@ void sheet_updown(SHEET *sheet, int32_t zNew)
 	}
 	/* Destined position is now empty, write it */
 	ctl->sheets[zNew] = sheet;
-	sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize);
+	sheet_update_with_screenxy(ctl, sheet->xStart, sheet->yStart, sheet->xStart + sheet->bufXsize, sheet->yStart + sheet->bufYsize, zNew);
 	return;
 }
 
@@ -276,9 +281,10 @@ void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst)
 	/* If sheet is hidden, the position should still be updated, but do not render */
 	if (sheet->z < 0)
 		return;
-	// sheet_refresh(ctl);
-	sheet_update_with_screenxy(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize);
-	sheet_update_with_screenxy(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize);
+	/* Redraw the background when leaving */
+	sheet_update_with_screenxy(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize, 0);
+	/* Redraw the dst */
+	sheet_update_with_screenxy(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize, sheet->z);
 	return;
 }
 

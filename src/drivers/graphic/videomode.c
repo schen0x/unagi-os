@@ -21,6 +21,7 @@ int32_t mouseX, mouseY;
 SHTCTL *ctl = NULL;
 SHEET *sheet_desktop = NULL;
 SHEET *sheet_mouse = NULL;
+SHEET *sheet_window = NULL;
 
 void videomode_window_initialize(BOOTINFO* bi)
 {
@@ -75,13 +76,25 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	int32_t mouseY = (scrny - 16) / 2;
 	sheet_slide(sheet_mouse, mouseX, mouseY);
 
+
+	sheet_window = sheet_alloc(ctl);
+	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
+	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
+	make_window8((uintptr_t)buf_window, 160, 68, "window");
+	sheet_slide(sheet_window, 80, 72);
+
 	sheet_updown(sheet_desktop, 0);
-	sheet_updown(sheet_mouse, 99);
+	sheet_updown(sheet_window, 1);
+	sheet_updown(sheet_mouse, 2);
 
-
-	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny);
+	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny, 0);
 
 	return ctl;
+}
+
+SHEET* get_sheet_window()
+{
+	return sheet_window;
 }
 
 /*
@@ -207,7 +220,7 @@ void videomode_kfprint(const char* str, uint8_t color)
 		// display_scroll((uintptr_t)buf, canvasWidth, canvasHeight);
 	putfonts8_ascv2((uintptr_t)buf, canvasWidth, posX, posY, color, (char *) str);
 	if (sheet_desktop)
-		sheet_update_with_bufxy(sheet_desktop, 0, 0, canvasWidth, canvasHeight);
+		sheet_update_sheet(sheet_desktop, 0, 0, canvasWidth, canvasHeight);
 	return;
 }
 

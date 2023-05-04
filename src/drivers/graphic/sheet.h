@@ -31,7 +31,10 @@ typedef struct SHTCTL
 	int32_t xsize, ysize;
 	/* @top: max z of the top sheet */
 	int32_t zTop;
-	/* @sheets: an array of SHEET pointer  */
+	/*
+	 * @sheets: an array of SHEET pointer, arranged based on zIndex
+	 * i.e., sheet with z==0 is sheets[0], for z==3 is sheets[3]
+	 */
 	SHEET *sheets[OS_VGA_MAX_SHEETS];
 	/* @sheet0: an array of SHEET structure */
 	SHEET sheet0[OS_VGA_MAX_SHEETS];
@@ -40,9 +43,9 @@ SHTCTL *shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize);
 SHEET *sheet_alloc(SHTCTL *ctl);
 void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int32_t color_invisible);
 void sheet_update_all(SHTCTL *ctl);
-void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStart, int32_t yStart, int32_t xDst, int32_t yDst);
+void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart);
 
-void sheet_update_with_bufxy(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf);
+void sheet_update_sheet(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf);
 void sheet_updown(SHEET *sheet, int32_t zNew);
 void sheet_slide(SHEET *sheet, int32_t xStart, int32_t yStart);
 void sheet_free(SHEET *sheet);
