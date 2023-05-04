@@ -22,6 +22,7 @@ typedef struct SHEET
 	int32_t z;
 	/* @flags: SHEET_IN_USE == 1 */
 	int32_t flags;
+	struct SHTCTL *ctl;
 } SHEET;
 
 typedef struct SHTCTL
@@ -40,9 +41,10 @@ SHEET *sheet_alloc(SHTCTL *ctl);
 void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int32_t color_invisible);
 void sheet_update_all(SHTCTL *ctl);
 void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStart, int32_t yStart, int32_t xDst, int32_t yDst);
-void sheet_update_with_bufxy(SHTCTL *ctl, SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf);
-void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew);
-void sheet_slide(SHTCTL *ctl, SHEET *sheet, int32_t xStart, int32_t yStart);
-void sheet_free(SHTCTL *ctl, SHEET *sheet);
+
+void sheet_update_with_bufxy(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf);
+void sheet_updown(SHEET *sheet, int32_t zNew);
+void sheet_slide(SHEET *sheet, int32_t xStart, int32_t yStart);
+void sheet_free(SHEET *sheet);
 
 #endif

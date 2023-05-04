@@ -68,15 +68,15 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	init_mouse_cursor8((intptr_t)buf_mouse, 99);
 
 	/* Set the starting positon of `st_desktop` */
-	sheet_slide(ctl, sheet_desktop, 0, 0);
+	sheet_slide(sheet_desktop, 0, 0);
 
 	/* Set the starting positon of `st_mouse` */
 	int32_t mouseX = (scrnx - 16) / 2;
 	int32_t mouseY = (scrny - 16) / 2;
-	sheet_slide(ctl, sheet_mouse, mouseX, mouseY);
+	sheet_slide(sheet_mouse, mouseX, mouseY);
 
-	sheet_updown(ctl, sheet_desktop, 0);
-	sheet_updown(ctl, sheet_mouse, 1);
+	sheet_updown(sheet_desktop, 0);
+	sheet_updown(sheet_mouse, 1);
 
 	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny);
 
@@ -205,8 +205,8 @@ void videomode_kfprint(const char* str, uint8_t color)
 	// if ((int64_t)kstrlen(str) * 8 + posX > (int64_t)((canvasHeight - posY)/24 * canvasWidth))
 		// display_scroll((uintptr_t)buf, canvasWidth, canvasHeight);
 	putfonts8_ascv2((uintptr_t)buf, canvasWidth, posX, posY, color, (char *) str);
-	if (ctl)
-		sheet_update_with_bufxy(ctl, sheet_desktop, 0, 0, canvasWidth, canvasHeight);
+	if (sheet_desktop)
+		sheet_update_with_bufxy(sheet_desktop, 0, 0, canvasWidth, canvasHeight);
 	return;
 }
 
@@ -250,7 +250,7 @@ void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move)
 	mouseX = newX;
 	mouseY = newY;
 	// putblock8_8((uintptr_t)bibk.vram, bibk.scrnx, 16, 16, mouseX, mouseY, mouse, 16);
-	sheet_slide(ctl, sheet_mouse, mouseX, mouseY);
+	sheet_slide(sheet_mouse, mouseX, mouseY);
 }
 
 /*

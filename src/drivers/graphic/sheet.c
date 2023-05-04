@@ -15,6 +15,7 @@ SHTCTL* shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize)
 	for (int32_t i = 0; i < OS_VGA_MAX_SHEETS; i++)
 	{
 		ctl->sheet0[i].flags = 0; // unused
+		ctl->sheet0[i].ctl = ctl;
 	}
 	return ctl;
 }
@@ -128,10 +129,11 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 /**
  * Update a sheet
  */
-void sheet_update_with_bufxy(SHTCTL *ctl, SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf)
+void sheet_update_with_bufxy(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf)
 {
 	if (s->z < 0)
 		return;
+	SHTCTL *ctl = s->ctl;
 	sheet_update_with_screenxy(ctl, s->xStart + xStartInBuf, s->yStart + yStartInBuf, s->xStart + xEndInBuf, s->yStart + yEndInBuf);
 	return;
 }
@@ -173,8 +175,9 @@ void sheet_update_all(SHTCTL *ctl)
  * @sheet The sheet to adjust zIndex
  * @zNew New zIndex
  */
-void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew)
+void sheet_updown(SHEET *sheet, int32_t zNew)
 {
+	SHTCTL *ctl = sheet->ctl;
 	int32_t z, zOriginal = sheet->z;
 
 	/* Normalize the zNew */
@@ -262,8 +265,9 @@ void sheet_updown(SHTCTL *ctl, SHEET *sheet, int32_t zNew)
  * @xDst Destination x
  * @yDst Destination y
  */
-void sheet_slide(SHTCTL *ctl, SHEET *sheet, int32_t xDst, int32_t yDst)
+void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst)
 {
+	SHTCTL *ctl = sheet->ctl;
 	int32_t xStart = sheet->xStart;
 	int32_t yStart = sheet->yStart;
 	sheet->xStart = xDst;
@@ -278,11 +282,11 @@ void sheet_slide(SHTCTL *ctl, SHEET *sheet, int32_t xDst, int32_t yDst)
 	return;
 }
 
-void sheet_free(SHTCTL *ctl, SHEET *sheet)
+void sheet_free(SHEET *sheet)
 {
 	if (sheet->z >= 0)
 	{
-		sheet_updown(ctl, sheet, -1);
+		sheet_updown(sheet, -1);
 	}
 	sheet->flags = 0;
 	return;
