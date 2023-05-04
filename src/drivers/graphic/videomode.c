@@ -79,19 +79,6 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_updown(sheet_mouse, 99);
 
 
-	SHEET *sheet_window = sheet_alloc(ctl);
-	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
-	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
-	make_window8((uintptr_t)buf_window, 160, 68, "window");
-	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 28, COL8_000000, "Welcome to");
-	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 44, COL8_000000, "  Haribote OS");
-
-	sheet_slide(sheet_window, 80, 72);
-	sheet_updown(sheet_window, 1);
-
-
-
-
 	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny);
 
 	return ctl;
@@ -336,7 +323,7 @@ void putblock8_8(intptr_t vram, int32_t vxsize, int32_t pxsize,
 	}
 }
 
-static void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
+void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
 	for(int32_t y = y0; y <= y1; y++)
 	{

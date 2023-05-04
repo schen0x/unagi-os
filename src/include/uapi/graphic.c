@@ -20,7 +20,7 @@ void kfprint(const char* str, const uint8_t color)
 	videomode_kfprint(str, color);
 }
 
-void graphic_window_manager_init(BOOTINFO* bi)
+SHTCTL* graphic_window_manager_init(BOOTINFO* bi)
 {
-	sheet_initialize((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
+	return sheet_initialize((uintptr_t)bi->vram, bi->scrnx, bi->scrny);
 }

@@ -12,13 +12,16 @@
 #include "include/uapi/graphic.h"
 #include "disk/dstream.h"
 #include "include/uapi/bootinfo.h"
+#include "drivers/graphic/videomode.h"
 #include "test.h"
 
 /* Kernel Page Directory */
 PAGE_DIRECTORY_4KB* kpd = 0;
+SHEET *sheet_window = NULL;
 
 void kernel_main(void)
 {
+	/* idt */
 	idt_init();
 	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 
@@ -31,7 +34,18 @@ void kernel_main(void)
 	// TODO e820 routine
 
 	k_mm_init();
-	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
+
+	SHTCTL *ctl = graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
+	sheet_window = sheet_alloc(ctl);
+	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
+	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
+	make_window8((uintptr_t)buf_window, 160, 68, "window");
+	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 28, COL8_000000, "Welcome to");
+	putfonts8_asc((uintptr_t)buf_window, sheet_window->bufXsize, 24, 44, COL8_000000, "  Haribote OS");
+
+	sheet_slide(sheet_window, 80, 72);
+	sheet_updown(sheet_window, 1);
+
 	char *s = (char *)kmalloc(100);
 	printf("*s:%p ", s);
 	char *s2 = (char *)kmalloc(100);
@@ -69,8 +83,24 @@ void kernel_main(void)
 void eventloop(void)
 {
 	int32_t usedBytes_keybuf, usedBytes_mousebuf = 0;
+	int64_t count = 0;
 	for(;;)
 	{
+		if (sheet_window)
+		{
+			count++;
+			SHEET *sw = sheet_window;
+			char ctc[40] = {0};
+			sprintf(ctc, "%010ld", count);
+			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
+			putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
+			sheet_update_with_bufxy(sheet_window, 40, 28, 120, 44);
+		}
+
+
+
+
+		/* Keyboard and Mouse PIC interruptions handling */
 		_io_cli();
 		usedBytes_keybuf = fifo8_status_getUsageB(&keybuf);
 		usedBytes_mousebuf = fifo8_status_getUsageB(&mousebuf);
