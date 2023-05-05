@@ -35,6 +35,9 @@ static CHUNK* chunk_merge(CHUNK *chunkA, CHUNK *chunkB);
 void* k_heapdl_mm_malloc(size_t s);
 void k_heapdl_mm_free(void *ptr);
 size_t k_heapdl_mm_get_free();
+size_t k_heapdl_mm_get_usage();
 
+int32_t debug__k_heapdl_mm_get_chunksfree();
+int32_t debug__k_heapdl_mm_get_chunks();
 #endif
 

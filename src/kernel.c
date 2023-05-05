@@ -8,7 +8,7 @@
 #include "include/uapi/graphic.h"
 #include "io/io.h"
 #include "kernel.h"
-#include "memory/kheap.h"
+#include "memory/heapdl.h"
 #include "memory/memory.h"
 #include "memory/paging/paging.h"
 #include "pic/timer.h"
@@ -50,6 +50,32 @@ void pg(void)
 	enable_paging();
 }
 
+bool heap_debug()
+{
+	int32_t i = 0;
+	uintptr_t handlers[30000] = {0};
+	for (i = 0; i < 28000; i++)
+	{
+		handlers[i] = (uintptr_t)kzalloc(2048);
+		if (!handlers[i])
+		{
+			printf("NULL, i: %d", i);
+			break;
+		}
+
+	}
+	for (i = 0; i < 28000; i++)
+		kfree((void *)handlers[i]);
+
+	char *a = (char *) kzalloc(10);
+	printf("a: %p", a);
+	printf("f: %d", k_heapdl_mm_get_free()/1024/1024);
+	printf("chunks: %d", debug__k_heapdl_mm_get_chunks());
+	printf("fc: %d", debug__k_heapdl_mm_get_chunksfree());
+
+	return true;
+}
+
 
 void kernel_main(void)
 {
@@ -71,13 +97,14 @@ void kernel_main(void)
 
 
 	// ==============
-	//// (void) kpd;
+	(void) kpd;
 	//uint32_t pd_entries_flags = 0b111;
 	//kpd = pd_init(pd_entries_flags);
 	//paging_switch(kpd);
 	//enable_paging();
-	//pg();
+	// pg();
 
+	printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
 	disk_search_and_init();
 
 	if (!test_all())
@@ -87,6 +114,7 @@ void kernel_main(void)
 	{
 		printf("Function test PASS\n");
 	}
+	heap_debug();
 
 	/* Set a timer of 3s */
 	settimer(300, timer_get_fifo8(), 3);

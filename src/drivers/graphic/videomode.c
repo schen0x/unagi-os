@@ -81,7 +81,7 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
 	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
 	make_window8((uintptr_t)buf_window, 160, 68, "window");
-	sheet_slide(sheet_window, 80, 72);
+	sheet_slide(sheet_window, 120, 122);
 
 	sheet_updown(sheet_desktop, 0);
 	sheet_updown(sheet_window, 1);

@@ -12,6 +12,7 @@ CHUNK *first = NULL, *last = NULL; // Store the head, tail ptr in .data
  * NULL if no memory is free.
  */
 CHUNK *free_chunk_head = NULL;
+volatile size_t mem_all = 0;
 volatile size_t mem_free = 0;
 
 void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
@@ -42,6 +43,7 @@ void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
 				  // The real first free chunk is first->free.next
 	dlist_insert_after(&first->free, &second->free);
    	mem_free = second->size - align_address_to_upper(sizeof(CHUNK), OS_MEMORY_ALIGN);
+	mem_all = mem_free;
 }
 
 /*
@@ -149,6 +151,43 @@ static uintptr_t chunk_calc_free_offset(CHUNK *chunk)
 size_t k_heapdl_mm_get_free()
 {
 	return mem_free;
+}
+
+size_t k_heapdl_mm_get_usage()
+{
+	return mem_all - mem_free;
+}
+
+/* Return the count of free chunks */
+int32_t debug__k_heapdl_mm_get_chunksfree()
+{
+	int32_t count = 0;
+	CHUNK *pos;
+	DLIST *head = &free_chunk_head->free;
+	list_for_each_entry(pos, head, free)
+	{
+		count++;
+	}
+	/* List head is not taken into account. However, since it must not be free anyway, `count` is the correct count */
+	return count;
+}
+
+/* Return the count of all chunks */
+int32_t debug__k_heapdl_mm_get_chunks()
+{
+	int32_t count = 0;
+	CHUNK *pos;
+	DLIST *head = &free_chunk_head->all;
+	/*
+	 * CHUNK *pos = head->next; &pos->free != head;
+	 * Does not loop when array.len == 1
+	 */
+	list_for_each_entry(pos, head, free)
+	{
+		count++;
+	}
+	/* List head is not taken into account, count + 1 is the correct count */
+	return count + 1;
 }
 
 void* k_heapdl_mm_malloc(size_t s)

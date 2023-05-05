@@ -28,15 +28,28 @@ void* kzalloc(size_t size)
 
 void k_mm_init()
 {
-	// k_heap_table_mm_init(); // managemend by simple heap table
-	k_heapdl_mm_init(OS_HEAP_ADDRESS, OS_HEAP_ADDRESS + OS_HEAP_SIZE_BYTES); // ~128MB
-	// k_heapdl_mm_init(0x7c00, 0x7ffff); // ~475KB (aligned), no crash
+	switch (OS_HEAP_MM_ALT)
+	{
+		case 1:
+			k_heap_table_mm_init(); // managemend by simple heap table
+			break;
+		default:
+			k_heapdl_mm_init(OS_HEAP_ADDRESS, OS_HEAP_ADDRESS + OS_HEAP_SIZE_BYTES); // ~128MB
+			// k_heapdl_mm_init(0x7c00, 0x7ffff); // ~475KB (aligned), no crash
+	}
+	return;
 }
 
 void* __kmalloc(size_t size)
 {
-	// return k_heap_table_mm_malloc(size);
-	return k_heapdl_mm_malloc(size);
+	switch (OS_HEAP_MM_ALT)
+	{
+		case 1:
+			return k_heap_table_mm_malloc(size);
+			break;
+		default:
+			return k_heapdl_mm_malloc(size);
+	}
 }
 
 /* 4k aligned */
