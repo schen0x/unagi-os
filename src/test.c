@@ -7,7 +7,6 @@ bool test_all()
 {
 	if(!test_dlist())
 		return false;
-
 	if (!test_kutil())
 		return false;
 	if (!test_fifo8())

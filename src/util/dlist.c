@@ -68,6 +68,12 @@ inline bool dlist_remove(DLIST *node) {
 	return false;
 }
 
+typedef struct TEST_DLIST_S {
+	DLIST la;
+	DLIST lb;
+	int32_t dt;
+} TEST_DLIST_S;
+
 
 bool test_dlist()
 {
@@ -109,6 +115,56 @@ bool test_dlist()
 	if (dnew_a->next != dnew_a || dnew_a->prev != dnew_a)
 		return false;
 
+
+	TEST_DLIST_S ts_head = {0};
+	TEST_DLIST_S *pos_head = &ts_head;
+	dlist_init(&pos_head->la);
+	dlist_init(&pos_head->lb);
+
+	TEST_DLIST_S ts1 = {0};
+	TEST_DLIST_S *pos1 = &ts1;
+	dlist_init(&pos1->la);
+	dlist_init(&pos1->lb);
+	TEST_DLIST_S ts2 = {0};
+	TEST_DLIST_S *pos2 = &ts2;
+	dlist_init(&pos2->la);
+	dlist_init(&pos2->lb);
+
+	dlist_insert_after(&pos_head->lb, &pos1->lb);
+	dlist_insert_after(&pos1->lb, &pos2->lb);
+	pos_head->dt = 0;
+	pos1->dt = 1;
+	pos2->dt = 2;
+
+	TEST_DLIST_S *pos;
+	DLIST *head = &pos_head->lb;
+	int32_t i = 1;
+	/*
+	 * Does not loop when array.len == 1
+	 * When start, pos = "the next typeof(*pos) that contains head->next"
+	 */
+	list_for_each_entry(pos, head, lb)
+	{
+		if (i == 1)
+		{
+			if (pos != &ts1)
+				return false;
+			if (pos->dt != 1)
+				return false;
+		}
+		if (i == 2)
+		{
+			if (pos != &ts2)
+				return false;
+			if (pos->dt != 2)
+				return false;
+		}
+		if (i == 3)
+		{
+			return false;
+		}
+		i++;
+	}
 	return true;
 }
 

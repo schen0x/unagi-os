@@ -88,6 +88,7 @@ static void chunk_engage(CHUNK *chunk)
 {
 	chunk->isUsed = true;
 	dlist_remove(&chunk->free);
+	mem_free -= chunk->size;
 	return;
 }
 
@@ -95,6 +96,7 @@ static void chunk_engage(CHUNK *chunk)
 static void chunk_free(CHUNK *chunk)
 {
 	chunk->isUsed = false;
+	mem_free += chunk->size - sizeof(CHUNK);
 	CHUNK *prevChunk = container_of(chunk->all.prev, CHUNK, all);
 	CHUNK *nextChunk = container_of(chunk->all.next, CHUNK, all);
 	if (!(prevChunk->isUsed))
@@ -115,12 +117,14 @@ static void chunk_free(CHUNK *chunk)
 }
 
 /*
- * Merge the two chunk to chunkA.
+ * Merge the two chunks to chunkA.
  */
 static CHUNK* chunk_merge(CHUNK *chunkA, CHUNK *chunkB)
 {
 	dlist_remove(&chunkB->all);
 	dlist_remove(&chunkB->free);
+	chunkA->size += chunkB->size;
+	mem_free += sizeof(CHUNK);
 	return chunkA;
 }
 
