@@ -13,6 +13,7 @@
 #include "memory/memory.h"
 #include "pic/pic.h"
 #include "status.h"
+#include "pic/timer.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -36,7 +37,7 @@ uint8_t _mousebuf[128] = {0};
 				      //
 MOUSE_DATA_BUNDLE mouse_one_move = {0};
 
-void idt_init()
+static void chips_init()
 {
 	/* TODO refactoring, find somewhere else for the buffer */
 	// uint8_t _keybuf[32] = {0};
@@ -50,10 +51,13 @@ void idt_init()
 
 	ps2kbc_KBC_init();
 	ps2kbc_MOUSE_init();
-	/* The kmemset is not necessary though, because a global variable will be auto initialized to 0 */
-	// kmemset(idts, 0, sizeof(idts)); // Set the all idt entries to 0
-	// kmemset(&idtr, 0, sizeof(idtr)); // Set the all idtr entries to 0
 
+	pit_init();
+}
+
+void idt_init()
+{
+	chips_init();
 	/* Initialize the IDTR */
 	idtr.size = (uint16_t)(sizeof(idts) - 1);
 	idtr.offset = (uint32_t) idts;
@@ -108,6 +112,11 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 		return;
 	}
 
+	if(interrupt_number == (0x20))
+	{
+		int20h();
+		return;
+	}
 	if(interrupt_number == (0x2c))
 	{
 		int2ch();
@@ -213,3 +222,12 @@ void int21h_handler(uint8_t scancode)
 	atakbd_interrupt(scancode);
 }
 
+/**
+ * Timer
+ */
+void int20h()
+{
+	timer_int_handler();
+	PIC_sendEOI(0); // 20h, IRQ0
+	return;
+}

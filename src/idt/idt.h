@@ -49,6 +49,7 @@ extern FIFO8 keybuf;
 extern FIFO8 mousebuf;
 
 void idt_zero();
+void int20h();
 void int21h();
 
 

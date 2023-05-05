@@ -1,19 +1,20 @@
-#include "kernel.h"
 #include "config.h"
+#include "disk/disk.h"
+#include "disk/dstream.h"
+#include "drivers/graphic/videomode.h"
+#include "fs/pathparser.h"
+#include "idt/idt.h"
+#include "include/uapi/bootinfo.h"
+#include "include/uapi/graphic.h"
+#include "io/io.h"
+#include "kernel.h"
+#include "memory/kheap.h"
+#include "memory/memory.h"
+#include "memory/paging/paging.h"
+#include "pic/timer.h"
+#include "test.h"
 #include "util/kutil.h"
 #include "util/printf.h"
-#include "idt/idt.h"
-#include "io/io.h"
-#include "memory/memory.h"
-#include "memory/kheap.h"
-#include "memory/paging/paging.h"
-#include "disk/disk.h"
-#include "fs/pathparser.h"
-#include "include/uapi/graphic.h"
-#include "disk/dstream.h"
-#include "include/uapi/bootinfo.h"
-#include "drivers/graphic/videomode.h"
-#include "test.h"
 
 extern void loadPageDirectory(uint32_t *pd);
 /* Kernel Page Directory */
@@ -96,14 +97,12 @@ void eventloop(void)
 {
 	int32_t usedBytes_keybuf, usedBytes_mousebuf = 0;
 	SHEET* sw = get_sheet_window();
-	int64_t count = 0;
 	for(;;)
 	{
 		if (sw)
 		{
-			count++;
 			char ctc[40] = {0};
-			sprintf(ctc, "%010ld", count);
+			sprintf(ctc, "%010ld", timer_gettick());
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
 			putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
 			sheet_update_sheet(sw, 40, 28, 120, 44);

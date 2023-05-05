@@ -71,7 +71,7 @@ void PIC_remap(uint8_t offset0, uint8_t offset1)
 	_io_out8(PIC1_DATA, ICW4_8086);
 
 	// Optional
-	_io_out8(PIC0_DATA, 0xff ^ ( 1 << 1 | 1 << 2));	// OCW1(IMR): 1 is "masked"; mask all, except the keyboard interrupt (0x21) and PIC1 interrupt (IRQ2)
+	_io_out8(PIC0_DATA, 0xff ^ ( 1 | 1 << 1 | 1 << 2));	// OCW1(IMR): 1 is "masked"; mask all, except the timer (IRQ0), keyboard interrupt (0x21 (IRQ1)) and PIC1 interrupt (IRQ2)
 	_io_out8(PIC1_DATA, 0xff ^ (1 << 4));		// OCW1(IMR): mask all, except IRQ12
 }
 
