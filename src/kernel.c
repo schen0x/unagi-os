@@ -51,8 +51,6 @@ void pg(void)
 }
 
 
-
-
 void kernel_main(void)
 {
 	/* idt */
@@ -89,6 +87,9 @@ void kernel_main(void)
 	{
 		printf("Function test PASS\n");
 	}
+
+	/* Set a timer of 3s */
+	settimer(300, timer_get_fifo8(), 3);
 	eventloop();
 	// asm("hlt");
 }
@@ -106,9 +107,10 @@ void eventloop(void)
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
 			putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
 			sheet_update_sheet(sw, 40, 28, 120, 44);
+			FIFO8 *timer_fifo8 = timer_get_fifo8();
+			if (fifo8_status_getUsageB(timer_fifo8) > 0)
+				printf("%d", fifo8_dequeue(timer_fifo8));
 		}
-
-
 
 
 		/* Keyboard and Mouse PIC interruptions handling */
