@@ -29,7 +29,7 @@ typedef struct PAGE_DIRECTORY_ENTRY_4KB
 typedef struct PAGE_DIRECTORY_4KB
 {
 	struct PAGE_DIRECTORY_ENTRY_4KB* entries;
-} PAGE_DIRECTORY_4KB;
+} __attribute__((aligned(4096)))PAGE_DIRECTORY_4KB;
 
 typedef struct PAGE_TABLE_ENTRY_4KB
 {
