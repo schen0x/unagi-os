@@ -20,5 +20,8 @@
 #define OS_VGA_MAX_SHEETS 256
 #define OS_HEAP_MM_ALT 0x0 // 0x1 to use heap table mm
 
+/* Max (total) numbers of timer that can exist in the OS */
+#define OS_MAX_TIMER 500
+
 #endif
 

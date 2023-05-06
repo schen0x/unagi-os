@@ -38,9 +38,13 @@ void k_heapdl_mm_init(uintptr_t mem_start, uintptr_t mem_end)
 	/* Update the size for chunk 2 */
 	second->size = (uintptr_t)last - (uintptr_t)second;
 
-	/* Update the firstfree pointer */
-	free_chunk_head = first; // Because head does not loop... So this is always the "first"
-				  // The real first free chunk is first->free.next
+	/*
+	 * Update the list head of the DLIST `free`
+	 * The list head does not loop in `list_for_each_entry`. So set the "first" as the list head.
+	 * The real "first free chunk" is first->free.next
+	 * Also, second->free.next == &first->free; (the `last->free` is not included in the circle)
+	 */
+	free_chunk_head = first;
 	dlist_insert_after(&first->free, &second->free);
    	mem_free = second->size - align_address_to_upper(sizeof(CHUNK), OS_MEMORY_ALIGN);
 	mem_all = mem_free;
@@ -179,7 +183,7 @@ int32_t debug__k_heapdl_mm_get_chunks()
 	CHUNK *pos;
 	DLIST *head = &free_chunk_head->all;
 	/*
-	 * CHUNK *pos = head->next; &pos->free != head;
+	 * for (CHUNK *pos == the container of "head->next"; &pos->free != head; next countainer) {}
 	 * Does not loop when array.len == 1
 	 */
 	list_for_each_entry(pos, head, free)
@@ -198,7 +202,7 @@ void* k_heapdl_mm_malloc(size_t s)
 	CHUNK *pos;
 	DLIST *head = &free_chunk_head->free;
 	/*
-	 * CHUNK *pos = head->next; &pos->free != head;
+	 * for (CHUNK *pos == the container of "head->next"; &pos->free != head; next countainer) {}
 	 * Does not loop when array.len == 1
 	 */
 	list_for_each_entry(pos, head, free)
