@@ -23,14 +23,14 @@ extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 
 static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
-FIFO8 keybuf = {0};
-FIFO8 mousebuf = {0};
+FIFO32 keybuf = {0};
+FIFO32 mousebuf = {0};
 uint8_t _keybuf[32] = {0};
 uint8_t _mousebuf[128] = {0};
 
 /* 0 before 0xfa; 1 afterwards */
 //static int32_t mouse_phase = 0;
-//FIFO8 mouse_one_move_buf = {0}; // 3 bytes
+//FIFO32 mouse_one_move_buf = {0}; // 3 bytes
 //     			//
 //const int32_t MOUSE_ONE_MOVE_CMD_SIZE = 3;
 //uint8_t _mouse_one_move_buf[3] = {0}; // 3 bytes[]

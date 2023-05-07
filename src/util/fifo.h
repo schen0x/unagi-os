@@ -7,7 +7,7 @@
 #define FIFO8_FLAG_OVERRUN 0x1
 
 /* FIFO buffer header */
-typedef struct FIFO8 {
+typedef struct FIFO32 {
 	uint8_t *buf;
 	/* size: *buf capacity in bytes */
 	int32_t size;
@@ -17,11 +17,11 @@ typedef struct FIFO8 {
 	int32_t next_r, next_w;
 	/* flags: 0x1 is FIFO8_FLAG_OVERRUN  */
 	int32_t flags;
-} FIFO8;
-void fifo8_init(FIFO8 *fifo, uint8_t *buf, int32_t size);
-int32_t fifo8_enqueue(FIFO8 *fifo, uint8_t data);
-int32_t fifo8_dequeue(FIFO8 *fifo);
-int32_t fifo8_status_getUsageB(FIFO8 *fifo);
+} FIFO32;
+void fifo8_init(FIFO32 *fifo, uint8_t *buf, int32_t size);
+int32_t fifo8_enqueue(FIFO32 *fifo, uint8_t data);
+int32_t fifo8_dequeue(FIFO32 *fifo);
+int32_t fifo8_status_getUsageB(FIFO32 *fifo);
 bool test_fifo8(void);
 
 #endif

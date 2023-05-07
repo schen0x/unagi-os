@@ -9,7 +9,7 @@ typedef struct TIMER {
 	/* Trigger when system ticks == "alarm" */
 	uint32_t target_count;
 	uint32_t flags;
-	FIFO8 *fifo;
+	FIFO32 *fifo;
 	uint8_t data;
 } TIMER;
 

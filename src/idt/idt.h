@@ -45,8 +45,8 @@ void __int21h_buffed();
 void int21h_handler(uint8_t scancode);
 void int2ch(void);
 void int2ch_handler(uint8_t scancode);
-extern FIFO8 keybuf;
-extern FIFO8 mousebuf;
+extern FIFO32 keybuf;
+extern FIFO32 mousebuf;
 
 void idt_zero();
 void int20h();

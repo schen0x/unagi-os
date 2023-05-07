@@ -56,7 +56,7 @@ TIMER* timer_alloc(void)
 		{
 			t->flags = TIMER_FLAGS_ALLOCATED;
 
-			FIFO8 *timer_fifo = (FIFO8 *)kzalloc(sizeof(FIFO8));
+			FIFO32 *timer_fifo = (FIFO32 *)kzalloc(sizeof(FIFO32));
 			uint8_t *timer_buf = (uint8_t *)kzalloc(512);
 			fifo8_init(timer_fifo, timer_buf, 512);
 			t->fifo = timer_fifo;

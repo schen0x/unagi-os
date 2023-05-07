@@ -6,7 +6,7 @@
 #include "util/printf.h"
 
 /* Consider the Lifecycle of *buf carefully  */
-void fifo8_init(FIFO8 *fifo, uint8_t *buf, int32_t size)
+void fifo8_init(FIFO32 *fifo, uint8_t *buf, int32_t size)
 {
 	fifo->size = size;
 	fifo->buf = buf;
@@ -21,11 +21,11 @@ void fifo8_init(FIFO8 *fifo, uint8_t *buf, int32_t size)
  * Write 1 byte to FIFO buffer
  * Return -EIO if fail, 0 if success.
  */
-int32_t fifo8_enqueue(FIFO8 *fifo, uint8_t data)
+int32_t fifo8_enqueue(FIFO32 *fifo, uint8_t data)
 {
 	if (fifo->free == 0)
 	{
-	// 	fifo->flags |= FIFO8_FLAG_OVERRUN; // TODO is this flag really necessary?
+	// 	fifo->flags |= FIFO32_FLAG_OVERRUN; // TODO is this flag really necessary?
 		return -EIO;
 	}
 	fifo->buf[fifo->next_w] = data;
@@ -46,7 +46,7 @@ int32_t fifo8_enqueue(FIFO8 *fifo, uint8_t data)
  * Read 1 byte to FIFO buffer
  * Return -EIO if fail (if success data is uint8_t, must be positive)
  */
-int32_t fifo8_dequeue(FIFO8 *fifo)
+int32_t fifo8_dequeue(FIFO32 *fifo)
 {
 	int32_t data;
 	if (fifo->free == fifo->size)
@@ -70,7 +70,7 @@ int32_t fifo8_dequeue(FIFO8 *fifo)
 /*
  * Return the usage of the buffer in Bytes
  */
-int32_t fifo8_status_getUsageB(FIFO8 *fifo)
+int32_t fifo8_status_getUsageB(FIFO32 *fifo)
 {
 	int32_t usage_in_bytes = 0;
 	usage_in_bytes = fifo->size - fifo->free;
@@ -80,7 +80,7 @@ int32_t fifo8_status_getUsageB(FIFO8 *fifo)
 
 bool test_fifo8(void)
 {
-	FIFO8 f = {0};
+	FIFO32 f = {0};
 	uint8_t _buf[8] = {0};
 	fifo8_init(&f, _buf, sizeof(_buf));
 	for (uint8_t i = 0x40; i < 0x48; i++)
