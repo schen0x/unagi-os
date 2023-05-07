@@ -124,6 +124,8 @@ void kernel_main(void)
 	timer_settimer(timer, 400, 4);
 	timer_cursor = timer_alloc();
 	timer_settimer(timer_cursor, 100, 1);
+	TIMER *timer3 = timer_alloc();
+	timer_settimer(timer3, 400, 3);
 	eventloop();
 	// asm("hlt");
 }

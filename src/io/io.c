@@ -12,7 +12,7 @@ inline void io_wait(void)
 /**
  * Retrun if `cli()`, i.e., is "interrupt enable flag" cleared
  */
-bool _io_get_is_cli(void)
+bool io_get_is_cli(void)
 {
 	uint32_t eflags = _io_get_eflags();
 	if (isMaskBitsAllSet(eflags, FLAGS_MASK_IF))

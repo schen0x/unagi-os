@@ -2,6 +2,7 @@
 #include "config.h"
 #include "io/io.h"
 #include "memory/memory.h"
+#include "util/printf.h"
 
 #define PIT_CNT0 0x0040
 #define PIT_CTRL 0x0043
@@ -20,20 +21,26 @@ TIMERCTL timerctl;
  */
 void pit_init(void)
 {
-	bool isCli = _io_get_is_cli();
+	bool isCli = io_get_is_cli();
 	if (!isCli)
 		_io_cli();
+
 	_io_out8(PIT_CTRL, 0x34); // channel 0, lobyte/hibyte, rate generator
 	_io_out8(PIT_CNT0, 0x9c); // Set low byte of PIT reload value
 	_io_out8(PIT_CNT0, 0x2e); // Set high byte of PIT reload value
 	timerctl.count = 0;
+	timerctl.next = UINT32_MAX;
+	timerctl.total_running = 0;
 	for (int32_t i = 0; i < OS_MAX_TIMER; i++)
 	{
 		/* Flag: Unused */
 		timerctl.timer[i].flags = 0;
+		timerctl.TIMERS[i] = NULL;
 	}
+
 	if (!isCli)
 		_io_sti();
+
 	return;
 }
 
@@ -64,6 +71,10 @@ TIMER* timer_alloc(void)
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
+	bool isCli = io_get_is_cli();
+	if (!isCli)
+		_io_cli();
+
 	/* This implementation does not need timeout--, thus slightly faster */
 	timer->target_count = timerctl.count + timeout;
 	/* Update `next` */
@@ -73,6 +84,11 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 	}
 	timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
 	timer->data = data;
+	timerctl.TIMERS[timerctl.total_running++] = timer;
+
+	if (!isCli)
+		_io_sti();
+
 	return;
 }
 
@@ -87,6 +103,22 @@ void timer_free(TIMER *timer)
 	return;
 }
 
+static void timer_arr_remove_element_u32(TIMER *arr[], uint32_t index_to_remove[], uint32_t arr_size, uint32_t index_to_remove_size)
+{
+	uint32_t oldi = 0, di = 0, newi = 0;
+
+	for (oldi = 0; oldi < arr_size; oldi++)
+	{
+		if (di < index_to_remove_size && oldi == index_to_remove[di])
+		{
+			di++;
+			continue;
+		}
+		arr[newi++] = arr[oldi];
+	}
+	return;
+}
+
 
 void timer_int_handler()
 {
@@ -94,9 +126,17 @@ void timer_int_handler()
 	if (timerctl.next > timerctl.count)
 		return;
 	timerctl.next = UINT32_MAX;
-	for (int32_t i = 0; i < OS_MAX_TIMER; i++)
+	/**
+	 * Sorted array
+	 * Timer has been triggerred (thus should be removed):
+	 * TIMER *t = timerctl.timers[triggerred[x]];
+	 */
+	uint32_t triggerred[OS_MAX_TIMER] = {0};
+	/* Temporary, array index */
+	uint32_t __triggerred_arr_len = 0;
+	for (uint32_t i = 0; i < timerctl.total_running; i++)
 	{
-		TIMER *t = &timerctl.timer[i];
+		TIMER *t = timerctl.TIMERS[i];
 		/* Timers that are in use */
 		if (t->flags == TIMER_FLAGS_ONCOUNTDOWN)
 		{
@@ -105,6 +145,7 @@ void timer_int_handler()
 			{
 				t->flags = TIMER_FLAGS_ALLOCATED;
 				fifo8_enqueue(t->fifo, t->data);
+				triggerred[__triggerred_arr_len++] = i;
 				continue;
 			}
 			/* Update `next` */
@@ -114,6 +155,13 @@ void timer_int_handler()
 			}
 		}
 	}
+
+	/**
+	 * Remove the triggerred timers from timerctl.TIMERS
+	 * Assume the triggered[OS_MAX_TIMER] is sorted by value in ascending order (which it should)
+	 */
+	timer_arr_remove_element_u32(timerctl.TIMERS, triggerred, timerctl.total_running, __triggerred_arr_len);
+	timerctl.total_running = timerctl.total_running - __triggerred_arr_len;
 	return;
 }
 

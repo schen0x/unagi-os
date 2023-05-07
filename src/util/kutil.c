@@ -182,6 +182,30 @@ uintptr_t align_address_to_lower(uintptr_t addr, uint32_t ALIGN)
 }
 
 
+/**
+ * Remove element by indexes in `index_to_remove`, from the array `arr`
+ * Assume `index_to_remove` is sorted in ascending order.
+ * e.g. int arr[256] = {10, 20, 30, 40, 50, 60};
+ * index_to_remove[128] = {1, 3};
+ * Result: arr == {10, 30, 50, 60, 0, 0, ...};
+ */
+void arr_remove_element_u32(uint32_t arr[], uint32_t index_to_remove[], uint32_t arr_size, uint32_t index_to_remove_size)
+{
+	uint32_t oldi = 0, di = 0, newi = 0;
+
+	for (oldi = 0; oldi < arr_size; oldi++)
+	{
+		if (di < index_to_remove_size && oldi == index_to_remove[di])
+		{
+			di++;
+			continue;
+		}
+		arr[newi++] = arr[oldi];
+	}
+	return;
+}
+
+
 bool test_kutil()
 {
 	if (isMaskBitsAllSet(0b10111111, 0b1010) != true)
@@ -194,6 +218,17 @@ bool test_kutil()
 		return false;
 	if (isMaskBitsAllClear(0b1001, 0b0110) != true)
 		return false;
+	uint32_t arr[128] = {10, 20, 30, 40, 50, 60, 70, 80};
+	uint32_t index_to_remove[128] = {2, 4};
+	uint32_t arr_size = 8;
+	uint32_t index_size = 2;
+	arr_remove_element_u32(arr, index_to_remove, arr_size, index_size);
+	uint32_t expected_arr[6] = {10, 20, 40, 60, 70, 80};
+	for (int i = 0; i < 6; i++)
+	{
+		if (arr[i] != expected_arr[i])
+			return false;
+	}
 	return true;
 }
 

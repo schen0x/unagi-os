@@ -19,5 +19,6 @@ bool isMaskBitsAllSet (uint32_t data, uint32_t mask);
 bool isMaskBitsAllClear (uint32_t data, uint32_t mask);
 uintptr_t align_address_to_upper(uintptr_t addr, uint32_t ALIGN);
 uintptr_t align_address_to_lower(uintptr_t val, uint32_t ALIGN);
+void arr_remove_element_u32(uint32_t arr[], uint32_t index_to_remove[], uint32_t arr_size, uint32_t index_to_remove_size);
 
 #endif

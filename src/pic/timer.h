@@ -20,6 +20,9 @@ typedef struct TIMERCTL {
 	 * no need to check timer before that.
 	 */
 	uint32_t next;
+	/* The number of timers that are curruntly counting down */
+	uint32_t total_running;
+	TIMER *TIMERS[OS_MAX_TIMER];
 	TIMER timer[OS_MAX_TIMER];
 } TIMERCTL;
 
