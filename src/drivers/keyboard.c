@@ -181,3 +181,16 @@ void input_report_key(uint8_t scancode, uint8_t down)
 	return;
 }
 
+
+/*
+ * Keyboard interrupt handler
+ * scancode: uint8_t _scancode
+ */
+void int21h_handler(uint8_t scancode)
+{
+	//char buf[20]={0};
+	//sprintf(buf, "21h_handler:%02x ", scancode);
+	//kfprint(buf, 4);
+	atakbd_interrupt(scancode);
+}
+

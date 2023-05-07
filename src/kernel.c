@@ -134,7 +134,7 @@ void kernel_main(void)
 
 void eventloop(void)
 {
-	int32_t usedBytes_keybuf, usedBytes_mousebuf = 0;
+	int32_t keymousefifobuf_usedBytes = 0;
 	SHEET* sw = get_sheet_window();
 	int32_t color = COL8_FFFFFF;
 	int32_t counter = 0;
@@ -186,30 +186,27 @@ void eventloop(void)
 
 		/* Keyboard and Mouse PIC interruptions handling */
 		_io_cli();
-		usedBytes_keybuf = fifo32_status_getUsageB(&keybuf);
-		usedBytes_mousebuf = fifo32_status_getUsageB(&mousebuf);
-		if (usedBytes_keybuf == 0 && \
-			usedBytes_mousebuf == 0)
+		keymousefifobuf_usedBytes = fifo32_status_getUsageB(&keymousefifo);
+		if (keymousefifobuf_usedBytes == 0)
 		{
 			goto next0;
 		}
-		if (usedBytes_keybuf != 0)
+		int32_t data = fifo32_dequeue(&keymousefifo);
+		/**
+		 * Maybe -EIO
+		 */
+		if (data < 0)
+			goto next0;
+
+		if (data >= DEV_FIFO_KBD_START && data < DEV_FIFO_KBD_END)
 		{
-			/*
-			 * Because if error returns a int32_t negative number,
-			 * when autocasted, the sign digit is NOT discarded by default.
-			 * uint8_t scancode = (uint32_t) -1;
-			 * -> `scancode` becomes 0xff;
-			 */
-			int32_t kbdscancode = fifo32_dequeue(&keybuf);
-			if (kbdscancode >= 0)
-				int21h_handler(kbdscancode & 0xff);
+			int32_t kbdscancode = data - DEV_FIFO_KBD_START;
+			int21h_handler(kbdscancode & 0xff);
 		}
-		if (usedBytes_mousebuf != 0)
+		if (data >= DEV_FIFO_MOUSE_START && data < DEV_FIFO_MOUSE_END)
 		{
-			int32_t mousescancode = fifo32_dequeue(&mousebuf);
-			if (mousescancode >= 0)
-				int2ch_handler(mousescancode & 0xff);
+			int32_t mousescancode = data - DEV_FIFO_MOUSE_START;
+			int2ch_handler(mousescancode & 0xff);
 
 		}
 next0:

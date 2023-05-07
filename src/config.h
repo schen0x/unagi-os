@@ -23,5 +23,11 @@
 /* Max (total) numbers of timer that can exist in the OS */
 #define OS_MAX_TIMER 500
 
+#define DEV_FIFO_KBD_START 256 // Inclusive; In fifo, data - 256 == keyboard scancode
+#define DEV_FIFO_KBD_END 256 + 0xff + 1 // 512, Exclusive; In fifo, data - 256 == keyboard scancode
+					//
+#define DEV_FIFO_MOUSE_START 512 // Inclusive; In fifo, data - 256 == keyboard scancode
+#define DEV_FIFO_MOUSE_END 512 + 0xff + 1 // 768, Exclusive; In fifo, data - 256 == keyboard scancode
+
 #endif
 

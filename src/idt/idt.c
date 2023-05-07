@@ -23,10 +23,8 @@ extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 
 static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
-FIFO32 keybuf = {0};
-FIFO32 mousebuf = {0};
-int32_t _keybuf[32] = {0};
-int32_t _mousebuf[128] = {0};
+FIFO32 keymousefifo = {0};
+int32_t _keymousefifobuf[4096] = {0};
 
 /* 0 before 0xfa; 1 afterwards */
 //static int32_t mouse_phase = 0;
@@ -45,8 +43,7 @@ static void chips_init()
 	//! So the problem is that the idt_init() will return, while eventloop running
 	//! So if _keybuf uses a stack address, it causes panic
 	//! uint8_t _keybuf[32] = {0};
-	fifo32_init(&keybuf, _keybuf, sizeof(_keybuf));
-	fifo32_init(&mousebuf, _mousebuf, sizeof(_mousebuf));
+	fifo32_init(&keymousefifo, _keymousefifobuf, sizeof(_keymousefifobuf));
 	// fifo8_init(&mouse_one_move_buf, _mouse_one_move_buf, sizeof(_mouse_one_move_buf));
 
 	ps2kbc_KBC_init();
@@ -160,14 +157,10 @@ void int3h(void)
 void int2ch(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
-//	char i[10] = {0};
-//	sprintf(i, "KBCDT:%2x ", data);
-//	kfprint(i, 4);
 	PIC_sendEOI(12); // 2ch, IRQ12
-	fifo32_enqueue(&mousebuf, data);
+	fifo32_enqueue(&keymousefifo, data + DEV_FIFO_MOUSE_START);
 	return;
 }
-
 
 
 /*
@@ -187,17 +180,6 @@ void idt_zero()
 	kfprint(msg, 4);
 }
 
-///*
-// * Application should handle the buffer?
-// * TODO Timeout?
-// */
-void int21h()
-{
-	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
-	PIC_sendEOI(1); // 21h, IRQ1
-	int21h_handler(data);
-}
-
 /* ?Race condition/Memory corruption? */
 void __int21h_buffed()
 {
@@ -206,21 +188,10 @@ void __int21h_buffed()
 	// sprintf(buf, "_%02x_", (uint8_t)data);
 	// kfprint(buf, 4);
 	PIC_sendEOI(1); // 21h, IRQ1
-	fifo32_enqueue(&keybuf, data);
+	fifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
 	return; // ? from sequential to cpu polling buffer. int21h_handler(data); in another thread?
 }
 
-/*
- * Keyboard interrupt handler
- * scancode: uint8_t _scancode
- */
-void int21h_handler(uint8_t scancode)
-{
-	//char buf[20]={0};
-	//sprintf(buf, "21h_handler:%02x ", scancode);
-	//kfprint(buf, 4);
-	atakbd_interrupt(scancode);
-}
 
 /**
  * Timer
