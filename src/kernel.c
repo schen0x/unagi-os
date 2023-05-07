@@ -25,6 +25,7 @@ uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 
 TIMER *timer = NULL;
 TIMER *timer_cursor = NULL;
+TIMER *timer3 = NULL;
 
 void pg(void)
 {
@@ -119,13 +120,13 @@ void kernel_main(void)
 	}
 	// heap_debug();
 
-	/* Set a timer of 4s */
+	/* Set a timer of 3s */
 	timer = timer_alloc();
-	timer_settimer(timer, 400, 4);
+	timer_settimer(timer, 300, 0);
 	timer_cursor = timer_alloc();
 	timer_settimer(timer_cursor, 100, 1);
-	TIMER *timer3 = timer_alloc();
-	timer_settimer(timer3, 400, 3);
+	timer3 = timer_alloc();
+	timer_settimer(timer3, 1000, 3);
 	eventloop();
 	// asm("hlt");
 }
@@ -136,8 +137,25 @@ void eventloop(void)
 	int32_t usedBytes_keybuf, usedBytes_mousebuf = 0;
 	SHEET* sw = get_sheet_window();
 	int32_t color = COL8_FFFFFF;
+	int32_t counter = 0;
 	for(;;)
 	{
+		counter++;
+		/* Performance test */
+		if (fifo8_status_getUsageB(timer->fifo) > 0)
+		{
+			fifo8_dequeue(timer->fifo);
+			timer_free(timer);
+			printf("ct10sStart", counter);
+			counter = 0;
+		}
+		if (fifo8_status_getUsageB(timer3->fifo) > 0)
+		{
+			fifo8_dequeue(timer3->fifo);
+			printf("ct10s: %d ", counter);
+			timer_settimer(timer3, 1000, 3);
+		}
+
 		if (sw)
 		{
 			char ctc[40] = {0};
@@ -145,6 +163,7 @@ void eventloop(void)
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
 			if (fifo8_status_getUsageB(timer->fifo) > 0)
 				printf("%d", fifo8_dequeue(timer->fifo));
+			/* Blinking cursor */
 			if (fifo8_status_getUsageB(timer_cursor->fifo) > 0)
 			{
 				int32_t timer_dt = fifo8_dequeue(timer_cursor->fifo);
@@ -158,7 +177,7 @@ void eventloop(void)
 					color = COL8_C6C6C6;
 				}
 			}
-			/* Cursor */
+			/* Blinking cursor */
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, color, 40, 28, 40+7, 28+15);
 			putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
 			sheet_update_sheet(sw, 40, 28, 120, 44);
