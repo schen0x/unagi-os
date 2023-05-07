@@ -142,14 +142,14 @@ void eventloop(void)
 	{
 		counter++;
 		/* Performance test */
-		if (fifo8_status_getUsageB(timer->fifo) > 0)
+		if (fifo32_status_getUsageB(timer->fifo) > 0)
 		{
 			fifo32_dequeue(timer->fifo);
 			timer_free(timer);
 			printf("ct10sStart", counter);
 			counter = 0;
 		}
-		if (fifo8_status_getUsageB(timer3->fifo) > 0)
+		if (fifo32_status_getUsageB(timer3->fifo) > 0)
 		{
 			fifo32_dequeue(timer3->fifo);
 			printf("ct10s: %d ", counter);
@@ -161,10 +161,10 @@ void eventloop(void)
 			char ctc[40] = {0};
 			sprintf(ctc, "%010ld", timer_gettick());
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
-			if (fifo8_status_getUsageB(timer->fifo) > 0)
+			if (fifo32_status_getUsageB(timer->fifo) > 0)
 				printf("%d", fifo32_dequeue(timer->fifo));
 			/* Blinking cursor */
-			if (fifo8_status_getUsageB(timer_cursor->fifo) > 0)
+			if (fifo32_status_getUsageB(timer_cursor->fifo) > 0)
 			{
 				int32_t timer_dt = fifo32_dequeue(timer_cursor->fifo);
 				if (timer_dt == 0)
@@ -186,8 +186,8 @@ void eventloop(void)
 
 		/* Keyboard and Mouse PIC interruptions handling */
 		_io_cli();
-		usedBytes_keybuf = fifo8_status_getUsageB(&keybuf);
-		usedBytes_mousebuf = fifo8_status_getUsageB(&mousebuf);
+		usedBytes_keybuf = fifo32_status_getUsageB(&keybuf);
+		usedBytes_mousebuf = fifo32_status_getUsageB(&mousebuf);
 		if (usedBytes_keybuf == 0 && \
 			usedBytes_mousebuf == 0)
 		{

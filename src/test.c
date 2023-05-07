@@ -9,7 +9,7 @@ bool test_all()
 		return false;
 	if (!test_kutil())
 		return false;
-	if (!test_fifo8())
+	if (!test_fifo32())
 		return false;
 	return true;
 }

@@ -67,7 +67,7 @@ int32_t fifo32_dequeue(FIFO32 *fifo)
 /*
  * Return the usage of the buffer in Bytes
  */
-int32_t fifo8_status_getUsageB(FIFO32 *fifo)
+int32_t fifo32_status_getUsageB(FIFO32 *fifo)
 {
 	int32_t usage_in_bytes = 0;
 	usage_in_bytes = fifo->size - fifo->free;
@@ -75,7 +75,7 @@ int32_t fifo8_status_getUsageB(FIFO32 *fifo)
 }
 
 
-bool test_fifo8(void)
+bool test_fifo32(void)
 {
 	FIFO32 f = {0};
 	int32_t _buf[8] = {0};
@@ -83,7 +83,7 @@ bool test_fifo8(void)
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
 		fifo32_enqueue(&f, i);
-		if (fifo8_status_getUsageB(&f) != (i - 0x40 + 1))
+		if (fifo32_status_getUsageB(&f) != (i - 0x40 + 1))
 			return false;
 	}
 	for (uint8_t i = 0x40; i < 0x48; i++)
@@ -91,14 +91,14 @@ bool test_fifo8(void)
 		uint8_t d = fifo32_dequeue(&f);
 		if (d != i)
 			return false;
-		if (fifo8_status_getUsageB(&f) != (0x48 - i - 1))
+		if (fifo32_status_getUsageB(&f) != (0x48 - i - 1))
 			return false;
 	}
 	// test null bytes
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
 		fifo32_enqueue(&f, 0);
-		if (fifo8_status_getUsageB(&f) != (i - 0x40 + 1))
+		if (fifo32_status_getUsageB(&f) != (i - 0x40 + 1))
 			return false;
 	}
 	for (uint8_t i = 0x40; i < 0x48; i++)
@@ -106,7 +106,7 @@ bool test_fifo8(void)
 		uint8_t d = fifo32_dequeue(&f);
 		if (d != 0)
 			return false;
-		if (fifo8_status_getUsageB(&f) != (0x48 - i - 1))
+		if (fifo32_status_getUsageB(&f) != (0x48 - i - 1))
 			return false;
 	}
 	// test wrap loop
@@ -121,7 +121,7 @@ bool test_fifo8(void)
 	for (uint8_t i = 0x44; i < 0x4b; i++)
 	{
 		fifo32_enqueue(&f, i);
-		if (fifo8_status_getUsageB(&f) != (i - 0x43 + 1))
+		if (fifo32_status_getUsageB(&f) != (i - 0x43 + 1))
 			return false;
 	}
 	for (uint8_t i = 0x43; i < 0x4b; i++)
