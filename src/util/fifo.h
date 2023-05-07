@@ -8,7 +8,7 @@
 
 /* FIFO buffer header */
 typedef struct FIFO32 {
-	uint8_t *buf;
+	int32_t *buf;
 	/* size: *buf capacity in bytes */
 	int32_t size;
 	/* free: available bytes remaining */
@@ -18,7 +18,7 @@ typedef struct FIFO32 {
 	/* flags: 0x1 is FIFO8_FLAG_OVERRUN  */
 	int32_t flags;
 } FIFO32;
-void fifo8_init(FIFO32 *fifo, uint8_t *buf, int32_t size);
+void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t size);
 int32_t fifo8_enqueue(FIFO32 *fifo, uint8_t data);
 int32_t fifo8_dequeue(FIFO32 *fifo);
 int32_t fifo8_status_getUsageB(FIFO32 *fifo);

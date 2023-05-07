@@ -25,8 +25,8 @@ static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
 FIFO32 keybuf = {0};
 FIFO32 mousebuf = {0};
-uint8_t _keybuf[32] = {0};
-uint8_t _mousebuf[128] = {0};
+int32_t _keybuf[32] = {0};
+int32_t _mousebuf[128] = {0};
 
 /* 0 before 0xfa; 1 afterwards */
 //static int32_t mouse_phase = 0;
@@ -45,8 +45,8 @@ static void chips_init()
 	//! So the problem is that the idt_init() will return, while eventloop running
 	//! So if _keybuf uses a stack address, it causes panic
 	//! uint8_t _keybuf[32] = {0};
-	fifo8_init(&keybuf, _keybuf, sizeof(_keybuf));
-	fifo8_init(&mousebuf, _mousebuf, sizeof(_mousebuf));
+	fifo32_init(&keybuf, _keybuf, sizeof(_keybuf));
+	fifo32_init(&mousebuf, _mousebuf, sizeof(_mousebuf));
 	// fifo8_init(&mouse_one_move_buf, _mouse_one_move_buf, sizeof(_mouse_one_move_buf));
 
 	ps2kbc_KBC_init();

@@ -6,7 +6,7 @@
 #include "util/printf.h"
 
 /* Consider the Lifecycle of *buf carefully  */
-void fifo8_init(FIFO32 *fifo, uint8_t *buf, int32_t size)
+void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t size)
 {
 	fifo->size = size;
 	fifo->buf = buf;
@@ -81,8 +81,8 @@ int32_t fifo8_status_getUsageB(FIFO32 *fifo)
 bool test_fifo8(void)
 {
 	FIFO32 f = {0};
-	uint8_t _buf[8] = {0};
-	fifo8_init(&f, _buf, sizeof(_buf));
+	int32_t _buf[8] = {0};
+	fifo32_init(&f, _buf, sizeof(_buf));
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
 		fifo8_enqueue(&f, i);
