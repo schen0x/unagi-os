@@ -20,6 +20,9 @@ TIMERCTL timerctl;
  */
 void pit_init(void)
 {
+	bool isCli = _io_get_is_cli();
+	if (!isCli)
+		_io_cli();
 	_io_out8(PIT_CTRL, 0x34); // channel 0, lobyte/hibyte, rate generator
 	_io_out8(PIT_CNT0, 0x9c); // Set low byte of PIT reload value
 	_io_out8(PIT_CNT0, 0x2e); // Set high byte of PIT reload value
@@ -29,6 +32,8 @@ void pit_init(void)
 		/* Flag: Unused */
 		timerctl.timer[i].flags = 0;
 	}
+	if (!isCli)
+		_io_sti();
 	return;
 }
 
@@ -59,7 +64,13 @@ TIMER* timer_alloc(void)
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
-	timer->timeout = timeout;
+	/* This implementation does not need timeout--, thus slightly faster */
+	timer->target_count = timerctl.count + timeout;
+	/* Update `next` */
+	if (timerctl.next > timer->target_count)
+	{
+		timerctl.next = timer->target_count;
+	}
 	timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
 	timer->data = data;
 	return;
@@ -80,15 +91,26 @@ void timer_free(TIMER *timer)
 void timer_int_handler()
 {
 	timerctl.count++;
+	if (timerctl.next > timerctl.count)
+		return;
+	timerctl.next = UINT32_MAX;
 	for (int32_t i = 0; i < OS_MAX_TIMER; i++)
 	{
 		TIMER *t = &timerctl.timer[i];
+		/* Timers that are in use */
 		if (t->flags == TIMER_FLAGS_ONCOUNTDOWN)
 		{
-			t->timeout--;
-			if (t->timeout == 0)
+			/* Trigger */
+			if (t->target_count <= timerctl.count)
 			{
+				t->flags = TIMER_FLAGS_ALLOCATED;
 				fifo8_enqueue(t->fifo, t->data);
+				continue;
+			}
+			/* Update `next` */
+			if (timerctl.next > t->target_count)
+			{
+				timerctl.next = t->target_count;
 			}
 		}
 	}
@@ -100,5 +122,7 @@ int32_t timer_gettick()
 {
 	return timerctl.count;
 }
+
+
 
 

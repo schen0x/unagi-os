@@ -2,6 +2,7 @@
 #define IO_IO_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Carry flag */
 #define FLAGS_MASK_CF 0x0001
@@ -64,6 +65,7 @@ uint32_t _io_set_eflags(uint32_t eflags);
 uint32_t _io_get_cr0(void);
 /* Set the cr0 flags */
 uint32_t _io_set_cr0(uint32_t cr0);
+bool _io_get_is_cli(void);
 
 #endif
 

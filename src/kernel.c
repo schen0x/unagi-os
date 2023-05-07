@@ -155,7 +155,6 @@ void eventloop(void)
 					timer_settimer(timer_cursor, 100, 0);
 					color = COL8_C6C6C6;
 				}
-
 			}
 			/* Cursor */
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, color, 40, 28, 40+7, 28+15);
@@ -197,7 +196,6 @@ next0:
 		asm("pause");
 		continue;
 	}
-
 }
 
 

@@ -6,7 +6,8 @@
 #include "config.h"
 
 typedef struct TIMER {
-	uint32_t timeout;
+	/* Trigger when system ticks == "alarm" */
+	uint32_t target_count;
 	uint32_t flags;
 	FIFO8 *fifo;
 	uint8_t data;
@@ -14,6 +15,11 @@ typedef struct TIMER {
 
 typedef struct TIMERCTL {
 	uint32_t count;
+	/*
+	 * The next "count" which an alarm should be triggerred
+	 * no need to check timer before that.
+	 */
+	uint32_t next;
 	TIMER timer[OS_MAX_TIMER];
 } TIMERCTL;
 
