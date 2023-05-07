@@ -21,7 +21,7 @@ void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t size)
  * Write 1 byte to FIFO buffer
  * Return -EIO if fail, 0 if success.
  */
-int32_t fifo8_enqueue(FIFO32 *fifo, uint8_t data)
+int32_t fifo32_enqueue(FIFO32 *fifo, int32_t data)
 {
 	if (fifo->free == 0)
 	{
@@ -36,9 +36,6 @@ int32_t fifo8_enqueue(FIFO32 *fifo, uint8_t data)
 		fifo->next_w = 0;
 	}
 	fifo->free--;
-//	char b[12] = {0};
-//	sprintf(b, "enqueue:%2x", data);
-//	kfprint(b, 4);
 	return 0;
 }
 
@@ -46,7 +43,7 @@ int32_t fifo8_enqueue(FIFO32 *fifo, uint8_t data)
  * Read 1 byte to FIFO buffer
  * Return -EIO if fail (if success data is uint8_t, must be positive)
  */
-int32_t fifo8_dequeue(FIFO32 *fifo)
+int32_t fifo32_dequeue(FIFO32 *fifo)
 {
 	int32_t data;
 	if (fifo->free == fifo->size)
@@ -85,13 +82,13 @@ bool test_fifo8(void)
 	fifo32_init(&f, _buf, sizeof(_buf));
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
-		fifo8_enqueue(&f, i);
+		fifo32_enqueue(&f, i);
 		if (fifo8_status_getUsageB(&f) != (i - 0x40 + 1))
 			return false;
 	}
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
-		uint8_t d = fifo8_dequeue(&f);
+		uint8_t d = fifo32_dequeue(&f);
 		if (d != i)
 			return false;
 		if (fifo8_status_getUsageB(&f) != (0x48 - i - 1))
@@ -100,13 +97,13 @@ bool test_fifo8(void)
 	// test null bytes
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
-		fifo8_enqueue(&f, 0);
+		fifo32_enqueue(&f, 0);
 		if (fifo8_status_getUsageB(&f) != (i - 0x40 + 1))
 			return false;
 	}
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
-		uint8_t d = fifo8_dequeue(&f);
+		uint8_t d = fifo32_dequeue(&f);
 		if (d != 0)
 			return false;
 		if (fifo8_status_getUsageB(&f) != (0x48 - i - 1))
@@ -115,21 +112,21 @@ bool test_fifo8(void)
 	// test wrap loop
 	for (uint8_t i = 0x40; i < 0x44; i++)
 	{
-		fifo8_enqueue(&f, i);
+		fifo32_enqueue(&f, i);
 	}
 	for (uint8_t i = 0x40; i < 0x43; i++)
 	{
-		fifo8_dequeue(&f);
+		fifo32_dequeue(&f);
 	}
 	for (uint8_t i = 0x44; i < 0x4b; i++)
 	{
-		fifo8_enqueue(&f, i);
+		fifo32_enqueue(&f, i);
 		if (fifo8_status_getUsageB(&f) != (i - 0x43 + 1))
 			return false;
 	}
 	for (uint8_t i = 0x43; i < 0x4b; i++)
 	{
-		uint8_t d = fifo8_dequeue(&f);
+		uint8_t d = fifo32_dequeue(&f);
 		if (d != i)
 			return false;
 	}

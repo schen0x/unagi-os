@@ -144,7 +144,7 @@ void timer_int_handler()
 			if (t->target_count <= timerctl.count)
 			{
 				t->flags = TIMER_FLAGS_ALLOCATED;
-				fifo8_enqueue(t->fifo, t->data);
+				fifo32_enqueue(t->fifo, t->data);
 				/* Push the triggered index, meanwhile this ensures the ascending order */
 				triggerred[__triggerred_arr_len++] = i;
 				continue;

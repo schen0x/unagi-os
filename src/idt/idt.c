@@ -164,7 +164,7 @@ void int2ch(void)
 //	sprintf(i, "KBCDT:%2x ", data);
 //	kfprint(i, 4);
 	PIC_sendEOI(12); // 2ch, IRQ12
-	fifo8_enqueue(&mousebuf, data);
+	fifo32_enqueue(&mousebuf, data);
 	return;
 }
 
@@ -206,7 +206,7 @@ void __int21h_buffed()
 	// sprintf(buf, "_%02x_", (uint8_t)data);
 	// kfprint(buf, 4);
 	PIC_sendEOI(1); // 21h, IRQ1
-	fifo8_enqueue(&keybuf, data);
+	fifo32_enqueue(&keybuf, data);
 	return; // ? from sequential to cpu polling buffer. int21h_handler(data); in another thread?
 }
 

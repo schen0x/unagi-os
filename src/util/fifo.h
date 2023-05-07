@@ -19,8 +19,8 @@ typedef struct FIFO32 {
 	int32_t flags;
 } FIFO32;
 void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t size);
-int32_t fifo8_enqueue(FIFO32 *fifo, uint8_t data);
-int32_t fifo8_dequeue(FIFO32 *fifo);
+int32_t fifo32_enqueue(FIFO32 *fifo, int32_t data);
+int32_t fifo32_dequeue(FIFO32 *fifo);
 int32_t fifo8_status_getUsageB(FIFO32 *fifo);
 bool test_fifo8(void);
 

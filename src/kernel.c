@@ -144,14 +144,14 @@ void eventloop(void)
 		/* Performance test */
 		if (fifo8_status_getUsageB(timer->fifo) > 0)
 		{
-			fifo8_dequeue(timer->fifo);
+			fifo32_dequeue(timer->fifo);
 			timer_free(timer);
 			printf("ct10sStart", counter);
 			counter = 0;
 		}
 		if (fifo8_status_getUsageB(timer3->fifo) > 0)
 		{
-			fifo8_dequeue(timer3->fifo);
+			fifo32_dequeue(timer3->fifo);
 			printf("ct10s: %d ", counter);
 			timer_settimer(timer3, 1000, 3);
 		}
@@ -162,11 +162,11 @@ void eventloop(void)
 			sprintf(ctc, "%010ld", timer_gettick());
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
 			if (fifo8_status_getUsageB(timer->fifo) > 0)
-				printf("%d", fifo8_dequeue(timer->fifo));
+				printf("%d", fifo32_dequeue(timer->fifo));
 			/* Blinking cursor */
 			if (fifo8_status_getUsageB(timer_cursor->fifo) > 0)
 			{
-				int32_t timer_dt = fifo8_dequeue(timer_cursor->fifo);
+				int32_t timer_dt = fifo32_dequeue(timer_cursor->fifo);
 				if (timer_dt == 0)
 				{
 					timer_settimer(timer_cursor, 100, 1);
@@ -201,13 +201,13 @@ void eventloop(void)
 			 * uint8_t scancode = (uint32_t) -1;
 			 * -> `scancode` becomes 0xff;
 			 */
-			int32_t kbdscancode = fifo8_dequeue(&keybuf);
+			int32_t kbdscancode = fifo32_dequeue(&keybuf);
 			if (kbdscancode >= 0)
 				int21h_handler(kbdscancode & 0xff);
 		}
 		if (usedBytes_mousebuf != 0)
 		{
-			int32_t mousescancode = fifo8_dequeue(&mousebuf);
+			int32_t mousescancode = fifo32_dequeue(&mousebuf);
 			if (mousescancode >= 0)
 				int2ch_handler(mousescancode & 0xff);
 
