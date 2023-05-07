@@ -336,6 +336,14 @@ void putblock8_8(intptr_t vram, int32_t vxsize, int32_t pxsize,
 	}
 }
 
+/**
+ * Fill the buffer
+ * @xsize buffer width
+ * @x0 startting coordinate (buffer)
+ * @y0 startting coordinate (buffer)
+ * @x1 ending coordinate (buffer, included)
+ * @y1 ending coordinate (buffer, included)
+ */
 void boxfill8(uintptr_t vram, int32_t xsize, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
 	for(int32_t y = y0; y <= y1; y++)
