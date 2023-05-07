@@ -35,7 +35,7 @@ void pit_init(void)
 	{
 		/* Flag: Unused */
 		timerctl.timer[i].flags = 0;
-		timerctl.TIMERS[i] = NULL;
+		timerctl.timers[i] = NULL;
 	}
 
 	if (!isCli)
@@ -84,7 +84,7 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 	}
 	timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
 	timer->data = data;
-	timerctl.TIMERS[timerctl.total_running++] = timer;
+	timerctl.timers[timerctl.total_running++] = timer;
 
 	if (!isCli)
 		_io_sti();
@@ -136,7 +136,7 @@ void timer_int_handler()
 	uint32_t __triggerred_arr_len = 0;
 	for (uint32_t i = 0; i < timerctl.total_running; i++)
 	{
-		TIMER *t = timerctl.TIMERS[i];
+		TIMER *t = timerctl.timers[i];
 		/* Timers that are in use */
 		if (t->flags == TIMER_FLAGS_ONCOUNTDOWN)
 		{
@@ -145,6 +145,7 @@ void timer_int_handler()
 			{
 				t->flags = TIMER_FLAGS_ALLOCATED;
 				fifo8_enqueue(t->fifo, t->data);
+				/* Push the triggered index, meanwhile this ensures the ascending order */
 				triggerred[__triggerred_arr_len++] = i;
 				continue;
 			}
@@ -157,10 +158,12 @@ void timer_int_handler()
 	}
 
 	/**
-	 * Remove the triggerred timers from timerctl.TIMERS
-	 * Assume the triggered[OS_MAX_TIMER] is sorted by value in ascending order (which it should)
+	 * Remove the triggerred timers from timerctl.timers
+	 * Assume the triggered[OS_MAX_TIMER] is sorted by value in ascending order
+	 * (which it should because it is the timers that are triggered on the
+	 * same tick, and the loop was by index order)
 	 */
-	timer_arr_remove_element_u32(timerctl.TIMERS, triggerred, timerctl.total_running, __triggerred_arr_len);
+	timer_arr_remove_element_u32(timerctl.timers, triggerred, timerctl.total_running, __triggerred_arr_len);
 	timerctl.total_running = timerctl.total_running - __triggerred_arr_len;
 	return;
 }

@@ -16,13 +16,13 @@ typedef struct TIMER {
 typedef struct TIMERCTL {
 	uint32_t count;
 	/*
-	 * The next "count" which an alarm should be triggerred
-	 * no need to check timer before that.
+	 * The next `count` on which an alarm should be triggerred
+	 * No need to look into the timer array before that.
 	 */
 	uint32_t next;
 	/* The number of timers that are curruntly counting down */
 	uint32_t total_running;
-	TIMER *TIMERS[OS_MAX_TIMER];
+	TIMER *timers[OS_MAX_TIMER];
 	TIMER timer[OS_MAX_TIMER];
 } TIMERCTL;
 
