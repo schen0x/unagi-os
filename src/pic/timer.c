@@ -3,6 +3,10 @@
 #include "io/io.h"
 #include "memory/memory.h"
 #include "util/printf.h"
+/**
+ * TODO use a double linked list etc. so that on setting timer or on triggering etc.
+ * Keep a list in order so that no need to loop through all elements.
+ */
 
 #define PIT_CNT0 0x0040
 #define PIT_CTRL 0x0043
@@ -29,7 +33,7 @@ void pit_init(void)
 	_io_out8(PIT_CNT0, 0x9c); // Set low byte of PIT reload value
 	_io_out8(PIT_CNT0, 0x2e); // Set high byte of PIT reload value
 	timerctl.count = 0;
-	timerctl.next = UINT32_MAX;
+	timerctl.next_alarm_on_count = UINT32_MAX;
 	timerctl.total_running = 0;
 	for (int32_t i = 0; i < OS_MAX_TIMER; i++)
 	{
@@ -49,16 +53,23 @@ void pit_init(void)
  */
 TIMER* timer_alloc(void)
 {
+	int32_t *timer_buf = (int32_t *)kzalloc(512);
+	return timer_alloc_customfifobuf(timer_buf, 512);
+}
+
+/**
+ * Allocate a timer, allow specifying a custom fifo buffer
+ */
+TIMER* timer_alloc_customfifobuf(int32_t *fifo32buf, int32_t bufSizeInBytes)
+{
 	for (int32_t i = 0; i< OS_MAX_TIMER; i++)
 	{
 		TIMER *t = &timerctl.timer[i];
 		if (t->flags == 0)
 		{
 			t->flags = TIMER_FLAGS_ALLOCATED;
-
 			FIFO32 *timer_fifo = (FIFO32 *)kzalloc(sizeof(FIFO32));
-			int32_t *timer_buf = (int32_t *)kzalloc(512);
-			fifo32_init(timer_fifo, timer_buf, 512 / sizeof(timer_buf[0]));
+			fifo32_init(timer_fifo, fifo32buf, bufSizeInBytes / sizeof(fifo32buf[0]));
 			t->fifo = timer_fifo;
 			return &timerctl.timer[i];
 		}
@@ -78,9 +89,9 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 	/* This implementation does not need timeout--, thus slightly faster */
 	timer->target_count = timerctl.count + timeout;
 	/* Update `next` */
-	if (timerctl.next > timer->target_count)
+	if (timerctl.next_alarm_on_count > timer->target_count)
 	{
-		timerctl.next = timer->target_count;
+		timerctl.next_alarm_on_count = timer->target_count;
 	}
 	timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
 	timer->data = data;
@@ -123,9 +134,9 @@ static void timer_arr_remove_element_u32(TIMER *arr[], uint32_t index_to_remove[
 void timer_int_handler()
 {
 	timerctl.count++;
-	if (timerctl.next > timerctl.count)
+	if (timerctl.next_alarm_on_count > timerctl.count)
 		return;
-	timerctl.next = UINT32_MAX;
+	timerctl.next_alarm_on_count = UINT32_MAX;
 	/**
 	 * Sorted array
 	 * Timer has been triggerred (thus should be removed):
@@ -150,9 +161,9 @@ void timer_int_handler()
 				continue;
 			}
 			/* Update `next` */
-			if (timerctl.next > t->target_count)
+			if (timerctl.next_alarm_on_count > t->target_count)
 			{
-				timerctl.next = t->target_count;
+				timerctl.next_alarm_on_count = t->target_count;
 			}
 		}
 	}
