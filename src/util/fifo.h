@@ -10,7 +10,7 @@
 typedef struct FIFO32 {
 	int32_t *buf;
 	/* size: *buf capacity in bytes */
-	int32_t size;
+	int32_t buflen;
 	/* free: available bytes remaining */
 	int32_t free;
 	/* next_r/w: next position to read/write */

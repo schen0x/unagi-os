@@ -5,12 +5,16 @@
 #include "include/uapi/graphic.h"
 #include "util/printf.h"
 
-/* Consider the Lifecycle of *buf carefully  */
-void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t size)
+/*
+ * Consider the Lifecycle of *buf carefully
+ * @buf
+ * @buflen the array length of the buf[] (sizeof(buf)/ sizeof(buf[0]))
+ */
+void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t buflen)
 {
-	fifo->size = size;
+	fifo->buflen = buflen;
 	fifo->buf = buf;
-	fifo->free = size;
+	fifo->free = buflen;
 	fifo->flags = 0;
 	fifo->next_w = 0;
 	fifo->next_r = 0;
@@ -31,7 +35,7 @@ int32_t fifo32_enqueue(FIFO32 *fifo, int32_t data)
 	fifo->buf[fifo->next_w] = data;
 	fifo->next_w++;
 	// Warp to the head of the buffer
-	if (fifo->next_w == fifo->size)
+	if (fifo->next_w == fifo->buflen)
 	{
 		fifo->next_w = 0;
 	}
@@ -46,14 +50,14 @@ int32_t fifo32_enqueue(FIFO32 *fifo, int32_t data)
 int32_t fifo32_dequeue(FIFO32 *fifo)
 {
 	int32_t data;
-	if (fifo->free == fifo->size)
+	if (fifo->free == fifo->buflen)
 	{
 		return -EIO;
 	}
 	data = fifo->buf[fifo->next_r];
 	fifo->next_r++;
 	// Warp to the head of the buffer
-	if (fifo->next_r == fifo->size)
+	if (fifo->next_r == fifo->buflen)
 	{
 		fifo->next_r = 0;
 	}
@@ -70,7 +74,7 @@ int32_t fifo32_dequeue(FIFO32 *fifo)
 int32_t fifo32_status_getUsageB(FIFO32 *fifo)
 {
 	int32_t usage_in_bytes = 0;
-	usage_in_bytes = fifo->size - fifo->free;
+	usage_in_bytes = fifo->buflen - fifo->free;
 	return usage_in_bytes;
 }
 
@@ -79,7 +83,7 @@ bool test_fifo32(void)
 {
 	FIFO32 f = {0};
 	int32_t _buf[8] = {0};
-	fifo32_init(&f, _buf, sizeof(_buf));
+	fifo32_init(&f, _buf, sizeof(_buf)/sizeof(_buf[0]));
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
 		fifo32_enqueue(&f, i);
@@ -103,7 +107,7 @@ bool test_fifo32(void)
 	}
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
-		uint8_t d = fifo32_dequeue(&f);
+		int32_t d = fifo32_dequeue(&f);
 		if (d != 0)
 			return false;
 		if (fifo32_status_getUsageB(&f) != (0x48 - i - 1))

@@ -43,7 +43,7 @@ static void chips_init()
 	//! So the problem is that the idt_init() will return, while eventloop running
 	//! So if _keybuf uses a stack address, it causes panic
 	//! uint8_t _keybuf[32] = {0};
-	fifo32_init(&keymousefifo, _keymousefifobuf, sizeof(_keymousefifobuf));
+	fifo32_init(&keymousefifo, _keymousefifobuf, (sizeof(_keymousefifobuf) / sizeof(_keymousefifobuf[0])) );
 	// fifo8_init(&mouse_one_move_buf, _mouse_one_move_buf, sizeof(_mouse_one_move_buf));
 
 	ps2kbc_KBC_init();

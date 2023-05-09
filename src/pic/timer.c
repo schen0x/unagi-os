@@ -58,7 +58,7 @@ TIMER* timer_alloc(void)
 
 			FIFO32 *timer_fifo = (FIFO32 *)kzalloc(sizeof(FIFO32));
 			int32_t *timer_buf = (int32_t *)kzalloc(512);
-			fifo32_init(timer_fifo, timer_buf, 512);
+			fifo32_init(timer_fifo, timer_buf, 512 / sizeof(timer_buf[0]));
 			t->fifo = timer_fifo;
 			return &timerctl.timer[i];
 		}
