@@ -375,6 +375,9 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 - [scancode](https://hp.vector.co.jp/authors/VA003720/lpproj/others/kbdjpn.htm)
 - [scancode](https://github.com/flosse/linuxconsole/blob/master/utils/scancodes.h)
 
+- BIOS_Interruption_and_Functions.pdf:
+- ![u16-int16h_02h-read_keyboard_status](./img/u16-int16h_02h-read_keyboard_status.png)
+
 
 ## U17 HEAP AND MEMORY MANAGEMENT
 
@@ -594,6 +597,17 @@ struct firmware_map_entry {
 - PS/2 Controller Commands && Configuration Byte:
 - ![b07-PS2KBC_CMDs](./img/b07-PS2KBC_CMDs.png)
 - ![b07-PS2MOUSE_CMDs](./img/b07-PS2MOUSE_CMDs.png)
+
+
+## B14 HIDPI
+
+- `int 0x10, ax=0x4f02` -- select VESA video modes
+- [INT0x10, OSDEV](https://wiki.osdev.org/BIOS#Common_functions)
+- ![b12-INT10h_VESA, OSDEV](./img/b12-int10h_vesa-osdev.png)
+- [Usage of int10h_ax4f02h, OSDEV](https://wiki.osdev.org/VESA_Video_Modes)
+- ![b12-int10h_ax4f02h_usage, OSDEV](./img/b12-int10h_ax4f02h_usage-osdev.png)
+- [VESA Modes, wiki](https://en.wikipedia.org/wiki/VESA_BIOS_Extensions)
+- ![b12-vesa_modes-wiki](./img/b12-vesa_modes-wiki.png)
 
 
 ## ASSEMBLY

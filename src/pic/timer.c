@@ -6,6 +6,10 @@
 /**
  * TODO use a double linked list etc. so that on setting timer or on triggering etc.
  * Keep a list in order so that no need to loop through all elements.
+ *
+ * The major Performance difference on the user side is when an interruption happens.
+ * So by using a sorted linked list, theoretically next->next->next until all is triggered, no need to traverse all structures
+ * But what if by using the simple list, cpu auto fetch and cached the whole list, so that IO cost is drastically reduced? (limit/architecture/implementation of caching)
  */
 
 #define PIT_CNT0 0x0040

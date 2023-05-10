@@ -1,35 +1,76 @@
 [BITS 16]
-[ORG 0x8200]						;
+[ORG 0x8200]
 
 ; PROTECTED_MODE_DATA_SEGMENT_SELECTOR equ 1000b		; Index 1, no flags set; The second entry in the GDTR
 ; PROTECTED_MODE_CODE_SEGMENT_SELECTOR equ 10000b		; Index 2, no flags set; The first entry in the GDTR
 DATA_SEG equ GDT_DATA - GDT_START
 CODE_SEG equ GDT_CODE - GDT_START			; This also calculates the offset. Because each Segment Descriptor is 64 bits or 8 bytes. Offset * 8 equals to the segment selector with no flag.
+
 BOOT_DISK_INT13H_DRIVE_TYPE equ 80h			; 1st hard disk
 LOAD_ADDRESS_NEXT_SECTOR_ES equ 820h			; ES * 0x10h == 0x8200
 
+VBE_MODE EQU 0x105					; VESA (105h) 1024×768 256 color
+; VGA/VBE BOOT INFO
+CYLS equ 0x0ff0						; ? OS_BOOT_BOOTINFO_ADDRESS?
+LEDS equ 0x0ff1
+VMODE equ 0x0ff2					; ?
+SCRNX equ 0x0ff4					; Screen Resolution X
+SCRNY equ 0x0ff6					; Screen Resolution Y
+VRAM equ 0x0ff8						; Graphic Buffer Start Address
+
+
 NEXT_SECTORS:
 VESA_INIT:						; Select video mode
-    mov ah, 0
-    mov al, 0x13					; 300x200x256
-    ;mov al, 0x107					; 107h   1280x1024x256 VESA
+    ; Check if VBE is supported, if not, fallback to 320x200 256color
+    mov ax, 0x9000					; Conventional memory
+    mov ES, ax
+    mov DI, 0
+    mov ax, 0x4f00					; FUNCTION: Get VESA BIOS information; Return 0x4f00 if success; If success, ES:DI contains VESA BIOS information block
     int 0x10
+    cmp ax, 0x004f
+    jne .scrn320
 
+    ; Check VBE version
+    mov ax, [ES:DI + 4]					; VBE_INFO_STRUCTURE->(uint16_t)version
+    cmp ax, 0x0200
+    jb .scrn320						; if less than VESA 2.0, use fallback
 
-BOOT_INFO:
-    CYLS equ 0x0ff0					; ? boot sector?
-    LEDS equ 0x0ff1
-    VMODE equ 0x0ff2
-    SCRNX equ 0x0ff4					; Screen Resolution X
-    SCRNY equ 0x0ff6					; Screen Resolution Y
-    VRAM equ 0x0ff8					; Graphic Buffer Start Address
+    ; Check supported VBE mode
+    mov cx, VBE_MODE
+    mov ax, 0x4f01					; FUNCTION: Get VESA mode information; Input: CX = VESA mode number from the video modes array; Input: ES:DI = Segment:Offset pointer of where to store the VESA Mode Information Structure; Output: AX = 0x004F on success, other values indicate a BIOS error or a mode-not-supported error.
+    int 0x10
+    cmp ax, 0x004f
+    jne .scrn320
 
+    ; Select VBE mode
+    mov ax, 0x4f02					; FUNCTION: Select VESA video modes
+    mov bx, VBE_MODE | 0x4000				; | 0x4000 use linear frame buffer; VESA (mode 103h) 800x600 256color; (105h) 1024×768 256 color; (107h) 1280x1024 256color
+    int 0x10
+    mov BYTE [VMODE], 8					; ?
+    mov ax, [ES:DI+0x12]
+    mov word [SCRNX], ax
+    mov ax, [ES:DI+0x14]
+    mov word [SCRNY], ax
+    mov dword eax, [ES:DI+0x28]				; VBE_MODE_INFO->(uint32_t)framebuffer
+    mov dword [VRAM], eax 				; VBE_MODE_INFO->(uint32_t)framebuffer
+
+    jmp KEYBOARD_STATUS
+
+.scrn320:
+    ; Fallback to VGA
+    mov ah, 0
+    mov al, 0x13					; VGA 300x200 256 color
+    int 0x10
     mov byte [VMODE], 8
     mov word [SCRNX], 320
     mov word [SCRNY], 200
     mov dword [VRAM], 0x000a0000
 
-    ; Keyboard status
+    jmp KEYBOARD_STATUS
+
+
+KEYBOARD_STATUS:
+    ; Get keyboard status
     mov ah, 0x02
     int 0x16						; keyboard BIOS
     mov [LEDS], al
