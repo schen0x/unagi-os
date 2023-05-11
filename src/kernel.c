@@ -98,6 +98,7 @@ void kernel_main(void)
 	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	// printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
 	printf("mem_test OK from addr %dMB to %dMB \n", OS_HEAP_ADDRESS/1024/1024, mem);
+	printf("VRAM: %p\n", ((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->vram);
 
 
 	// ==============

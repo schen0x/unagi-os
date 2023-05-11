@@ -22,6 +22,7 @@
 #include "idt/idt.h"
 #include "util/kutil.h"
 #include "include/uapi/graphic.h"
+#include "util/printf.h"
 #define BREAK_MASK (0x80)
 
 static unsigned char atakbd_keycode[0x73] = {	/* American layout */
@@ -149,6 +150,24 @@ void atakbd_interrupt(uint8_t rawscancode)
 	return;
 }
 
+/**
+ * TODO Refer to char device && linux input subsystem; Improve;
+ *
+ * The array index should correspond to the "eventcode" defined in
+ * "include/uapi/input-event-code.h"
+ */
+static char keytable[0x54] = {
+	0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,
+	'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '[', 0, 0, 'a', 's',
+	'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':', 0, 0, ']', 'z', 'x', 'c', 'v',
+	'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
+	'2', '3', '0', '.' };
+
+
+/**
+ * Convert scancode to standard eventcode
+ */
 // TODO https://elixir.bootlin.com/linux/latest/source/drivers/input/input.c#L424
 void input_report_key(uint8_t scancode, uint8_t down)
 {
@@ -156,28 +175,8 @@ void input_report_key(uint8_t scancode, uint8_t down)
 	{
 		return;
 	}
-	switch(scancode)
-	{
-		case 2:
-			kfprint("1", 4);
-			break;
-		case 3:
-			kfprint("2", 4);
-			break;
-		case 4:
-			kfprint("3", 4);
-			break;
-		case 30:
-			kfprint("a", 4);
-			break;
-		case 31:
-			kfprint("s", 4);
-			break;
-		case 32:
-			kfprint("d", 4);
-			break;
-
-	}
+	char c = keytable[scancode];
+	printf("%c", c);
 	return;
 }
 

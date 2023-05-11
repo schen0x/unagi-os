@@ -123,7 +123,7 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 	if(interrupt_number == 0x21)
 	{
 		// int21h();
-		__int21h_buffed();
+		int21h();
 		return;
 	}
 	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
@@ -157,8 +157,8 @@ void int3h(void)
 void int2ch(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
-	PIC_sendEOI(12); // 2ch, IRQ12
 	fifo32_enqueue(&keymousefifo, data + DEV_FIFO_MOUSE_START);
+	PIC_sendEOI(12); // 2ch, IRQ12
 	return;
 }
 
@@ -181,15 +181,16 @@ void idt_zero()
 }
 
 /* ?Race condition/Memory corruption? */
-void __int21h_buffed()
+void int21h(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
 	// char buf[20]={0};
 	// sprintf(buf, "_%02x_", (uint8_t)data);
 	// kfprint(buf, 4);
-	PIC_sendEOI(1); // 21h, IRQ1
+	/* Enqueue first, because it takes no time, and should be safer */
 	fifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
-	return; // ? from sequential to cpu polling buffer. int21h_handler(data); in another thread?
+	PIC_sendEOI(1); // 21h, IRQ1
+	return;
 }
 
 

@@ -41,7 +41,7 @@ void set_gatedesc(IDT_GATE_DESCRIPTOR_32* gd, intptr_t offset, uint16_t selector
 void idt_init();
 void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
 void int3h(void);
-void __int21h_buffed();
+void int21h(void);
 void int21h_handler(uint8_t scancode);
 void int2ch(void);
 void int2ch_handler(uint8_t scancode);
@@ -50,7 +50,6 @@ extern FIFO32 keymousefifobuf;
 
 void idt_zero();
 void int20h();
-void int21h();
 
 
 #endif

@@ -609,6 +609,12 @@ struct firmware_map_entry {
 - [VESA Modes, wiki](https://en.wikipedia.org/wiki/VESA_BIOS_Extensions)
 - ![b12-vesa_modes-wiki](./img/b12-vesa_modes-wiki.png)
 
+## B14 LINUX INPUT SUBSYSTEM
+
+- [Linux Input Subsystem kernel API, doc](https://docs.kernel.org/input/input-programming.html)
+- [input_dev, include/linux/input.h](https://elixir.bootlin.com/linux/latest/source/include/linux/input.h#L137)
+- [input_get_disposition, drivers/input/input.c](https://elixir.bootlin.com/linux/latest/source/drivers/input/input.c#L239)
+
 
 ## ASSEMBLY
 
