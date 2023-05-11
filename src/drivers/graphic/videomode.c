@@ -477,6 +477,25 @@ void make_window8(uintptr_t buf, int xsize, int ysize, char *title)
     return;
 }
 
+SCREEN_MOUSEXY* getMouseXY(SCREEN_MOUSEXY *xy)
+{
+	xy->mouseX = mouseX;
+	xy->mouseY = mouseY;
+	return xy;
+}
+
+bool isCursorWithinSheet(const SCREEN_MOUSEXY *xy, const SHEET *s)
+{
+	if (!xy || !s)
+		return false;
+	if ((xy->mouseX >= s->xStart) &&\
+			(xy->mouseX - s->bufXsize <= s->xStart) &&\
+			(xy->mouseY >= s->yStart) &&\
+			(xy->mouseY - s->bufYsize <= s->yStart))
+		return true;
+	return false;
+}
+
 
 
 /* Draw stripes on the screen */

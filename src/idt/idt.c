@@ -1,19 +1,18 @@
-#include "idt/idt.h"
-#include "memory/memory.h"
 #include "config.h"
+#include "drivers/graphic/videomode.h"
+#include "drivers/keyboard.h"
+#include "drivers/ps2kbc.h"
+#include "idt/idt.h"
 #include "include/uapi/graphic.h"
 #include "include/uapi/input-mouse-event.h"
 #include "io/io.h"
-#include "drivers/keyboard.h"
-#include "drivers/ps2mouse.h"
-#include "drivers/ps2kbc.h"
-#include "drivers/graphic/videomode.h"
-#include "util/kutil.h"
-#include "util/printf.h"
+#include "memory/memory.h"
 #include "memory/memory.h"
 #include "pic/pic.h"
-#include "status.h"
 #include "pic/timer.h"
+#include "status.h"
+#include "util/kutil.h"
+#include "util/printf.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -33,7 +32,6 @@ int32_t _keymousefifobuf[4096] = {0};
 //const int32_t MOUSE_ONE_MOVE_CMD_SIZE = 3;
 //uint8_t _mouse_one_move_buf[3] = {0}; // 3 bytes[]
 				      //
-MOUSE_DATA_BUNDLE mouse_one_move = {0};
 
 static void chips_init()
 {
@@ -160,17 +158,6 @@ void int2ch(void)
 	fifo32_enqueue(&keymousefifo, data + DEV_FIFO_MOUSE_START);
 	PIC_sendEOI(12); // 2ch, IRQ12
 	return;
-}
-
-
-/*
- * MOUSE data handler
- * scancode: uint8_t _scancode
- */
-void int2ch_handler(uint8_t scancode)
-{
-	ps2mouse_decode(scancode, &mouse_one_move);
-	graphic_move_mouse(&mouse_one_move);
 }
 
 

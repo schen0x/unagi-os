@@ -6,7 +6,10 @@
 #include "status.h"
 #include <stdint.h>
 
-/*
+/**
+ * Decode mouse data packets
+ * Assume 3 packets protocol
+ *
  * [IN] uint8_t scancode
  * [IN, OUT] MOUSE_DATA_BUNDLE *m
  * FIXME This is broken AF;
@@ -113,6 +116,8 @@ int32_t ps2mouse_parse_three_bytes(MOUSE_DATA_BUNDLE *m)
 	// int32_t rel_y = third_byte - ((state << 3) & 0x100);
 	m->x = rel_x;
 	m->y = rel_y;
+	/* Bit 0:2 is button state (bl, br, bm) */
+	m->btn = m->buf[0] & 0b111;
 	return 0;
 }
 

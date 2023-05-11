@@ -2,6 +2,8 @@
 #include "disk/disk.h"
 #include "disk/dstream.h"
 #include "drivers/graphic/videomode.h"
+#include "drivers/keyboard.h"
+#include "drivers/ps2mouse.h"
 #include "fs/pathparser.h"
 #include "idt/idt.h"
 #include "include/uapi/bootinfo.h"
@@ -19,6 +21,7 @@
 extern void loadPageDirectory(uint32_t *pd);
 /* Kernel Page Directory */
 PAGE_DIRECTORY_4KB* kpd = 0;
+MOUSE_DATA_BUNDLE mouse_one_move = {0};
 
 uint32_t page_directory[1024] __attribute__((aligned(4096)));
 uint32_t first_page_table[1024] __attribute__((aligned(4096)));
@@ -208,7 +211,6 @@ void eventloop(void)
 		{
 			int32_t mousescancode = data - DEV_FIFO_MOUSE_START;
 			int2ch_handler(mousescancode & 0xff);
-
 		}
 next0:
 		_io_sti();
@@ -216,5 +218,32 @@ next0:
 		continue;
 	}
 }
+
+/*
+ * MOUSE data handler
+ * scancode: uint8_t _scancode
+ */
+void int2ch_handler(uint8_t scancode)
+{
+	ps2mouse_decode(scancode, &mouse_one_move);
+	SCREEN_MOUSEXY xy0 = {0};
+	getMouseXY(&xy0);
+	graphic_move_mouse(&mouse_one_move);
+	/* Mutated in the `graphic_move_mouse` */
+	SCREEN_MOUSEXY xy1 = {0};
+	getMouseXY(&xy1);
+	/* If the left button is pressed */
+	if ((mouse_one_move.btn & 0b1) != 0)
+	{
+		SHEET *w = get_sheet_window();
+		if (isCursorWithinSheet(&xy1, w))
+		{
+			sheet_slide(w, w->xStart + xy1.mouseX - xy0.mouseX, w->yStart + xy1.mouseY - xy0.mouseY);
+		}
+
+	}
+}
+
+
 
 

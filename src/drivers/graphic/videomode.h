@@ -100,6 +100,11 @@ typedef struct VBE_MODE_INFO {
 	uint8_t reserved1[206];
 } __attribute__ ((packed)) VBE_MODE_INFO;
 
+typedef struct SCREEN_MOUSEXY {
+	int32_t mouseX;
+	int32_t mouseY;
+} SCREEN_MOUSEXY;
+
 void videomode_window_initialize(BOOTINFO* bi);
 static void __draw_stripes();
 static void __draw_three_boxes();
@@ -118,5 +123,7 @@ static void display_scroll(uintptr_t vram, int32_t vga_width, int32_t vga_height
 SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny);
 void putfonts8_asc(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, uint8_t color, char *s);
 SHEET* get_sheet_window();
+SCREEN_MOUSEXY* getMouseXY(SCREEN_MOUSEXY *xy);
+bool isCursorWithinSheet(const SCREEN_MOUSEXY *xy, const SHEET *s);
 
 #endif

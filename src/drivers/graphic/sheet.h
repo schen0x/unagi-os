@@ -50,7 +50,7 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 
 void sheet_update_sheet(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf);
 void sheet_updown(SHEET *sheet, int32_t zNew);
-void sheet_slide(SHEET *sheet, int32_t xStart, int32_t yStart);
+void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst);
 void sheet_free(SHEET *sheet);
 
 #endif
