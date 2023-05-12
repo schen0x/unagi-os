@@ -9,6 +9,9 @@ CODE_SEG equ GDT_CODE - GDT_START			; This also calculates the offset. Because e
 BOOT_DISK_INT13H_DRIVE_TYPE equ 80h			; 1st hard disk
 LOAD_ADDRESS_NEXT_SECTOR_ES equ 820h			; ES * 0x10h == 0x8200
 
+
+GDTR0 equ 0x0fe8					; **GDTR
+
 VBE_MODE EQU 0x105					; VESA (105h) 1024×768 256 color
 ; VGA/VBE BOOT INFO
 CYLS equ 0x0ff0						; ? OS_BOOT_BOOTINFO_ADDRESS?
@@ -85,6 +88,7 @@ LOAD_PROTECTED:
     mov ss, ax
     mov sp, 0x7c00					; The stack grows downwards in x86 systems. So [0-0x7c00] is the stack, to prevent the stack from overwriting the bootloader itself.
 .load_gdtr:
+    mov DWORD [GDTR0], GDT_DESCRIPTOR			; Save the *GDTR0
     lgdt[GDT_DESCRIPTOR]				; load GDT with GDT_DESCRIPTOR (GDTR)
 .enable_a20_line:
     in al, 0x92
@@ -121,7 +125,7 @@ GDT_CODE:						; CS should point to this
     dw 0						; Base Address 15:00
     db 0						; Base Address 23:16
     db 0x9a						; Common Access Byte 0x9a for Kernel Mode Code Segment
-    db 11000111b					; Flags and Limit; Limit 0x7ffff => 2GB
+    db 11000111b					; Flags and Limit; Limit 0x7ffff * 4KB => 2GB
     db 0						; Base 31:24
 
 GDT_END:

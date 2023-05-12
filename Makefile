@@ -1,4 +1,4 @@
-FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o ./build/memory/heap.o ./build/memory/kheap.o ./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o ./build/disk/disk.o ./build/fs/pathparser.o ./build/include/uapi/graphic.o ./build/drivers/graphic/colortextmode.o ./build/disk/dstream.o ./build/drivers/graphic/videomode.o ./build/font/hankaku.o ./build/util/printf.o ./build/util/arith64.o ./build/util/fifo.o ./build/drivers/ps2kbc.o ./build/drivers/ps2mouse.o ./build/test.o ./build/util/dlist.o ./build/memory/heapdl.o ./build/drivers/graphic/sheet.o ./build/pic/timer.o
+FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/idt.o ./build/memory/memory.o ./build/util/kutil.o ./build/io/io.asm.o ./build/io/io.o ./build/pic/pic.asm.o ./build/pic/pic.o ./build/drivers/keyboard.o ./build/memory/heap.o ./build/memory/kheap.o ./build/memory/paging/paging.o ./build/memory/paging/paging.asm.o ./build/disk/disk.o ./build/fs/pathparser.o ./build/include/uapi/graphic.o ./build/drivers/graphic/colortextmode.o ./build/disk/dstream.o ./build/drivers/graphic/videomode.o ./build/font/hankaku.o ./build/util/printf.o ./build/util/arith64.o ./build/util/fifo.o ./build/drivers/ps2kbc.o ./build/drivers/ps2mouse.o ./build/test.o ./build/util/dlist.o ./build/memory/heapdl.o ./build/drivers/graphic/sheet.o ./build/pic/timer.o ./build/gdt/gdt.asm.o ./build/gdt/gdt.o ./build/kernel/process.o
 GCC_KERNEL_INCLUDES = -I./src
 GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -fvar-tracking -Iinc -O0
 TOOLPATH = $(HOME)/opt/cross/bin
@@ -9,7 +9,7 @@ allgdb: clean builddir compile gdb
 allgui: clean builddir compile rungui
 
 builddir:
-	mkdir -p build/gdt build/idt build/memory build/memory/paging build/util build/io build/pic build/drivers build/disk build/fs ./build/include/uapi ./build/drivers/graphic build/font
+	mkdir -p build/gdt build/idt build/memory build/memory/paging build/util build/io build/pic build/drivers build/disk build/fs ./build/include/uapi ./build/drivers/graphic build/font build/kernel
 
 compile: ./bin/boot.bin ./bin/kernel.bin ./bin/boot_next.bin
 	rm -rf ./bin/os.bin
@@ -110,6 +110,12 @@ gdb:
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/drivers/graphic/sheet.c -o ./build/drivers/graphic/sheet.o
 ./build/pic/timer.o: ./src/pic/timer.c
 	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/pic/timer.c -o ./build/pic/timer.o
+./build/kernel/process.o: ./src/kernel/process.c
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/kernel/process.c -o ./build/kernel/process.o
+./build/gdt/gdt.asm.o: ./src/gdt/gdt.asm
+	nasm -f elf -g ./src/gdt/gdt.asm -o ./build/gdt/gdt.asm.o
+./build/gdt/gdt.o: ./src/gdt/gdt.c
+	$(TOOLPATH)/i686-elf-gcc $(GCC_KERNEL_INCLUDES) $(GCC_KERNEL_FLAGS) -std=gnu11 -c ./src/gdt/gdt.c -o ./build/gdt/gdt.o
 clean:
 	rm -rf ./bin/os.bin
 	rm -rf ./bin/boot.bin

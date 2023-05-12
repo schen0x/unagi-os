@@ -616,6 +616,16 @@ struct firmware_map_entry {
 - [input_get_disposition, drivers/input/input.c](https://elixir.bootlin.com/linux/latest/source/drivers/input/input.c#L239)
 
 
+## B15 TSS AND GDT REVISIT
+
+- Apparently the `lgdt/lidt` instructions CAN be reloaded in the protected mode
+
+- [LGDT/LIDT, doc](https://www.felixcloutier.com/x86/lgdt:lidt)
+
+```txt
+The LGDT and LIDT instructions are used only in operating-system software; they are not used in application programs. They are the only instructions that directly load a linear address (that is, not a segment-relative address) and a limit in protected mode. They are commonly executed in real-address mode to allow processor initialization prior to switching to protected mode.
+```
+
 ## ASSEMBLY
 
 - [NASM doc](https://www.nasm.us/xdoc/2.11.08/html/nasmdoc7.html)
@@ -669,5 +679,46 @@ mov [ds:ax], 1 ; 0x82 << 4 + 0x81 == mov [0x8A1], 1
 (f)      int   *()		// function with no parameter specification returning a pointer to int
 (g)      int   (*)(void)	// pointer to function with no parameters returning an int
 (h)      int   (*const [])(unsigned int, ...) // array of an unspecified number of constant pointers to functions, each with one parameter that has type unsigned int and an unspecified number of other parameters, returning an int.
+```
+
+
+### BIT FIELDS
+
+- [packed bit fields in c structure gcc, stackoverflow](https://stackoverflow.com/questions/25822679/packed-bit-fields-in-c-structures-gcc)
+- TL;DR: The non-consecutive bit field is aligned to a byte boundary in a struct, which allows faster memory access.
+
+
+- Q:
+
+```c
+struct __attribute__((packed)) {
+    int a:12;
+    int b:32;
+    int c:4;
+} t1;
+
+struct __attribute__((packed))  {
+    int a:12;
+    int b;
+    int c:4;
+}t2;
+
+void main()
+{
+    printf("%d\n",sizeof(t1)); //output - 6
+    printf("%d\n",sizeof(t2)); //output - 7
+}
+```
+
+- A:
+
+```txt
+Your structures are not "exactly the same". Your first one has three consecutive bit-fields, the second has one bit-field, an (non bit-field) int, and then a second bit-field.
+
+This is significant: consecutive (non-zero width) bit-fields are merged into a single memory location, while a bit-field followed by a non-bit-field are distinct memory locations.
+
+Your first structure has a single memory location, your second has three. You can take the address of the b member in your second struct, not in your first. Accesses to the b member don't race with accesses the a or c in your second struct, but they do in your first.
+
+Having a non-bit-field (or a zero-length bit-field) right after a bit-field member "closes" it in a sense, what follows will be a different/independent memory location/object. The compiler cannot "pack" your b member inside the bit-field like it does in the first struct.
 ```
 

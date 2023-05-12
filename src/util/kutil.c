@@ -63,6 +63,9 @@ void* kmemset(void* ptr, int c, size_t size)
 }
 
 
+/**
+ * @size size of the memory in bytes
+ */
 void* kmemcpy(void* dst, const void* src, size_t size)
 {
 	char* c_dst = dst;
