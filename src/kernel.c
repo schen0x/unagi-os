@@ -29,9 +29,9 @@ uint32_t page_directory[1024] __attribute__((aligned(4096)));
 uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 
 TIMER *timer0 = NULL;
-TIMER *timer_ts_resume = NULL;
 TIMER *timer_cursor = NULL;
 TIMER *timer3 = NULL;
+TIMER *timer_ts = NULL;
 
 uint8_t *task_b_esp = NULL;
 
@@ -132,8 +132,6 @@ void kernel_main(void)
 	/* Set a timer of 3s */
 	timer0 = timer_alloc();
 	timer_settimer(timer0, 300, 0);
-	timer_ts_resume = timer_alloc();
-	timer_settimer(timer_ts_resume, 600, 0);
 	timer_cursor = timer_alloc();
 	timer_settimer(timer_cursor, 100, 1);
 	timer3 = timer_alloc();
@@ -142,6 +140,7 @@ void kernel_main(void)
 	/**
 	 * Multi-tasking
 	 */
+	timer_ts = timer_alloc();
 	/* Import GDTR0 and switch to the GDTR1 */
 	gdt_tss_init();
 	task_b_esp = (uint8_t *)kmalloc(4096 * 2);
@@ -160,6 +159,28 @@ void eventloop(void)
 	for(;;)
 	{
 		counter++;
+		/**
+		 * Without cli(), it seems the printf in some cases cannot finish (may be buffed sometime)
+		 */
+		_io_cli();
+		if (timer_ts->flags == TIMER_FLAGS_ALLOCATED)
+		{
+			timer_settimer(timer_ts, 2, 4);
+		}
+		FIFO32 *f = timer_ts->fifo;
+		if (fifo32_status_getUsageB(f) > 0)
+		{
+			volatile int32_t data = fifo32_dequeue(f);
+			if (data == 3 )
+				continue;
+			if (data < 0)
+			{
+				printf ("@3wtf:%d", data);
+				continue;
+			}
+			printf("to4");
+			process_switch_by_cs_index(data);
+		}
 		/* Performance test */
 		if (fifo32_status_getUsageB(timer0->fifo) > 0)
 		{
@@ -207,7 +228,6 @@ void eventloop(void)
 
 
 		/* Keyboard and Mouse PIC interruptions handling */
-		_io_cli();
 		keymousefifobuf_usedBytes = fifo32_status_getUsageB(&keymousefifo);
 		if (keymousefifobuf_usedBytes == 0)
 		{
@@ -280,16 +300,29 @@ void __tss_switch4_prep(void)
 
 void __tss_b_main(void)
 {
+	/* 20ms */
 	for (;;)
 	{
-		if (fifo32_status_getUsageB(timer_ts_resume->fifo) > 0)
+		_io_cli();
+		if (timer_ts->flags == TIMER_FLAGS_ALLOCATED)
 		{
-			fifo32_dequeue(timer_ts_resume->fifo);
-			timer_free(timer_ts_resume);
-			printf("ts3Resume");
-			_taskswitch3();
+			timer_settimer(timer_ts, 2, 3);
 		}
-		_io_hlt();
+		if (fifo32_status_getUsageB(timer_ts->fifo) > 0)
+		{
+			volatile int32_t data = fifo32_dequeue(timer_ts->fifo);
+			if (data == 4 )
+				continue;
+			if (data < 0)
+			{
+				printf ("@4wtf:%d", data);
+				continue;
+			}
+			printf("to3");
+			process_switch_by_cs_index(data);
+		}
+		_io_sti();
+		asm("pause");
 	}
 }
 

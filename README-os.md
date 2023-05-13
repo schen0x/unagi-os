@@ -684,6 +684,15 @@ _gdt_load_task_register:
 - TL;DR: Refer to the (Chapter 2: Instruction Format)
 - ![asm-intel_instruction_format](./img/asm-intel_instruction_format.png)
 
+#### ANTI DEBUG
+
+- Debugger seems to have trouble following the "hack"
+
+```asm
+_farjmp:	; void farjmp(uint32_t eip, uint16_t cs)
+    JMP FAR[ESP + 4]	; a hack? "FF /5" "JMP m16:32" ==> jmp cs:eip; also eip is ignored
+```
+
 
 ## C
 

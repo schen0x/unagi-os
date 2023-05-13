@@ -14,11 +14,6 @@
 
 #define PIT_CNT0 0x0040
 #define PIT_CTRL 0x0043
-/* Timer is allocated */
-#define TIMER_FLAGS_ALLOCATED 1
-/* Timer is counting down */
-#define TIMER_FLAGS_ONCOUNTDOWN 2
-
 
 TIMERCTL timerctl;
 
@@ -54,6 +49,7 @@ void pit_init(void)
 
 /**
  * First, allocate a timer
+ * By default use a unique fifo buffer
  */
 TIMER* timer_alloc(void)
 {

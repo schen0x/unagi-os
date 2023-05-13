@@ -5,6 +5,11 @@
 #include "util/fifo.h"
 #include "config.h"
 
+/* Timer is allocated */
+#define TIMER_FLAGS_ALLOCATED 1
+/* Timer is counting down */
+#define TIMER_FLAGS_ONCOUNTDOWN 2
+
 typedef struct TIMER {
 	/* Trigger when system ticks == "alarm" */
 	uint32_t target_count;
