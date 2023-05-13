@@ -659,6 +659,26 @@ mov [ds:ax], 1 ; 0x82 << 4 + 0x81 == mov [0x8A1], 1
 - `STI`: SeT Interrupt Flag (IF) (in FLAGS or EFLAGS)
 
 
+### DESCRIPTIONS OF AN INSTRUCTION
+
+- `lgdt m16&32` vs `ltr r/m16`:
+    - TL;DR: `ltr ax` and `ltr [ebp + 8]` are both OK, but `ltr[ax]` is NOT.
+    - Meanwhile, `lgdt [ebp+8]` only accept a memory address.
+
+```asm
+_gdt_load_task_register:
+    push ebp
+    mov ebp, esp
+
+    mov WORD ax, [ebp + 8]
+    ltr ax                  ; OK
+    ;ltr [ebp+8]            ; OK
+
+    pop ebp
+    ret
+```
+
+
 ## C
 
 ### DEFINE A GLOBAl VARIABLE

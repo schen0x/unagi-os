@@ -98,11 +98,11 @@ void gdt_tss_init()
 	 */
 	_gdt_reload(&gdtr);
 
+	(void) tss_a_segment_selector;
+	_gdt_load_task_register(3*8);
+
 	if (!isCli)
 		_io_sti();
-
-	(void) tss_a_segment_selector;
-	// _gdt_load_task_register(tss_a_segment_selector);
 
 }
 
