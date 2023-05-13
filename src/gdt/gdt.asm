@@ -23,5 +23,11 @@ _gdt_load_task_register:
     pop ebp
     ret
 
+global _taskswitch4:FUNCTION
+; TODO (Modern Implementation and proper implementation?)
+_taskswitch4: ; void _taskswitch4(void);
+    jmp 4*8:0
+    RET
+
 
 times 4096-($ - $$) db 0

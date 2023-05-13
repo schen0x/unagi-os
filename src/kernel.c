@@ -5,12 +5,13 @@
 #include "drivers/keyboard.h"
 #include "drivers/ps2mouse.h"
 #include "fs/pathparser.h"
-#include "idt/idt.h"
 #include "gdt/gdt.h"
+#include "idt/idt.h"
 #include "include/uapi/bootinfo.h"
 #include "include/uapi/graphic.h"
 #include "io/io.h"
 #include "kernel.h"
+#include "kernel/process.h"
 #include "memory/heapdl.h"
 #include "memory/memory.h"
 #include "memory/paging/paging.h"
@@ -30,6 +31,8 @@ uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 TIMER *timer = NULL;
 TIMER *timer_cursor = NULL;
 TIMER *timer3 = NULL;
+
+uint8_t *task_b_esp = NULL;
 
 void pg(void)
 {
@@ -115,7 +118,6 @@ void kernel_main(void)
 
 	printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
 	disk_search_and_init();
-	gdt_tss_init();
 
 	if (!test_all())
 	{
@@ -133,8 +135,17 @@ void kernel_main(void)
 	timer_settimer(timer_cursor, 100, 1);
 	timer3 = timer_alloc();
 	timer_settimer(timer3, 1000, 3);
+
+	/**
+	 * Multi-tasking
+	 */
+	/* Import GDTR0 and switch to the GDTR1 */
+	gdt_tss_init();
+	task_b_esp = (uint8_t *)kmalloc(4096 * 2);
+	__tss_switch4_prep();
+
+
 	eventloop();
-	// asm("hlt");
 }
 
 
@@ -154,6 +165,8 @@ void eventloop(void)
 			timer_free(timer);
 			printf("ct10sStart", counter);
 			counter = 0;
+			_taskswitch4();
+
 		}
 		if (fifo32_status_getUsageB(timer3->fifo) > 0)
 		{
@@ -247,5 +260,27 @@ void int2ch_handler(uint8_t scancode)
 }
 
 
+void __tss_switch4_prep(void)
+{
+	TSS32 *tss_b = process_gettssb();
+	(void)tss_b;
+	tss_b->eip = (uint32_t) &__tss_b_main;
+	tss_b->esp = (uint32_t) task_b_esp;
+	tss_b->cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
+	tss_b->es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	tss_b->ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	tss_b->fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	tss_b->gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	tss_b->eflags = _io_get_eflags();
+	return;
+}
+
+void __tss_b_main(void)
+{
+	for (;;)
+	{
+		_io_hlt();
+	}
+}
 
 
