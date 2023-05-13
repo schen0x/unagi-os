@@ -41,4 +41,5 @@ typedef struct TSS32 {
 TSS32* process_gettssa(void);
 TSS32* process_gettssb(void);
 bool process_tss_init(TSS32 *tss);
+void _farjmp(uint32_t eip, uint16_t cs);
 #endif

@@ -28,7 +28,8 @@ MOUSE_DATA_BUNDLE mouse_one_move = {0};
 uint32_t page_directory[1024] __attribute__((aligned(4096)));
 uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 
-TIMER *timer = NULL;
+TIMER *timer0 = NULL;
+TIMER *timer_ts_resume = NULL;
 TIMER *timer_cursor = NULL;
 TIMER *timer3 = NULL;
 
@@ -129,8 +130,10 @@ void kernel_main(void)
 	// heap_debug();
 
 	/* Set a timer of 3s */
-	timer = timer_alloc();
-	timer_settimer(timer, 300, 0);
+	timer0 = timer_alloc();
+	timer_settimer(timer0, 300, 0);
+	timer_ts_resume = timer_alloc();
+	timer_settimer(timer_ts_resume, 600, 0);
 	timer_cursor = timer_alloc();
 	timer_settimer(timer_cursor, 100, 1);
 	timer3 = timer_alloc();
@@ -143,7 +146,6 @@ void kernel_main(void)
 	gdt_tss_init();
 	task_b_esp = (uint8_t *)kmalloc(4096 * 2);
 	__tss_switch4_prep();
-
 
 	eventloop();
 }
@@ -159,13 +161,14 @@ void eventloop(void)
 	{
 		counter++;
 		/* Performance test */
-		if (fifo32_status_getUsageB(timer->fifo) > 0)
+		if (fifo32_status_getUsageB(timer0->fifo) > 0)
 		{
-			fifo32_dequeue(timer->fifo);
-			timer_free(timer);
+			fifo32_dequeue(timer0->fifo);
+			timer_free(timer0);
 			printf("ct10sStart", counter);
 			counter = 0;
-			_taskswitch4();
+			//_taskswitch4();
+			_farjmp(0, 4*8);
 
 		}
 		if (fifo32_status_getUsageB(timer3->fifo) > 0)
@@ -180,8 +183,8 @@ void eventloop(void)
 			char ctc[40] = {0};
 			sprintf(ctc, "%010ld", timer_gettick());
 			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
-			if (fifo32_status_getUsageB(timer->fifo) > 0)
-				printf("%d", fifo32_dequeue(timer->fifo));
+			if (fifo32_status_getUsageB(timer0->fifo) > 0)
+				printf("%d", fifo32_dequeue(timer0->fifo));
 			/* Blinking cursor */
 			if (fifo32_status_getUsageB(timer_cursor->fifo) > 0)
 			{
@@ -279,6 +282,13 @@ void __tss_b_main(void)
 {
 	for (;;)
 	{
+		if (fifo32_status_getUsageB(timer_ts_resume->fifo) > 0)
+		{
+			fifo32_dequeue(timer_ts_resume->fifo);
+			timer_free(timer_ts_resume);
+			printf("ts3Resume");
+			_taskswitch3();
+		}
 		_io_hlt();
 	}
 }

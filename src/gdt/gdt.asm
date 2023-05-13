@@ -29,5 +29,11 @@ _taskswitch4: ; void _taskswitch4(void);
     jmp 4*8:0
     RET
 
+global _taskswitch3:FUNCTION
+_taskswitch3: ; void _taskswitch3(void);
+    jmp 3*8:0
+    RET
+
+
 
 times 4096-($ - $$) db 0

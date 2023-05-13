@@ -678,6 +678,12 @@ _gdt_load_task_register:
     ret
 ```
 
+### LENGTH OF AN x86 INSTRUCTION
+
+- [how-to-tell-the-length-of-an-x86-instruction, stackoverflow](https://stackoverflow.com/questions/4567903/how-to-tell-the-length-of-an-x86-instruction)
+- TL;DR: Refer to the (Chapter 2: Instruction Format)
+- ![asm-intel_instruction_format](./img/asm-intel_instruction_format.png)
+
 
 ## C
 
