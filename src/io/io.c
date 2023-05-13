@@ -10,7 +10,7 @@ inline void io_wait(void)
 }
 
 /**
- * Retrun if `cli()`, i.e., is "interrupt enable flag" cleared
+ * Retrun if is currently `cli()` (IRQ not allowed), i.e., is "interrupt enable flag" cleared
  */
 bool io_get_is_cli(void)
 {

@@ -2,13 +2,12 @@
 #define GDT_GDT_H_
 
 #include <stdint.h>
-void idt_zero();
-void idt_init();
+#include <stdbool.h>
 
 /**
- * Global Descriptor Table Entry, 8 bytes
+ * Global Descriptor Table Entry (Segment Descriptor), 8 bytes
  */
-typedef struct GDT32
+typedef struct GDT32SD
 {
 	/* limit 0:15 */
 	uint16_t limit_low;
@@ -56,20 +55,26 @@ typedef struct GDT32
 	uint32_t flags : 4;
 	/* base 24:31 */
 	uint8_t base_high;
-} __attribute__((packed)) GDT32;
+} __attribute__((packed)) GDT32SD;
 
 /**
  * Global Descriptor Table Entry Register
  */
 typedef struct GDTR32
 {
-	uint16_t limit; // total gdt entry counts minus 1
+	/* One less than the size of the GDT in bytes */
+	uint16_t limit;
 	uint32_t base; // uintptr GDT_START
 } __attribute__((packed)) GDTR32;
 
-void gdt_set(int interrupt_number, void* address);
-void gdt_init();
-extern void _gdt_load(GDTR32 *gdtr);
+static void gdt_set_segmdesc(GDT32SD *sd, uint32_t limit, uint32_t base, uint8_t ar);
+static void __gdt_import(GDTR32 *gdtrDst, GDT32SD *gdtsDst, GDTR32 *gdtrSrc);
+static void gdt_read_gdtr0();
+uint16_t gdt_append(GDTR32 *r, GDT32SD *d, GDT32SD *d1);
+void gdt_tss_init();
+bool gdt1_reload(GDTR32 *r);
+
+extern void _gdt_reload(GDTR32 *gdtr);
 extern void _gdt_load_task_register(uint16_t tss_segment_selector);
 
 #endif

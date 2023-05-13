@@ -1,7 +1,7 @@
-section .asm
+section .text
 
-global _gdt_load:FUNCTION		; globally export the symbol
-_gdt_load:
+global _gdt_reload:FUNCTION		; globally export the symbol
+_gdt_reload:				; Reload the gdt (can be used in protected mode); Especially careful about the DS CS SS values, because if they did not point to the correct segment, the original code flow cannot resume
     push ebp
     mov ebp, esp
 

@@ -6,6 +6,7 @@
 #include "drivers/ps2mouse.h"
 #include "fs/pathparser.h"
 #include "idt/idt.h"
+#include "gdt/gdt.h"
 #include "include/uapi/bootinfo.h"
 #include "include/uapi/graphic.h"
 #include "io/io.h"
@@ -114,6 +115,7 @@ void kernel_main(void)
 
 	printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
 	disk_search_and_init();
+	gdt_tss_init();
 
 	if (!test_all())
 	{
