@@ -180,6 +180,7 @@ void eventloop(void)
 {
 	int32_t data = 0;
 	int32_t data_keymouse = 0;
+	int32_t keymousefifobuf_usedBytes = 0;
 	FIFO32 *keymousefifo = get_keymousefifo();
 	for(;;)
 	{
@@ -220,39 +221,30 @@ void eventloop(void)
 		}
 
 keymouse:
-		if (!keymousefifo)
-			goto wait_next_event;
-		if (!fifo32_status_getUsageB(keymousefifo))
-		{
-			goto wait_next_event;
-		}
+		 /* Keyboard and Mouse PIC interruptions handling */
+		 keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
+		 if (keymousefifobuf_usedBytes == 0)
+		 {
+		 	goto wait_next_event;
+		 }
+		 data_keymouse = fifo32_dequeue(keymousefifo);
+		 /**
+		  * Maybe -EIO
+		  */
+		 if (data_keymouse < 0)
+		 	goto wait_next_event;
 
-		/* Try handle a fixed amount of keyboard && mouse packets */
-		for (int32_t i = 0; i < 36; i++)
-		{
-			if (fifo32_status_getUsageB(keymousefifo) <= 0)
-				goto wait_next_event;
+		 if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
+		 {
+		 	int32_t kbdscancode = data_keymouse - DEV_FIFO_KBD_START;
+		 	int21h_handler(kbdscancode & 0xff);
+		 }
+		 if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
+		 {
+		 	int32_t mousescancode = data_keymouse - DEV_FIFO_MOUSE_START;
+		 	int2ch_handler(mousescancode & 0xff);
+		 }
 
-			data_keymouse = fifo32_dequeue(keymousefifo);
-			/* -EIO */
-			if (data_keymouse < 0)
-				continue;
-			/* keyboard packet */
-			if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
-			{
-				int32_t kbdscancode = data - DEV_FIFO_KBD_START;
-				int21h_handler(kbdscancode & 0xff);
-				continue;
-			}
-			/* mouse packet */
-			if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
-			{
-				int32_t mousescancode = data - DEV_FIFO_MOUSE_START;
-				int2ch_handler(mousescancode & 0xff);
-				continue;
-			}
-
-		}
 wait_next_event:
 		_io_sti();
 		asm("pause");
