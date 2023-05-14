@@ -28,12 +28,12 @@ MOUSE_DATA_BUNDLE mouse_one_move = {0};
 uint32_t page_directory[1024] __attribute__((aligned(4096)));
 uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 
-TIMER *timer0 = NULL;
-TIMER *timer_cursor = NULL;
-TIMER *timer3 = NULL;
+//TIMER *timer0 = NULL;
+//TIMER *timer_cursor = NULL;
+//TIMER *timer3 = NULL;
 
-TIMER *timer_tss = NULL;
-TIMER *timer_render = NULL;
+// TIMER *timer_tss = NULL;
+// TIMER *timer_render = NULL;
 
 FIFO32 fifo32_common = {0};
 int32_t __fifo32_buffer[4096] = {0};
@@ -142,12 +142,12 @@ void kernel_main(void)
 	// heap_debug();
 
 	/* Set a timer of 3s */
-	timer0 = timer_alloc();
-	timer_settimer(timer0, 300, 0);
-	timer_cursor = timer_alloc();
-	timer_settimer(timer_cursor, 100, 1);
-	timer3 = timer_alloc();
-	timer_settimer(timer3, 1000, 3);
+//	timer0 = timer_alloc();
+//	timer_settimer(timer0, 300, 0);
+//	timer_cursor = timer_alloc();
+//	timer_settimer(timer_cursor, 100, 1);
+//	timer3 = timer_alloc();
+//	timer_settimer(timer3, 1000, 3);
 
 	/**
 	 * Multi-tasking
@@ -170,12 +170,12 @@ void kernel_main(void)
 	/**
 	 * Common TIMERs
 	 */
-	timer_tss = timer_alloc_customfifobuf(&fifo32_common); // 3, 4
+	// timer_tss = timer_alloc_customfifobuf(&fifo32_common); // 3, 4
 	/* We start at TSS3, this is the first timer to switch to TSS4 */
-	timer_settimer(timer_tss, 10, 4);
+	// timer_settimer(timer_tss, 10, 4);
 	/* Screen Redraw (10ms) */
-	timer_render = timer_alloc_customfifobuf(&fifo32_common); // 6
-	timer_settimer(timer_render, 50, 6);
+	// timer_render = timer_alloc_customfifobuf(&fifo32_common); // 6
+	// timer_settimer(timer_render, 50, 6);
 
 	eventloop();
 }
@@ -190,15 +190,29 @@ void eventloop(void)
 	int32_t data_keymouse = 0;
 	int32_t keymousefifobuf_usedBytes = 0;
 	FIFO32 *keymousefifo = get_keymousefifo();
+
+	FIFO32 fifoTSS3 = {0};
+	int32_t __fifobuf[4096] = {0};
+	fifo32_init(&fifoTSS3, __fifobuf, 4096);
+	TIMER *timer_tss = NULL, *timer_put = NULL, *timer_1s = NULL;
+	(void) timer_put;
+
+	timer_1s = timer_alloc();
+	timer_settimer(timer_1s, 100, 1);
+	timer_tss = timer_alloc_customfifobuf(&fifoTSS3);
+	timer_settimer(timer_tss, 10, 4);
+
+	int32_t countTSS3 = 0;
+
 	for(;;)
 	{
-		counter++;
+		countTSS3++;
 		/**
 		 * Without cli(), it seems the printf in some cases cannot finish (may be buffed sometime)
 		 */
 		_io_cli();
 		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
-		if (!fifo32_status_getUsageB(&fifo32_common) && keymousefifobuf_usedBytes <= 0)
+		if (!fifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
 			_io_sti();
 			asm("pause");
@@ -208,36 +222,30 @@ void eventloop(void)
 		 * Every data in the fifo buffer should be sent by an interrupt
 		 * e.g. One mouse move emits 3 data packets, in 3 intterrupts
 		 */
-		if (!fifo32_status_getUsageB(&fifo32_common))
+		if (!fifo32_status_getUsageB(&fifoTSS3))
 		{
 			goto keymouse;
 			// goto wait_next_event;
 		}
 
-		data = fifo32_peek(&fifo32_common);
+		data = fifo32_dequeue(&fifoTSS3);
 
 		if (data < 0)
 		{
-			fifo32_dequeue(&fifo32_common);
 			goto wait_next_event;
 		}
+
 		/* TIMER timer_tss */
-		if (data == 3)
-		{
-			fifo32_dequeue(&fifo32_common);
-			/* Switch to TSS4 after 50ms */
-			timer_settimer(timer_tss, 5, 4);
-			goto wait_next_event;
-		} else if (data == 4)
+		if (data == 4)
 		{
 			process_switch_by_cs_index(data);
+			timer_settimer(timer_tss, 5, 0);
 			goto wait_next_event;
 		}
 
 		/* TIMER timer_render */
 		if (data == 6)
 		{
-			fifo32_dequeue(&fifo32_common);
 			// timer_settimer(timer_render, 10, 6);
 		}
 
@@ -320,85 +328,82 @@ void __tss_b_main(SHEET* sw)
 {
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
+
+	FIFO32 fifo = {0};
+	int32_t __fifobuf[4096] = {0};
+	fifo32_init(&fifo, __fifobuf, 4096);
+	TIMER *timer_tss = NULL, *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
+	timer_1s = timer_alloc_customfifobuf(&fifo);
+	timer_settimer(timer_1s, 100, 1);
+	timer_tss = timer_alloc_customfifobuf(&fifo);
+	timer_settimer(timer_tss, 5, 3);
+	timer_5s = timer_alloc_customfifobuf(&fifo);
+	timer_settimer(timer_5s, 500, 5);
+	timer_render = timer_alloc_customfifobuf(&fifo);
+	timer_settimer(timer_render, 10, 6);
+	(void) timer_render;
+	int32_t counterTSS4 = 0;
+
 	for (;;)
 	{
-		counter++;
+		counterTSS4++;
 		_io_cli();
-		if (timer_render->flags == TIMER_FLAGS_ALLOCATED)
-			timer_settimer(timer_render, 2, 6);
 
-		if (!fifo32_status_getUsageB(&fifo32_common))
+		if (!fifo32_status_getUsageB(&fifo))
 		{
 			_io_sti();
 			asm("pause");
 			continue;
 		}
 
-		data = fifo32_peek(&fifo32_common);
+		data = fifo32_dequeue(&fifo);
 
 		if (data < 0)
 		{
-			fifo32_dequeue(&fifo32_common);
 			continue;
 		}
 		/* TIMER timer_tss */
 		if (data == 3)
 		{
 			process_switch_by_cs_index(data);
+			timer_settimer(timer_tss, 5, 0);
 			continue;
-		} else if (data == 4)
+		}
+		/* Performance Test */
+		if (data == 5)
 		{
-			fifo32_dequeue(&fifo32_common);
-			/* Switch to TSS3 after 20ms */
-			timer_settimer(timer_tss, 2, 3);
-			continue;
+			printf("s:%d ", (counterTSS4)/5);
+			counterTSS4 = 0;
+			timer_settimer(timer_5s, 500, 0);
 		}
 
 		/* TIMER timer_render, Screen Redraw */
 		if (data == 6)
 		{
-			fifo32_dequeue(&fifo32_common);
-			timer_settimer(timer_render, 3, 6);
-			/* Performance test */
-			if (fifo32_status_getUsageB(timer0->fifo) > 0)
-			{
-				fifo32_dequeue(timer0->fifo);
-				timer_free(timer0);
-				printf("c10s", counter);
-				counter = 0;
-			}
-			if (fifo32_status_getUsageB(timer3->fifo) > 0)
-			{
-				fifo32_dequeue(timer3->fifo);
-				printf("s: %d ", counter);
-				timer_settimer(timer3, 1000, 3);
-			}
-			if (!sw)
-				continue;
+			timer_settimer(timer_render, 10, 0);
 
-			char ctc[40] = {0};
-			sprintf(ctc, "%010ld", timer_gettick());
-			boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
-			if (fifo32_status_getUsageB(timer0->fifo) > 0)
-				printf("%d", fifo32_dequeue(timer0->fifo));
-			/* Blinking cursor */
-			if (fifo32_status_getUsageB(timer_cursor->fifo) > 0)
+			if (sw)
 			{
-				int32_t timer_dt = fifo32_dequeue(timer_cursor->fifo);
-				if (timer_dt == 0)
-				{
-					timer_settimer(timer_cursor, 100, 1);
-					color = COL8_FFFFFF;
-				} else
-				{
-					timer_settimer(timer_cursor, 100, 0);
-					color = COL8_C6C6C6;
-				}
+				char ctc[40] = {0};
+				sprintf(ctc, "%010ld", timer_gettick());
+				boxfill8((uintptr_t)sw->buf, sw->bufXsize, COL8_C6C6C6, 40, 28, 119, 43);
+				boxfill8((uintptr_t)sw->buf, sw->bufXsize, color, 40, 28, 40+7, 28+15);
+				putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
+				sheet_update_sheet(sw, 40, 28, 120, 44);
+
 			}
-			/* Blinking cursor */
-			boxfill8((uintptr_t)sw->buf, sw->bufXsize, color, 40, 28, 40+7, 28+15);
-			putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
-			sheet_update_sheet(sw, 40, 28, 120, 44);
+
+		}
+
+		if (data == 1)
+		{
+			timer_settimer(timer_1s, 100, 1);
+			if (sw)
+			{
+				/* Blinking cursor (toggle color) */
+				color ^= COL8_C6C6C6;
+			}
+
 		}
 
 	}

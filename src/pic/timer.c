@@ -71,6 +71,8 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 		{
 			t->flags = TIMER_FLAGS_ALLOCATED;
 			t->fifo = fifo32;
+			t->data = 0;
+			t->target_count = UINT32_MAX;
 			return &timerctl.timer[i];
 		}
 	}
@@ -79,6 +81,7 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 
 /**
  * FIXME This is broken
+ * data == 0 is reserved, means no change to prev data
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
@@ -87,6 +90,8 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 		_io_cli();
 	if (timer->flags != TIMER_FLAGS_ALLOCATED)
 		return;
+	if (data == 0)
+		data = timer->data;
 
 	/* This implementation does not need timeout--, thus slightly faster */
 	timer->target_count = timerctl.count + timeout;
