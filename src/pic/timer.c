@@ -78,13 +78,15 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 }
 
 /**
- * Second, set a timer
+ * FIXME This is broken
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
 	bool isCli = io_get_is_cli();
 	if (!isCli)
 		_io_cli();
+	if (timer->flags != TIMER_FLAGS_ALLOCATED)
+		return;
 
 	/* This implementation does not need timeout--, thus slightly faster */
 	timer->target_count = timerctl.count + timeout;

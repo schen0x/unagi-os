@@ -195,8 +195,8 @@ void eventloop(void)
 		 */
 		if (!fifo32_status_getUsageB(&fifo32_common))
 		{
-			// goto keymouse;
-			goto wait_next_event;
+			goto keymouse;
+			// goto wait_next_event;
 		}
 
 		data = fifo32_peek(&fifo32_common);
@@ -224,38 +224,35 @@ void eventloop(void)
 		if (data == 6)
 		{
 			fifo32_dequeue(&fifo32_common);
-			timer_settimer(timer_put, 10, 6);
-			for (int32_t i = 0; i < 36; i++)
-			{
-// keymouse:
-				/* Keyboard and Mouse PIC interruptions handling */
-				keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
-				if (keymousefifobuf_usedBytes == 0)
-				{
-					goto wait_next_event;
-				}
-				data_keymouse = fifo32_dequeue(keymousefifo);
-				/**
-				 * Maybe -EIO
-				 */
-				if (data_keymouse < 0)
-					continue;
-					// goto wait_next_event;
-	
-				if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
-				{
-					int32_t kbdscancode = data_keymouse - DEV_FIFO_KBD_START;
-					int21h_handler(kbdscancode & 0xff);
-					continue;
-				}
-				if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
-				{
-					int32_t mousescancode = data_keymouse - DEV_FIFO_MOUSE_START;
-					int2ch_handler(mousescancode & 0xff);
-					continue;
-				}
+			// timer_settimer(timer_put, 10, 6);
+		}
 
-			}
+keymouse:
+		/* Keyboard and Mouse PIC interruptions handling */
+		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
+		if (keymousefifobuf_usedBytes == 0)
+		{
+			goto wait_next_event;
+		}
+		data_keymouse = fifo32_dequeue(keymousefifo);
+		/**
+		 * Maybe -EIO
+		 */
+		if (data_keymouse < 0)
+			continue;
+			// goto wait_next_event;
+
+		if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
+		{
+			int32_t kbdscancode = data_keymouse - DEV_FIFO_KBD_START;
+			int21h_handler(kbdscancode & 0xff);
+			continue;
+		}
+		if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
+		{
+			int32_t mousescancode = data_keymouse - DEV_FIFO_MOUSE_START;
+			int2ch_handler(mousescancode & 0xff);
+			continue;
 		}
 
 wait_next_event:
@@ -318,6 +315,9 @@ void __tss_b_main(void)
 	{
 		counter++;
 		_io_cli();
+		if (timer_put->flags == TIMER_FLAGS_ALLOCATED)
+			timer_settimer(timer_put, 2, 6);
+
 		if (!fifo32_status_getUsageB(&fifo32_common))
 		{
 			_io_sti();
@@ -350,21 +350,20 @@ void __tss_b_main(void)
 		/* Screen Redraw */
 		if (data == 6)
 		{
-			printf("e46 ");
 			fifo32_dequeue(&fifo32_common);
-			timer_settimer(timer_put, 10, 6);
+			timer_settimer(timer_put, 2, 6);
 			/* Performance test */
 			if (fifo32_status_getUsageB(timer0->fifo) > 0)
 			{
 				fifo32_dequeue(timer0->fifo);
 				timer_free(timer0);
-				printf("ct10sStart", counter);
+				printf("c10s", counter);
 				counter = 0;
 			}
 			if (fifo32_status_getUsageB(timer3->fifo) > 0)
 			{
 				fifo32_dequeue(timer3->fifo);
-				printf("ct10s: %d ", counter);
+				printf("s: %d ", counter);
 				timer_settimer(timer3, 1000, 3);
 			}
 			if (!sw)
