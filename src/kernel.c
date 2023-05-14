@@ -184,7 +184,6 @@ void eventloop(void)
 	for(;;)
 	{
 		counter++;
-		_io_sti();
 		/**
 		 * Without cli(), it seems the printf in some cases cannot finish (may be buffed sometime)
 		 */
@@ -203,7 +202,7 @@ void eventloop(void)
 		if (data < 0)
 		{
 			fifo32_dequeue(&fifo32_common);
-			continue;
+			goto wait_next_event;
 		}
 		/* TIMER timer_ts */
 		if (data == 3)
@@ -211,25 +210,28 @@ void eventloop(void)
 			fifo32_dequeue(&fifo32_common);
 			/* Switch to TSS4 after 20ms */
 			timer_settimer(timer_ts, 2, 4);
-			continue;
+			goto wait_next_event;
 		}
 		/* TIMER timer_ts */
 		if (data == 4)
 		{
 			process_switch_by_cs_index(data);
-			continue;
+			goto wait_next_event;
 		}
 
 keymouse:
 		if (!keymousefifo)
-			continue;
-		_io_cli();
+			goto wait_next_event;
+		if (!fifo32_status_getUsageB(keymousefifo))
+		{
+			goto wait_next_event;
+		}
 
 		/* Try handle a fixed amount of keyboard && mouse packets */
 		for (int32_t i = 0; i < 36; i++)
 		{
 			if (fifo32_status_getUsageB(keymousefifo) <= 0)
-				break;
+				goto wait_next_event;
 
 			data_keymouse = fifo32_dequeue(keymousefifo);
 			/* -EIO */
@@ -251,7 +253,9 @@ keymouse:
 			}
 
 		}
+wait_next_event:
 		_io_sti();
+		asm("pause");
 	}
 }
 
