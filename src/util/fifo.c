@@ -88,6 +88,8 @@ int32_t fifo32_peek(const FIFO32 *fifo)
  */
 int32_t fifo32_status_getUsageB(FIFO32 *fifo)
 {
+	if (!fifo)
+		return -EIO;
 	int32_t usage_in_bytes = 0;
 	usage_in_bytes = fifo->buflen - fifo->free;
 	return usage_in_bytes;

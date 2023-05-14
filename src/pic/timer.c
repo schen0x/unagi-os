@@ -107,10 +107,13 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 
 /**
  * At last, free a timer
+ * The TIMER *timer always exists and is 0 initialized
  */
 void timer_free(TIMER *timer)
 {
 	timer->flags = 0;
+	timer->data = 0;
+	timer->target_count = 0;
 	kfree(timer->fifo->buf);
 	kfree(timer->fifo);
 	return;

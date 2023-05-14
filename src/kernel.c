@@ -32,8 +32,8 @@ TIMER *timer0 = NULL;
 TIMER *timer_cursor = NULL;
 TIMER *timer3 = NULL;
 
-TIMER *timer_ts = NULL;
-TIMER *timer_put = NULL;
+TIMER *timer_tss = NULL;
+TIMER *timer_render = NULL;
 
 FIFO32 fifo32_common = {0};
 int32_t __fifo32_buffer[4096] = {0};
@@ -155,19 +155,27 @@ void kernel_main(void)
 	 *   - Setup a TIMER
 	 */
 	gdt_tss_init();
-	task_b_esp = (uint8_t *)kmalloc(4096 * 2);
-	__tss_switch4_prep();
 
+	/**
+	 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
+	 * -12 if use a far call; anyway, far jumping is used here.
+	 *
+	 * A fancy way to pass the `sw` variable
+	 */
+	task_b_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 8;
+	SHEET* sw = get_sheet_window();
+	*(uint32_t *)(task_b_esp + 4) = (uint32_t) sw;
+	__tss_switch4_prep((uint32_t) task_b_esp);
 
 	/**
 	 * Common TIMERs
 	 */
-	timer_ts = timer_alloc_customfifobuf(&fifo32_common); // 3, 4
+	timer_tss = timer_alloc_customfifobuf(&fifo32_common); // 3, 4
 	/* We start at TSS3, this is the first timer to switch to TSS4 */
-	timer_settimer(timer_ts, 10, 4);
+	timer_settimer(timer_tss, 10, 4);
 	/* Screen Redraw (10ms) */
-	timer_put = timer_alloc_customfifobuf(&fifo32_common); // 6
-	timer_settimer(timer_put, 300, 6);
+	timer_render = timer_alloc_customfifobuf(&fifo32_common); // 6
+	timer_settimer(timer_render, 50, 6);
 
 	eventloop();
 }
@@ -189,6 +197,13 @@ void eventloop(void)
 		 * Without cli(), it seems the printf in some cases cannot finish (may be buffed sometime)
 		 */
 		_io_cli();
+		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
+		if (!fifo32_status_getUsageB(&fifo32_common) && keymousefifobuf_usedBytes <= 0)
+		{
+			_io_sti();
+			asm("pause");
+			continue;
+		}
 		/**
 		 * Every data in the fifo buffer should be sent by an interrupt
 		 * e.g. One mouse move emits 3 data packets, in 3 intterrupts
@@ -206,30 +221,28 @@ void eventloop(void)
 			fifo32_dequeue(&fifo32_common);
 			goto wait_next_event;
 		}
-		/* TIMER timer_ts */
+		/* TIMER timer_tss */
 		if (data == 3)
 		{
 			fifo32_dequeue(&fifo32_common);
 			/* Switch to TSS4 after 50ms */
-			timer_settimer(timer_ts, 5, 4);
+			timer_settimer(timer_tss, 5, 4);
 			goto wait_next_event;
-		}
-		/* TIMER timer_ts */
-		if (data == 4)
+		} else if (data == 4)
 		{
 			process_switch_by_cs_index(data);
 			goto wait_next_event;
 		}
 
+		/* TIMER timer_render */
 		if (data == 6)
 		{
 			fifo32_dequeue(&fifo32_common);
-			// timer_settimer(timer_put, 10, 6);
+			// timer_settimer(timer_render, 10, 6);
 		}
 
 keymouse:
 		/* Keyboard and Mouse PIC interruptions handling */
-		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
 		if (keymousefifobuf_usedBytes == 0)
 		{
 			goto wait_next_event;
@@ -239,26 +252,23 @@ keymouse:
 		 * Maybe -EIO
 		 */
 		if (data_keymouse < 0)
-			continue;
-			// goto wait_next_event;
+			// continue;
+			goto wait_next_event;
 
 		if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
 		{
 			int32_t kbdscancode = data_keymouse - DEV_FIFO_KBD_START;
 			int21h_handler(kbdscancode & 0xff);
-			continue;
-		}
-		if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
+		} else if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
 		{
 			int32_t mousescancode = data_keymouse - DEV_FIFO_MOUSE_START;
 			int2ch_handler(mousescancode & 0xff);
-			continue;
 		}
 
 wait_next_event:
 		_io_sti();
-		/* Somewhere, a pause is necessary. Because without a pause, the loop will be infinite _cli() forever */
-		asm("pause");
+		/* Somewhere (e.g. here or in the first "if" block), a pause is necessary. Because without a pause, the loop will be infinite _cli() forever */
+		// asm("pause");
 	}
 }
 
@@ -288,12 +298,11 @@ void int2ch_handler(uint8_t scancode)
 }
 
 
-void __tss_switch4_prep(void)
+void __tss_switch4_prep(uint32_t tss4_esp)
 {
 	TSS32 *tss_b = process_gettssb();
-	(void)tss_b;
 	tss_b->eip = (uint32_t) &__tss_b_main;
-	tss_b->esp = (uint32_t) task_b_esp;
+	tss_b->esp = tss4_esp;
 	tss_b->cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
 	tss_b->es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 	tss_b->ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
@@ -305,18 +314,18 @@ void __tss_switch4_prep(void)
 
 /**
  * TSS4
+ * TODO Change to a TSS local shared fifo
  */
-void __tss_b_main(void)
+void __tss_b_main(SHEET* sw)
 {
-	SHEET* sw = get_sheet_window();
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
 	for (;;)
 	{
 		counter++;
 		_io_cli();
-		if (timer_put->flags == TIMER_FLAGS_ALLOCATED)
-			timer_settimer(timer_put, 2, 6);
+		if (timer_render->flags == TIMER_FLAGS_ALLOCATED)
+			timer_settimer(timer_render, 2, 6);
 
 		if (!fifo32_status_getUsageB(&fifo32_common))
 		{
@@ -332,26 +341,24 @@ void __tss_b_main(void)
 			fifo32_dequeue(&fifo32_common);
 			continue;
 		}
-		/* TIMER timer_ts */
+		/* TIMER timer_tss */
 		if (data == 3)
 		{
 			process_switch_by_cs_index(data);
 			continue;
-		}
-		/* TIMER timer_ts */
-		if (data == 4)
+		} else if (data == 4)
 		{
 			fifo32_dequeue(&fifo32_common);
-			/* Switch to TSS3 after 50ms */
-			timer_settimer(timer_ts, 5, 3);
+			/* Switch to TSS3 after 20ms */
+			timer_settimer(timer_tss, 2, 3);
 			continue;
 		}
 
-		/* Screen Redraw */
+		/* TIMER timer_render, Screen Redraw */
 		if (data == 6)
 		{
 			fifo32_dequeue(&fifo32_common);
-			timer_settimer(timer_put, 2, 6);
+			timer_settimer(timer_render, 3, 6);
 			/* Performance test */
 			if (fifo32_status_getUsageB(timer0->fifo) > 0)
 			{
