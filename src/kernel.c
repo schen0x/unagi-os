@@ -164,7 +164,7 @@ void kernel_main(void)
 	 */
 	timer_ts = timer_alloc_customfifobuf(&fifo32_common); // 3, 4
 	/* We start at TSS3, this is the first timer to switch to TSS4 */
-	timer_settimer(timer_ts, 10, 4);
+	// timer_settimer(timer_ts, 10, 4);
 	/* Screen Redraw (10ms) */
 	timer_put = timer_alloc_customfifobuf(&fifo32_common); // 6
 	timer_settimer(timer_put, 300, 6);
@@ -180,6 +180,7 @@ void eventloop(void)
 {
 	int32_t data = 0;
 	int32_t data_keymouse = 0;
+	FIFO32 *keymousefifo = get_keymousefifo();
 	for(;;)
 	{
 		counter++;
@@ -220,45 +221,37 @@ void eventloop(void)
 		}
 
 keymouse:
+		if (!keymousefifo)
+			continue;
+		_io_cli();
 
-
-		FIFO32 *k = get_keymousefifo();
-
-		if (data == 6)
+		/* Try handle a fixed amount of keyboard && mouse packets */
+		for (int32_t i = 0; i < 36; i++)
 		{
-			_io_cli();
-			fifo32_dequeue(&fifo32_common);
-			timer_settimer(timer_put, 10, 6);
+			if (fifo32_status_getUsageB(keymousefifo) <= 0)
+				break;
 
-			/* Try handle a fixed amount of keyboard && mouse packets */
-			for (int32_t i = 0; i < 36; i++)
+			data_keymouse = fifo32_dequeue(keymousefifo);
+			/* -EIO */
+			if (data_keymouse < 0)
+				continue;
+			/* keyboard packet */
+			if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
 			{
-				if (!fifo32_status_getUsageB(k))
-					break;
-
-				data_keymouse = fifo32_dequeue(k);
-				printf("%x", data_keymouse);
-				/* -EIO */
-				if (data_keymouse < 0)
-					continue;
-				/* keyboard packet */
-				if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
-				{
-					int32_t kbdscancode = data - DEV_FIFO_KBD_START;
-					int21h_handler(kbdscancode & 0xff);
-					continue;
-				}
-				/* mouse packet */
-				if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
-				{
-					int32_t mousescancode = data - DEV_FIFO_MOUSE_START;
-					int2ch_handler(mousescancode & 0xff);
-					continue;
-				}
-
+				int32_t kbdscancode = data - DEV_FIFO_KBD_START;
+				int21h_handler(kbdscancode & 0xff);
+				continue;
 			}
-			_io_sti();
+			/* mouse packet */
+			if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
+			{
+				int32_t mousescancode = data - DEV_FIFO_MOUSE_START;
+				int2ch_handler(mousescancode & 0xff);
+				continue;
+			}
+
 		}
+		_io_sti();
 	}
 }
 
