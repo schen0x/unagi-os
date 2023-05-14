@@ -53,14 +53,16 @@ void pit_init(void)
  */
 TIMER* timer_alloc(void)
 {
-	int32_t *timer_buf = (int32_t *)kzalloc(512);
-	return timer_alloc_customfifobuf(timer_buf, 512);
+	int32_t *fifo32buf = (int32_t *)kzalloc(512);
+	FIFO32 *timer_fifo = (FIFO32 *)kzalloc(sizeof(FIFO32));
+	fifo32_init(timer_fifo, fifo32buf, 512 / sizeof(fifo32buf[0]));
+	return timer_alloc_customfifobuf(timer_fifo);
 }
 
 /**
  * Allocate a timer, allow specifying a custom fifo buffer
  */
-TIMER* timer_alloc_customfifobuf(int32_t *fifo32buf, int32_t bufSizeInBytes)
+TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 {
 	for (int32_t i = 0; i< OS_MAX_TIMER; i++)
 	{
@@ -68,9 +70,7 @@ TIMER* timer_alloc_customfifobuf(int32_t *fifo32buf, int32_t bufSizeInBytes)
 		if (t->flags == 0)
 		{
 			t->flags = TIMER_FLAGS_ALLOCATED;
-			FIFO32 *timer_fifo = (FIFO32 *)kzalloc(sizeof(FIFO32));
-			fifo32_init(timer_fifo, fifo32buf, bufSizeInBytes / sizeof(fifo32buf[0]));
-			t->fifo = timer_fifo;
+			t->fifo = fifo32;
 			return &timerctl.timer[i];
 		}
 	}

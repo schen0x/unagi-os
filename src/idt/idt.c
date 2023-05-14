@@ -13,6 +13,7 @@
 #include "status.h"
 #include "util/kutil.h"
 #include "util/printf.h"
+#include "kernel.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -24,6 +25,11 @@ static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
 FIFO32 keymousefifo = {0};
 int32_t _keymousefifobuf[4096] = {0};
+/**
+ * Use the fifo32_common, same buffer with the timer
+ * Doing so by adding/substracting an offset to all keyboard and mouse data
+ */
+//! FIFO32 *keymousefifo = NULL;
 
 /* 0 before 0xfa; 1 afterwards */
 //static int32_t mouse_phase = 0;
@@ -31,10 +37,14 @@ int32_t _keymousefifobuf[4096] = {0};
 //     			//
 //const int32_t MOUSE_ONE_MOVE_CMD_SIZE = 3;
 //uint8_t _mouse_one_move_buf[3] = {0}; // 3 bytes[]
-				      //
 
+FIFO32* get_keymousefifo()
+{
+	return &keymousefifo;
+}
 static void chips_init()
 {
+	// keymousefifo = get_fifo32_common();
 	/* TODO refactoring, find somewhere else for the buffer */
 	// uint8_t _keybuf[32] = {0};
 	// uint8_t *_keybuf = (uint8_t*) kzalloc(32); // of course if memory it not yet initialized, this is not possible.

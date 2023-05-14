@@ -69,6 +69,21 @@ int32_t fifo32_dequeue(FIFO32 *fifo)
 }
 
 /*
+ * Peek 1 byte in FIFO buffer
+ * Return the same value as fifo32_dequeue but do not modify
+ */
+int32_t fifo32_peek(const FIFO32 *fifo)
+{
+	int32_t data;
+	if (fifo->free == fifo->buflen)
+	{
+		return -EIO;
+	}
+	data = fifo->buf[fifo->next_r];
+	return data;
+}
+
+/*
  * Return the usage of the buffer in Bytes
  */
 int32_t fifo32_status_getUsageB(FIFO32 *fifo)
@@ -92,7 +107,10 @@ bool test_fifo32(void)
 	}
 	for (uint8_t i = 0x40; i < 0x48; i++)
 	{
+		uint8_t dp = fifo32_peek(&f);
 		uint8_t d = fifo32_dequeue(&f);
+		if (dp != i)
+			return false;
 		if (d != i)
 			return false;
 		if (fifo32_status_getUsageB(&f) != (0x48 - i - 1))
@@ -130,7 +148,10 @@ bool test_fifo32(void)
 	}
 	for (uint8_t i = 0x43; i < 0x4b; i++)
 	{
+		uint8_t dp = fifo32_peek(&f);
 		uint8_t d = fifo32_dequeue(&f);
+		if (dp != i)
+			return false;
 		if (d != i)
 			return false;
 	}

@@ -43,8 +43,7 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
 void int3h(void);
 void int21h(void);
 void int2ch(void);
-extern FIFO32 keymousefifo;
-extern FIFO32 keymousefifobuf;
+FIFO32* get_keymousefifo();
 
 void idt_zero();
 void int20h();
