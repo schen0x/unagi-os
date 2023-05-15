@@ -67,7 +67,7 @@ typedef struct GDTR32
 	uint32_t base; // uintptr GDT_START
 } __attribute__((packed)) GDTR32;
 
-static void gdt_set_segmdesc(GDT32SD *sd, uint32_t limit, uint32_t base, uint8_t ar);
+void gdt_set_segmdesc(GDT32SD *sd, uint32_t limit, uint32_t base, uint8_t ar);
 static void __gdt_import(GDTR32 *gdtrDst, GDT32SD *gdtsDst, GDTR32 *gdtrSrc);
 static void gdt_read_gdtr0();
 uint16_t gdt_append(GDTR32 *r, GDT32SD *d, GDT32SD *d1);
@@ -78,5 +78,7 @@ extern void _gdt_reload(GDTR32 *gdtr);
 extern void _gdt_load_task_register(uint16_t tss_segment_selector);
 void _taskswitch4(void);
 void _taskswitch3(void);
+GDTR32* gdt_get_gdtr();
+GDT32SD* gdt_get_gdts();
 #endif
 

@@ -147,12 +147,14 @@ void kernel_main(void)
 	 *
 	 * A fancy way to pass the `sw` variable
 	 */
-	task_b_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 8;
-	SHEET* sw = get_sheet_window();
-	*(uint32_t *)(task_b_esp + 4) = (uint32_t) sw;
-	__tss_switch4_prep((uint32_t) task_b_esp);
+	// task_b_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 8;
+	// SHEET* sw = get_sheet_window();
+	// *(uint32_t *)(task_b_esp + 4) = (uint32_t) sw;
+	// __tss_switch4_prep((uint32_t) task_b_esp);
+	task_b_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 4;
 
 	//! process_autotaskswitch_init();
+	mprocess_init();
 	eventloop();
 }
 
@@ -300,9 +302,10 @@ void __tss_switch4_prep(uint32_t tss4_esp)
  * TSS4
  * TODO Change to a TSS local shared fifo
  */
-void __tss_b_main(SHEET* sw)
+// void __tss_b_main(SHEET* sw)
+void __tss_b_main()
 {
-	sw = get_sheet_window();
+	SHEET* sw = get_sheet_window();
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
 

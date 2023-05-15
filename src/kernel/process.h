@@ -39,6 +39,23 @@ typedef struct TSS32 {
 	uint32_t ssp;
 } __attribute__((packed)) TSS32;
 
+typedef struct TASK
+{
+	uint32_t gdtSegmentSelector;
+	uint32_t flags;
+	TSS32 tss;
+} TASK;
+
+typedef struct TASKCTL
+{
+	/* Sum of active tasks */
+	int32_t running;
+	/* Current task */
+	int32_t now;
+	TASK *tasks[OS_MPROCESS_TASK_MAX];
+	TASK tasks0[OS_MPROCESS_TASK_MAX];
+} TASKCTL;
+
 
 TSS32* process_gettssa(void);
 TSS32* process_gettssb(void);
@@ -48,4 +65,11 @@ void process_switch_by_cs_index(int64_t cs_index);
 void process_autotaskswitch(uint32_t delay_ms);
 void process_autotaskswitch_init(void);
 TIMER* process_get_tss_timer(void);
+
+
+
+
+
+TASK *mprocess_init();
+TASK *task_alloc(void);
 #endif

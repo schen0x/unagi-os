@@ -8,6 +8,10 @@
 #define OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR 1 * 8 // because last 3 bits are flags
 #define OS_IDT_TOTAL_INTERRUPTS 256
 #define OS_IDT_AR_INTGATE32 0x8e // access bit for intgate32
+/* Max process allowed when multi-tasking */
+#define OS_MPROCESS_TASK_MAX 1000
+/* The first TSS segment in GDT */
+#define OS_MPROCESS_TSS_GDT_INDEX_START 5
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define OS_MEMORY_ALIGN 16

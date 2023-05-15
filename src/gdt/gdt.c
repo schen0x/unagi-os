@@ -7,7 +7,7 @@
 static GDTR32 gdtr = {0};
 static GDT32SD gdts[8192] = {0}; // 64KB (8 bytes each) in .data
 
-static void gdt_set_segmdesc(GDT32SD *sd, uint32_t limit, uint32_t base, uint8_t ar)
+void gdt_set_segmdesc(GDT32SD *sd, uint32_t limit, uint32_t base, uint8_t ar)
 {
 	sd->flags = 0xc;
 	sd->limit_low = limit & 0xffff;
@@ -105,5 +105,15 @@ void gdt_tss_init()
 	if (!isCli)
 		_io_sti();
 
+}
+
+GDTR32* gdt_get_gdtr()
+{
+	return &gdtr;
+}
+
+GDT32SD* gdt_get_gdts()
+{
+	return gdts;
 }
 

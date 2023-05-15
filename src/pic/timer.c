@@ -119,11 +119,16 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
  */
 void timer_free(TIMER *timer)
 {
+	if (!timer)
+		return;
 	timer->flags = 0;
 	timer->data = 0;
 	timer->target_count = 0;
-	kfree(timer->fifo->buf);
-	kfree(timer->fifo);
+	if (timer->fifo)
+	{
+		kfree(timer->fifo->buf);
+		kfree(timer->fifo);
+	}
 	return;
 }
 
