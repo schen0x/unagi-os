@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "pic/timer.h"
 /**
  * Task Status Segment
  */
@@ -41,9 +40,7 @@ typedef struct TSS32 {
 
 TSS32* process_gettssa(void);
 TSS32* process_gettssb(void);
-void process_autotaskswitch_init(void);
+bool process_tss_init(TSS32 *tss);
 void _farjmp(uint32_t eip, uint16_t cs);
 void process_switch_by_cs_index(int64_t cs_index);
-void process_autotaskswitch(int32_t delay_ms);
-TIMER* process_get_ttss(void);
 #endif
