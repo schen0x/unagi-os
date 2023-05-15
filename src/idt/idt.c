@@ -14,6 +14,7 @@
 #include "util/kutil.h"
 #include "util/printf.h"
 #include "kernel.h"
+#include "kernel/process.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function

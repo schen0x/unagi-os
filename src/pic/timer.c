@@ -3,6 +3,7 @@
 #include "io/io.h"
 #include "memory/memory.h"
 #include "util/printf.h"
+#include "kernel/process.h"
 /**
  * TODO use a double linked list etc. so that on setting timer or on triggering etc.
  * Keep a list in order so that no need to loop through all elements.
@@ -61,6 +62,7 @@ TIMER* timer_alloc(void)
 
 /**
  * Allocate a timer, allow specifying a custom fifo buffer
+ * @fifo32 may be NULL
  */
 TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 {
@@ -85,6 +87,8 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
+	if (!timer)
+		return;
 	bool isCli = io_get_is_cli();
 	if (!isCli)
 		_io_cli();
@@ -155,6 +159,8 @@ void timer_int_handler()
 	uint32_t triggerred[OS_MAX_TIMER] = {0};
 	/* Temporary, array index */
 	uint32_t __triggerred_arr_len = 0;
+	TIMER *ttss = process_get_ttss();
+	bool switchTSS = false;
 	for (uint32_t i = 0; i < timerctl.total_running; i++)
 	{
 		TIMER *t = timerctl.timers[i];
@@ -164,14 +170,17 @@ void timer_int_handler()
 			/* Trigger */
 			if (t->target_count <= timerctl.count)
 			{
-				t->flags = TIMER_FLAGS_ALLOCATED;
+				/**
+				 * ttss does not have fifo.
+				 */
+				if (t == ttss)
+					switchTSS = true;
 				fifo32_enqueue(t->fifo, t->data);
+				t->flags = TIMER_FLAGS_ALLOCATED;
 				/* Push the triggered index, meanwhile this ensures the ascending order */
 				triggerred[__triggerred_arr_len++] = i;
-				continue;
-			}
-			/* Update `next` */
-			if (timerctl.next_alarm_on_count > t->target_count)
+			/* Otherwise, try update `next` */
+			} else if (timerctl.next_alarm_on_count > t->target_count)
 			{
 				timerctl.next_alarm_on_count = t->target_count;
 			}
@@ -186,6 +195,11 @@ void timer_int_handler()
 	 */
 	timer_arr_remove_element_u32(timerctl.timers, triggerred, timerctl.total_running, __triggerred_arr_len);
 	timerctl.total_running = timerctl.total_running - __triggerred_arr_len;
+
+	if (switchTSS)
+	{
+		process_autotaskswitch(200);
+	}
 	return;
 }
 

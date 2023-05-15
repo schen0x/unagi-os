@@ -27,6 +27,8 @@ void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t buflen)
  */
 int32_t fifo32_enqueue(FIFO32 *fifo, int32_t data)
 {
+	if (!fifo)
+		return -EIO;
 	if (fifo->free == 0)
 	{
 	// 	fifo->flags |= FIFO32_FLAG_OVERRUN; // TODO is this flag really necessary?
