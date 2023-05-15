@@ -304,17 +304,17 @@ void __tss_b_main(SHEET* sw)
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
 
-	FIFO32 fifo = {0};
+	FIFO32 fifoTSS4 = {0};
 	int32_t __fifobuf[4096] = {0};
-	fifo32_init(&fifo, __fifobuf, 4096);
+	fifo32_init(&fifoTSS4, __fifobuf, 4096);
 	TIMER *timer_tss = NULL, *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
-	timer_1s = timer_alloc_customfifobuf(&fifo);
+	timer_1s = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_1s, 100, 1);
-	timer_tss = timer_alloc_customfifobuf(&fifo);
+	timer_tss = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_tss, 5, 3);
-	timer_5s = timer_alloc_customfifobuf(&fifo);
+	timer_5s = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_5s, 500, 5);
-	timer_render = timer_alloc_customfifobuf(&fifo);
+	timer_render = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_render, 10, 6);
 	(void) timer_render;
 	int32_t counterTSS4 = 0;
@@ -324,14 +324,14 @@ void __tss_b_main(SHEET* sw)
 		counterTSS4++;
 		_io_cli();
 
-		if (!fifo32_status_getUsageB(&fifo))
+		if (!fifo32_status_getUsageB(&fifoTSS4))
 		{
 			_io_sti();
 			asm("pause");
 			continue;
 		}
 
-		data = fifo32_dequeue(&fifo);
+		data = fifo32_dequeue(&fifoTSS4);
 
 		if (data < 0)
 		{
