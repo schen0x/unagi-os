@@ -3,6 +3,7 @@
 #include "io/io.h"
 #include "memory/memory.h"
 #include "util/printf.h"
+#include "kernel/process.h"
 /**
  * TODO use a double linked list etc. so that on setting timer or on triggering etc.
  * Keep a list in order so that no need to loop through all elements.
@@ -73,7 +74,7 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 			t->fifo = fifo32;
 			t->data = 0;
 			t->target_count = UINT32_MAX;
-			return &timerctl.timer[i];
+			return t;
 		}
 	}
 	return NULL;
@@ -85,6 +86,8 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
+	if (!timer)
+		return;
 	bool isCli = io_get_is_cli();
 	if (!isCli)
 		_io_cli();
@@ -186,6 +189,14 @@ void timer_int_handler()
 	 */
 	timer_arr_remove_element_u32(timerctl.timers, triggerred, timerctl.total_running, __triggerred_arr_len);
 	timerctl.total_running = timerctl.total_running - __triggerred_arr_len;
+
+	TIMER *tss_timer = process_get_tss_timer();
+	if (tss_timer)
+	{
+		int32_t dt = fifo32_dequeue(tss_timer->fifo);
+		if (dt > 0)
+			process_autotaskswitch(100);
+	}
 	return;
 }
 

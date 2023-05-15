@@ -152,6 +152,7 @@ void kernel_main(void)
 	*(uint32_t *)(task_b_esp + 4) = (uint32_t) sw;
 	__tss_switch4_prep((uint32_t) task_b_esp);
 
+	//! process_autotaskswitch_init();
 	eventloop();
 }
 
@@ -169,13 +170,13 @@ void eventloop(void)
 	FIFO32 fifoTSS3 = {0};
 	int32_t __fifobuf[4096] = {0};
 	fifo32_init(&fifoTSS3, __fifobuf, 4096);
-	TIMER *timer_tss = NULL, *timer_put = NULL, *timer_1s = NULL;
+	TIMER *timer_put = NULL, *timer_1s = NULL;
 	(void) timer_put;
 
 	timer_1s = timer_alloc();
 	timer_settimer(timer_1s, 100, 1);
-	timer_tss = timer_alloc_customfifobuf(&fifoTSS3);
-	timer_settimer(timer_tss, 10, 4);
+	// timer_tss = timer_alloc_customfifobuf(&fifoTSS3);
+	// timer_settimer(timer_tss, 10, 4);
 
 	int32_t countTSS3 = 0;
 
@@ -211,12 +212,12 @@ void eventloop(void)
 		}
 
 		/* TIMER timer_tss */
-		if (data == 4)
-		{
-			process_switch_by_cs_index(data);
-			timer_settimer(timer_tss, 5, 0);
-			goto wait_next_event;
-		}
+	//	if (data == 4)
+	//	{
+	//		process_switch_by_cs_index(data);
+	//		timer_settimer(timer_tss, 5, 0);
+	//		goto wait_next_event;
+	//	}
 
 		/* TIMER timer_render */
 		if (data == 6)
@@ -301,17 +302,18 @@ void __tss_switch4_prep(uint32_t tss4_esp)
  */
 void __tss_b_main(SHEET* sw)
 {
+	sw = get_sheet_window();
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
 
 	FIFO32 fifoTSS4 = {0};
 	int32_t __fifobuf[4096] = {0};
 	fifo32_init(&fifoTSS4, __fifobuf, 4096);
-	TIMER *timer_tss = NULL, *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
+	TIMER *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
 	timer_1s = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_1s, 100, 1);
-	timer_tss = timer_alloc_customfifobuf(&fifoTSS4);
-	timer_settimer(timer_tss, 5, 3);
+	// timer_tss = timer_alloc_customfifobuf(&fifoTSS4);
+	// timer_settimer(timer_tss, 5, 3);
 	timer_5s = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_5s, 500, 5);
 	timer_render = timer_alloc_customfifobuf(&fifoTSS4);
@@ -338,12 +340,12 @@ void __tss_b_main(SHEET* sw)
 			continue;
 		}
 		/* TIMER timer_tss */
-		if (data == 3)
-		{
-			process_switch_by_cs_index(data);
-			timer_settimer(timer_tss, 5, 0);
-			continue;
-		}
+	//	if (data == 3)
+	//	{
+	//		process_switch_by_cs_index(data);
+	//		timer_settimer(timer_tss, 5, 0);
+	//		continue;
+	//	}
 		/* Performance Test */
 		if (data == 5)
 		{

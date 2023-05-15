@@ -1,8 +1,10 @@
 #ifndef KERNEL_PROCESS_H_
 #define KERNEL_PROCESS_H_
 
+#include "pic/timer.h"
 #include <stdint.h>
 #include <stdbool.h>
+
 /**
  * Task Status Segment
  */
@@ -43,4 +45,7 @@ TSS32* process_gettssb(void);
 bool process_tss_init(TSS32 *tss);
 void _farjmp(uint32_t eip, uint16_t cs);
 void process_switch_by_cs_index(int64_t cs_index);
+void process_autotaskswitch(uint32_t delay_ms);
+void process_autotaskswitch_init(void);
+TIMER* process_get_tss_timer(void);
 #endif
