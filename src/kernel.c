@@ -28,13 +28,6 @@ MOUSE_DATA_BUNDLE mouse_one_move = {0};
 uint32_t page_directory[1024] __attribute__((aligned(4096)));
 uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 
-//TIMER *timer0 = NULL;
-//TIMER *timer_cursor = NULL;
-//TIMER *timer3 = NULL;
-
-// TIMER *timer_tss = NULL;
-// TIMER *timer_render = NULL;
-
 FIFO32 fifo32_common = {0};
 int32_t __fifo32_buffer[4096] = {0};
 
@@ -141,14 +134,6 @@ void kernel_main(void)
 	}
 	// heap_debug();
 
-	/* Set a timer of 3s */
-//	timer0 = timer_alloc();
-//	timer_settimer(timer0, 300, 0);
-//	timer_cursor = timer_alloc();
-//	timer_settimer(timer_cursor, 100, 1);
-//	timer3 = timer_alloc();
-//	timer_settimer(timer3, 1000, 3);
-
 	/**
 	 * Multi-tasking
 	 *   - Import GDTR0 and switch to the GDTR1
@@ -166,16 +151,6 @@ void kernel_main(void)
 	SHEET* sw = get_sheet_window();
 	*(uint32_t *)(task_b_esp + 4) = (uint32_t) sw;
 	__tss_switch4_prep((uint32_t) task_b_esp);
-
-	/**
-	 * Common TIMERs
-	 */
-	// timer_tss = timer_alloc_customfifobuf(&fifo32_common); // 3, 4
-	/* We start at TSS3, this is the first timer to switch to TSS4 */
-	// timer_settimer(timer_tss, 10, 4);
-	/* Screen Redraw (10ms) */
-	// timer_render = timer_alloc_customfifobuf(&fifo32_common); // 6
-	// timer_settimer(timer_render, 50, 6);
 
 	eventloop();
 }
