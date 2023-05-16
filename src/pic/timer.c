@@ -5,6 +5,8 @@
 #include "util/printf.h"
 #include "kernel/process.h"
 /**
+ * Want a structure of timer that can easily be searched based on something (Easy Reset: pointer is known; Insert: need to search based on time; Most performance required at each INT handler, which implies that if a timer is frequently triggered, the time should be quite close to the head)
+ *
  * TODO use a double linked list etc. so that on setting timer or on triggering etc.
  * Keep a list in order so that no need to loop through all elements.
  *
@@ -81,8 +83,9 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 }
 
 /**
- * FIXME This is broken
- * data == 0 is reserved, means no change to prev data
+ * FIXME This is broken AF
+ *   - data == 0 is reserved, means no change to prev data
+ *   - when a timer is still running?
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
@@ -91,8 +94,10 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 	bool isCli = io_get_is_cli();
 	if (!isCli)
 		_io_cli();
+
 	if (timer->flags != TIMER_FLAGS_ALLOCATED)
 		return;
+
 	if (data == 0)
 		data = timer->data;
 

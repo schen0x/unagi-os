@@ -93,6 +93,10 @@ TIMER* process_get_tss_timer(void)
 
 /**
  * Should be called after the gdtr migration
+ *   - Append GDT1 with 1000 TSS segments
+ *   - ltr the first
+ *   - Set the initial task_timer with NULL fifo
+ *   - Return the first TASK
  */
 TASK *mprocess_init()
 {
@@ -184,3 +188,4 @@ void task_switch(void)
 	}
 	return;
 }
+
