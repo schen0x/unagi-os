@@ -34,21 +34,44 @@ void pit_init(void)
 	_io_out8(PIT_CTRL, 0x34); // channel 0, lobyte/hibyte, rate generator
 	_io_out8(PIT_CNT0, 0x9c); // Set low byte of PIT reload value
 	_io_out8(PIT_CNT0, 0x2e); // Set high byte of PIT reload value
-	timerctl.count = 0;
-	timerctl.next_alarm_on_count = UINT32_MAX;
-	timerctl.total_running = 0;
-	for (int32_t i = 0; i < OS_MAX_TIMER; i++)
-	{
-		/* Flag: Unused */
-		timerctl.timer[i].flags = 0;
-		timerctl.timers[i] = NULL;
-	}
-
+	timerctl_init();
 	if (!isCli)
 		_io_sti();
 
 	return;
 }
+
+static void timerctl_init(void)
+{
+	timerctl.tick = 0;
+	timerctl.next_alarm_on_tick = UINT32_MAX;
+
+	TIMER *timerTail = &timerctl.timer[OS_MAX_TIMER - 1];
+	timerctl.listtail = timerTail;
+
+	/* Should never be used */
+	timerTail->flags = 0xffff;
+	timerTail->data = 0;
+	timerTail->fifo = NULL;
+	timerTail->target_tick = UINT32_MAX;
+	dlist_init(&timerTail->timerDL);
+
+	DLIST *prev = &timerTail->timerDL;
+	for (int32_t i = 0; i < OS_MAX_TIMER - 1; i++)
+	{
+		TIMER *t = &timerctl.timer[i];
+		/* Flag: Unused */
+		t->flags = 0;
+		t->data = 0;
+		t->fifo = NULL;
+		t->target_tick = UINT32_MAX;
+		/* Connect all into a loop */
+		dlist_init(&t->timerDL);
+		dlist_insert_after(prev, &t->timerDL);
+		prev = &t->timerDL;
+	}
+}
+
 
 /**
  * First, allocate a timer
@@ -75,7 +98,8 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 			t->flags = TIMER_FLAGS_ALLOCATED;
 			t->fifo = fifo32;
 			t->data = 0;
-			t->target_count = UINT32_MAX;
+			t->target_tick = UINT32_MAX;
+			dlist_remove(&t->timerDL);
 			return t;
 		}
 	}
@@ -95,22 +119,57 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 	if (!isCli)
 		_io_cli();
 
-	if (timer->flags != TIMER_FLAGS_ALLOCATED)
-		return;
-
 	if (data == 0)
 		data = timer->data;
 
-	/* This implementation does not need timeout--, thus slightly faster */
-	timer->target_count = timerctl.count + timeout;
-	/* Update `next` */
-	if (timerctl.next_alarm_on_count > timer->target_count)
+	/* If the timer is still running */
+	if (timer->flags == TIMER_FLAGS_ONCOUNTDOWN)
 	{
-		timerctl.next_alarm_on_count = timer->target_count;
+		DLIST *prevDL = timer->timerDL.prev;
+		dlist_remove(&timer->timerDL);
+
+		timer->target_tick = timerctl.tick + timeout;
+		timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
+		timer->data = data;
+
+		TIMER *pos;
+		DLIST *head = prevDL;
+		list_for_each_entry(pos, head, timerDL)
+		{
+			if (pos->target_tick >= timer->target_tick)
+				dlist_insert_before(&pos->timerDL, &timer->timerDL);
+			break;
+		}
 	}
-	timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
-	timer->data = data;
-	timerctl.timers[timerctl.total_running++] = timer;
+
+		// TODO
+
+	if (timer->flags == TIMER_FLAGS_ALLOCATED)
+	{
+
+		/* This implementation does not need timeout--, thus faster */
+		timer->target_tick = timerctl.tick + timeout;
+
+		/* Update `next` */
+		if (timerctl.next_alarm_on_tick > timer->target_tick)
+		{
+			timerctl.next_alarm_on_tick = timer->target_tick;
+		}
+
+		timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
+		timer->data = data;
+
+		/* Insert the timer based on tick order, note that the first pos is the TIMER contains head->next */
+		TIMER *pos;
+		DLIST *head = &timerctl.listtail->timerDL;
+
+		list_for_each_entry(pos, head, timerDL)
+		{
+			if (pos->target_tick >= timer->target_tick)
+				dlist_insert_before(&pos->timerDL, &timer->timerDL);
+			break;
+		}
+	}
 
 	if (!isCli)
 		_io_sti();
@@ -128,7 +187,7 @@ void timer_free(TIMER *timer)
 		return;
 	timer->flags = 0;
 	timer->data = 0;
-	timer->target_count = 0;
+	timer->target_tick = 0;
 	if (timer->fifo)
 	{
 		kfree(timer->fifo->buf);
@@ -156,10 +215,10 @@ static void timer_arr_remove_element_u32(TIMER *arr[], uint32_t index_to_remove[
 
 void timer_int_handler()
 {
-	timerctl.count++;
-	if (timerctl.next_alarm_on_count > timerctl.count)
+	timerctl.tick++;
+	if (timerctl.next_alarm_on_tick > timerctl.tick)
 		return;
-	timerctl.next_alarm_on_count = UINT32_MAX;
+	timerctl.next_alarm_on_tick = UINT32_MAX;
 	/**
 	 * Sorted array
 	 * Timer has been triggerred (thus should be removed):
@@ -175,7 +234,7 @@ void timer_int_handler()
 		if (t->flags == TIMER_FLAGS_ONCOUNTDOWN)
 		{
 			/* Trigger */
-			if (t->target_count <= timerctl.count)
+			if (t->target_count <= timerctl.tick)
 			{
 				t->flags = TIMER_FLAGS_ALLOCATED;
 				fifo32_enqueue(t->fifo, t->data);
@@ -213,7 +272,7 @@ void timer_int_handler()
 
 int32_t timer_gettick()
 {
-	return timerctl.count;
+	return timerctl.tick;
 }
 
 
