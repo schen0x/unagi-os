@@ -43,6 +43,7 @@ int32_t __fifobuf4[4096] = {0};
 /* b16 */
 TASK *task3;
 TASK *task4;
+int32_t GUARD;
 
 FIFO32* get_fifo32_common(void)
 {
@@ -165,6 +166,8 @@ void kernel_main(void)
 
 	task3 = mprocess_init();
 	task4 = mprocess_task_alloc();
+	GUARD = 1;
+
 
 	task4->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 4;
 	task4->tss.eip = (uint32_t) &__tss_b_main;
@@ -176,6 +179,11 @@ void kernel_main(void)
 	task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 	mprocess_task_run(task4);
 	eventloop();
+}
+
+int32_t get_guard()
+{
+	return GUARD;
 }
 
 

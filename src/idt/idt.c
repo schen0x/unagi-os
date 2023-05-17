@@ -193,10 +193,15 @@ void int21h(void)
 
 /**
  * Timer
+ * NOTE: EOI should be sent before a complex handler, because if taskswitch happens
+ * within the handler, the EOI may never be sent depends on the code flow (if the
+ * code never returns, and will sleep until interrupt), causing a deadlock
  */
 void int20h()
 {
-	timer_int_handler();
 	PIC_sendEOI(0); // 20h, IRQ0
+	timer_int_handler();
+	//if (get_guard() > 0)
+	//	printf("i", 2);
 	return;
 }
