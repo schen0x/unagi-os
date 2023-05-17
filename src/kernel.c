@@ -31,8 +31,6 @@ uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 FIFO32 fifo32_common = {0};
 int32_t __fifo32_buffer[4096] = {0};
 
-uint8_t *task_b_esp = NULL;
-uint8_t *tss4_esp = NULL;
 int32_t counter = 0;
 
 FIFO32 fifoTSS3 = {0};
@@ -40,9 +38,6 @@ int32_t __fifobuf3[4096] = {0};
 FIFO32 fifoTSS4 = {0};
 int32_t __fifobuf4[4096] = {0};
 
-/* b16 */
-TASK *task3;
-TASK *task4;
 int32_t GUARD;
 
 FIFO32* get_fifo32_common(void)
@@ -50,9 +45,13 @@ FIFO32* get_fifo32_common(void)
 	return &fifo32_common;
 }
 
+int32_t get_guard()
+{
+	return GUARD;
+}
+
 void pg(void)
 {
-	// ==============
 	(void) kpd;
 	//uint32_t pd_entries_flags = 0b111;
 	//kpd = pd_init(pd_entries_flags);
@@ -113,14 +112,11 @@ bool heap_debug()
 void kernel_main(void)
 {
 	fifo32_init(&fifo32_common, __fifo32_buffer, 4096);
-	/* idt */
 	idt_init();
 	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
-
 	// uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
 	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
 	_io_sti();
-	// asm("int $99");
 	// TODO e820 routine
 
 	k_mm_init();
@@ -147,28 +143,14 @@ void kernel_main(void)
 	 */
 	gdt_migration();
 
+	mprocess_init();
+	TASK *task4 = mprocess_task_alloc();
+//	GUARD = 1;
+
 	/**
 	 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
 	 * -12 if use a far call; anyway, far jumping is used here.
-	 *
-	 * A fancy way to pass the `sw` variable
 	 */
-	// task_b_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 8;
-	// SHEET* sw = get_sheet_window();
-	// *(uint32_t *)(task_b_esp + 4) = (uint32_t) sw;
-	// __tss_switch4_prep((uint32_t) task_b_esp);
-
-	//! process_autotaskswitch_init();
-	tss4_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 4;
-	/* TODO tss4 params setup */
-	// __tss_switch4_prep((uint32_t) tss4_esp);
-	// mprocess_init();
-
-	task3 = mprocess_init();
-	task4 = mprocess_task_alloc();
-	GUARD = 1;
-
-
 	task4->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 4;
 	task4->tss.eip = (uint32_t) &__tss_b_main;
 	task4->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
@@ -180,12 +162,6 @@ void kernel_main(void)
 	mprocess_task_run(task4);
 	eventloop();
 }
-
-int32_t get_guard()
-{
-	return GUARD;
-}
-
 
 /**
  * TSS3
@@ -206,9 +182,6 @@ void eventloop(void)
 
 	timer_1s = timer_alloc_customfifobuf(&fifoTSS3);
 	timer_settimer(timer_1s, 100, 1);
-
-	// timer_tss = timer_alloc_customfifobuf(&fifoTSS3);
-	// timer_settimer(timer_tss, 10, 4);
 
 	int32_t countTSS3 = 0;
 
@@ -245,17 +218,8 @@ void eventloop(void)
 
 		if (data == 1)
 		{
-			printf("t:%d", timer_gettick());
 			timer_settimer(timer_1s, 100, 1);
 		}
-
-		/* TIMER timer_tss */
-	//	if (data == 4)
-	//	{
-	//		process_switch_by_cs_index(data);
-	//		timer_settimer(timer_tss, 5, 0);
-	//		goto wait_next_event;
-	//	}
 
 		/* TIMER timer_render */
 		if (data == 6)
@@ -320,23 +284,8 @@ void int2ch_handler(uint8_t scancode)
 }
 
 
-//void __tss_switch4_prep(uint32_t tss4_esp)
-//{
-//	TSS32 *tss_b = process_gettssb();
-//	tss_b->eip = (uint32_t) &__tss_b_main;
-//	tss_b->esp = tss4_esp;
-//	tss_b->cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
-//	tss_b->es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-//	tss_b->ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-//	tss_b->fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-//	tss_b->gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-//	tss_b->eflags = _io_get_eflags();
-//	return;
-//}
-
 /**
  * TSS4
- * TODO Change to a TSS local shared fifo
  */
 // void __tss_b_main(SHEET* sw)
 void __tss_b_main()
@@ -349,8 +298,6 @@ void __tss_b_main()
 	TIMER *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
 	timer_1s = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_1s, 100, 1);
-	// timer_tss = timer_alloc_customfifobuf(&fifoTSS4);
-	// timer_settimer(timer_tss, 5, 3);
 	timer_5s = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_5s, 500, 5);
 	timer_render = timer_alloc_customfifobuf(&fifoTSS4);
@@ -366,7 +313,6 @@ void __tss_b_main()
 		if (fifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
 			_io_sti();
-			printf("t:%d",timer_gettick());
 			asm("pause");
 			continue;
 		}
@@ -375,7 +321,6 @@ void __tss_b_main()
 
 		if (data == 1)
 		{
-			printf("b");
 			timer_settimer(timer_1s, 100, 1);
 		}
 
@@ -383,13 +328,6 @@ void __tss_b_main()
 		{
 			continue;
 		}
-		/* TIMER timer_tss */
-	//	if (data == 3)
-	//	{
-	//		process_switch_by_cs_index(data);
-	//		timer_settimer(timer_tss, 5, 0);
-	//		continue;
-	//	}
 		/* Performance Test */
 		if (data == 5)
 		{

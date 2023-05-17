@@ -287,9 +287,9 @@ void timer_free(TIMER *timer)
 
 void timer_int_handler()
 {
-//	bool isCli = io_get_is_cli();
-//	if (!isCli)
-//		_io_cli();
+	bool isCli = io_get_is_cli();
+	if (!isCli)
+		_io_cli();
 
 	timerctl.tick++;
 	if (timerctl.next_alarm_on_tick > timerctl.tick)
@@ -331,14 +331,13 @@ void timer_int_handler()
 	TIMER *firstTimer = __get_timer_next(timerctl.listtail);
 	timerctl.next_alarm_on_tick = firstTimer->target_tick;
 
-//	if (!isCli)
-//		_io_sti();
+	if (!isCli)
+		_io_sti();
 
 	/* mProcess, tss */
 	if (isTssTriggerred == true)
 	{
 		mprocess_task_autoswitch();
-		//return;
 	}
 	return;
 }

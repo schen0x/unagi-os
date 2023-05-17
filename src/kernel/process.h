@@ -57,18 +57,10 @@ typedef struct TASKCTL
 } TASKCTL;
 
 
-TSS32* process_gettssa(void);
-TSS32* process_gettssb(void);
-bool process_tss_init(TSS32 *tss);
-void _farjmp(uint32_t eip, uint16_t cs);
-void process_switch_by_cs_index(int64_t cs_index);
-void process_autotaskswitch(uint32_t delay_ms);
-void process_autotaskswitch_init(void);
+extern void _farjmp(uint32_t eip, uint16_t cs);
+
 TIMER* mprocess_get_task_autoswitch_timer(void);
-
-
-
-TASK *mprocess_init();
+TASK *mprocess_init(void);
 TASK *mprocess_task_alloc(void);
 void mprocess_task_run(TASK *task);
 void mprocess_task_autoswitch(void);

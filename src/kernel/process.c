@@ -7,74 +7,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define TSS3_GDT_INDEX 3
-#define TSS4_GDT_INDEX 4
-
-
-//TSS32 tss_a, tss_b;
-//int32_t tss_index;
-// TIMER *tss_switch = NULL;
-
-
 TASKCTL taskctl;
 TIMER *mprocess_task_autoswitch_timer;
-
-//TSS32* process_gettssa(void)
-//{
-//	return &tss_a;
-//}
-//
-//TSS32* process_gettssb(void)
-//{
-//	return &tss_b;
-//}
-//
-//
-///**
-// * Switch Task with the index of TSS in GDT
-// * process_switch_by_cs_index(3); => CS_SELECTOR == 3 << 3
-// */
-//void process_switch_by_cs_index(int64_t cs_index)
-//{
-//	/* 0x1fff == 0xffff >> 3 */
-//	uint16_t s = cs_index & 0x1fff;
-//	_farjmp(0, s * 8);
-//	return;
-//}
-
-///**
-// * @delay_ms must > 10ms
-// */
-//void process_autotaskswitch(uint32_t delay_ms)
-//{
-//	/* Timer must exist */
-//	if (!mprocess_task_autoswitch_timer)
-//		return;
-//	bool isCli = io_get_is_cli();
-//	if (!isCli)
-//		_io_cli();
-//	timer_settimer(mprocess_task_autoswitch_timer, delay_ms / 10, 0);
-//	if (tss_index == TSS3_GDT_INDEX)
-//	{
-//		tss_index = TSS4_GDT_INDEX;
-//
-//	} else {
-//		tss_index = TSS3_GDT_INDEX;
-//	}
-//	_farjmp(0, tss_index * 8);
-//	if (!isCli)
-//		_io_sti();
-//	return;
-//}
-
-//void process_autotaskswitch_init(void)
-//{
-//	// tss_switch = timer_alloc_customfifobuf(NULL);
-//	tss_switch = timer_alloc();
-//	// timer_settimer(tss_switch, 300, 0);
-//	timer_settimer(tss_switch, 300, 97);
-//	return;
-//}
 
 /**
  * Maybe NULL
@@ -91,7 +25,7 @@ TIMER* mprocess_get_task_autoswitch_timer(void)
  *   - Set the initial task_timer with NULL fifo
  *   - Return the first TASK
  */
-TASK *mprocess_init()
+TASK *mprocess_init(void)
 {
 	TASK *task;
 	GDTR32 *gdtr = gdt_get_gdtr();

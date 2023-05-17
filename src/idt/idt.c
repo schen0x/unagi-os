@@ -201,7 +201,5 @@ void int20h()
 {
 	PIC_sendEOI(0); // 20h, IRQ0
 	timer_int_handler();
-	//if (get_guard() > 0)
-	//	printf("i", 2);
 	return;
 }
