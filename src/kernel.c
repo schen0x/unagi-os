@@ -36,7 +36,13 @@ uint8_t *tss4_esp = NULL;
 int32_t counter = 0;
 
 FIFO32 fifoTSS3 = {0};
-int32_t __fifobuf[4096] = {0};
+int32_t __fifobuf3[4096] = {0};
+FIFO32 fifoTSS4 = {0};
+int32_t __fifobuf4[4096] = {0};
+
+/* b16 */
+TASK *task3;
+TASK *task4;
 
 FIFO32* get_fifo32_common(void)
 {
@@ -45,6 +51,12 @@ FIFO32* get_fifo32_common(void)
 
 void pg(void)
 {
+	// ==============
+	(void) kpd;
+	//uint32_t pd_entries_flags = 0b111;
+	//kpd = pd_init(pd_entries_flags);
+	//paging_switch(kpd);
+	//enable_paging();
 	//set each entry to not present
 	for(int32_t i = 0; i < 1024; i++)
 	{
@@ -114,19 +126,10 @@ void kernel_main(void)
 
 	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	// printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
-	printf("mem_test OK from addr %dMB to %dMB \n", OS_HEAP_ADDRESS/1024/1024, mem);
-	printf("VRAM: %p\n", ((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->vram);
-
-
-	// ==============
-	(void) kpd;
-	//uint32_t pd_entries_flags = 0b111;
-	//kpd = pd_init(pd_entries_flags);
-	//paging_switch(kpd);
-	//enable_paging();
+	printf("mem_test OK,&=%dMB~%dMB\n", OS_HEAP_ADDRESS/1024/1024, mem);
+	// printf("VRAM: %p\n", ((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->vram);
 	// pg();
-
-	printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
+	// printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
 	disk_search_and_init();
 
 	if (!test_all())
@@ -159,6 +162,19 @@ void kernel_main(void)
 	/* TODO tss4 params setup */
 	// __tss_switch4_prep((uint32_t) tss4_esp);
 	// mprocess_init();
+
+	task3 = mprocess_init();
+	task4 = mprocess_task_alloc();
+
+	task4->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 4;
+	task4->tss.eip = (uint32_t) &__tss_b_main;
+	task4->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
+	task4->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	task4->tss.ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	task4->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	mprocess_task_run(task4);
 	eventloop();
 }
 
@@ -175,12 +191,14 @@ void eventloop(void)
 
 	// FIFO32 fifoTSS3 = {0};
 	// int32_t __fifobuf[4096] = {0};
-	fifo32_init(&fifoTSS3, __fifobuf, 4096);
+
+	fifo32_init(&fifoTSS3, __fifobuf3, 4096);
 	TIMER *timer_put = NULL, *timer_1s = NULL;
 	(void) timer_put;
 
-	timer_1s = timer_alloc();
+	timer_1s = timer_alloc_customfifobuf(&fifoTSS3);
 	timer_settimer(timer_1s, 100, 1);
+
 	// timer_tss = timer_alloc_customfifobuf(&fifoTSS3);
 	// timer_settimer(timer_tss, 10, 4);
 
@@ -215,6 +233,12 @@ void eventloop(void)
 		if (data < 0)
 		{
 			goto wait_next_event;
+		}
+
+		if (data == 1)
+		{
+			printf("t:%d", timer_gettick());
+			timer_settimer(timer_1s, 100, 1);
 		}
 
 		/* TIMER timer_tss */
@@ -288,19 +312,19 @@ void int2ch_handler(uint8_t scancode)
 }
 
 
-void __tss_switch4_prep(uint32_t tss4_esp)
-{
-	TSS32 *tss_b = process_gettssb();
-	tss_b->eip = (uint32_t) &__tss_b_main;
-	tss_b->esp = tss4_esp;
-	tss_b->cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
-	tss_b->es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	tss_b->ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	tss_b->fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	tss_b->gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	tss_b->eflags = _io_get_eflags();
-	return;
-}
+//void __tss_switch4_prep(uint32_t tss4_esp)
+//{
+//	TSS32 *tss_b = process_gettssb();
+//	tss_b->eip = (uint32_t) &__tss_b_main;
+//	tss_b->esp = tss4_esp;
+//	tss_b->cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
+//	tss_b->es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+//	tss_b->ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+//	tss_b->fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+//	tss_b->gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+//	tss_b->eflags = _io_get_eflags();
+//	return;
+//}
 
 /**
  * TSS4
@@ -313,9 +337,7 @@ void __tss_b_main()
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
 
-	FIFO32 fifoTSS4 = {0};
-	int32_t __fifobuf[4096] = {0};
-	fifo32_init(&fifoTSS4, __fifobuf, 4096);
+	fifo32_init(&fifoTSS4, __fifobuf4, 4096);
 	TIMER *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
 	timer_1s = timer_alloc_customfifobuf(&fifoTSS4);
 	timer_settimer(timer_1s, 100, 1);
@@ -333,14 +355,21 @@ void __tss_b_main()
 		counterTSS4++;
 		_io_cli();
 
-		if (!fifo32_status_getUsageB(&fifoTSS4))
+		if (fifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
 			_io_sti();
+			printf("t:%d",timer_gettick());
 			asm("pause");
 			continue;
 		}
 
 		data = fifo32_dequeue(&fifoTSS4);
+
+		if (data == 1)
+		{
+			printf("b");
+			timer_settimer(timer_1s, 100, 1);
+		}
 
 		if (data < 0)
 		{

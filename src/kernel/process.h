@@ -64,12 +64,12 @@ void _farjmp(uint32_t eip, uint16_t cs);
 void process_switch_by_cs_index(int64_t cs_index);
 void process_autotaskswitch(uint32_t delay_ms);
 void process_autotaskswitch_init(void);
-TIMER* process_get_tss_timer(void);
-
-
+TIMER* mprocess_get_task_autoswitch_timer(void);
 
 
 
 TASK *mprocess_init();
-TASK *task_alloc(void);
+TASK *mprocess_task_alloc(void);
+void mprocess_task_run(TASK *task);
+void mprocess_task_autoswitch(void);
 #endif

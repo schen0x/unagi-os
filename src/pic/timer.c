@@ -285,28 +285,11 @@ void timer_free(TIMER *timer)
 	return;
 }
 
-static void timer_arr_remove_element_u32(TIMER *arr[], uint32_t index_to_remove[], uint32_t arr_size, uint32_t index_to_remove_size)
-{
-	uint32_t oldi = 0, di = 0, newi = 0;
-
-	for (oldi = 0; oldi < arr_size; oldi++)
-	{
-		if (di < index_to_remove_size && oldi == index_to_remove[di])
-		{
-			di++;
-			continue;
-		}
-		arr[newi++] = arr[oldi];
-	}
-	return;
-}
-
-
 void timer_int_handler()
 {
-	bool isCli = io_get_is_cli();
-	if (!isCli)
-		_io_cli();
+//	bool isCli = io_get_is_cli();
+//	if (!isCli)
+//		_io_cli();
 
 	timerctl.tick++;
 	if (timerctl.next_alarm_on_tick > timerctl.tick)
@@ -314,7 +297,7 @@ void timer_int_handler()
 
 	/* mProcess, tss */
 	bool isTssTriggerred = false;
-	TIMER *tssTimer = process_get_tss_timer();
+	TIMER *tssTimer = mprocess_get_task_autoswitch_timer();
 
 	TIMER *pos;
 	DLIST *head = &timerctl.listtail->timerDL;
@@ -348,12 +331,15 @@ void timer_int_handler()
 	TIMER *firstTimer = __get_timer_next(timerctl.listtail);
 	timerctl.next_alarm_on_tick = firstTimer->target_tick;
 
-	if (!isCli)
-		_io_sti();
+//	if (!isCli)
+//		_io_sti();
 
 	/* mProcess, tss */
 	if (isTssTriggerred == true)
-		process_autotaskswitch(100);
+	{
+		mprocess_task_autoswitch();
+		//return;
+	}
 	return;
 }
 
