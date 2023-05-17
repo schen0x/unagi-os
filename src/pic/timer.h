@@ -6,10 +6,12 @@
 #include "config.h"
 #include "util/dlist.h"
 
+#define TIMER_FLAGS_FREE 0
 /* Timer is allocated */
 #define TIMER_FLAGS_ALLOCATED 1
 /* Timer is counting down */
 #define TIMER_FLAGS_ONCOUNTDOWN 2
+#define TIMER_FLAGS_GUARDNODE 0xffff
 
 /**
  * A basic solution:
@@ -49,6 +51,7 @@ void pit_init(void);
 static void timerctl_init(void);
 void timer_int_handler(void);
 int32_t timer_gettick(void);
+static void __timer_set_default_params(TIMER *t);
 
 void pit_init(void);
 TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32);

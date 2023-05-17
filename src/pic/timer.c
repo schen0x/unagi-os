@@ -4,6 +4,7 @@
 #include "memory/memory.h"
 #include "util/printf.h"
 #include "kernel/process.h"
+#include "util/containerof.h"
 /**
  * Want a structure of timer that can easily be searched based on something (Easy Reset: pointer is known; Insert: need to search based on time; Most performance required at each INT handler, which implies that if a timer is frequently triggered, the time should be quite close to the head)
  *
@@ -41,6 +42,22 @@ void pit_init(void)
 	return;
 }
 
+/**
+ * WARN: free the FIFO before resetting the parameters
+ */
+static void __timer_set_default_params(TIMER *t)
+{
+	if (!t)
+		return;
+	t->flags = TIMER_FLAGS_FREE;
+	t->data = 0;
+	t->fifo = NULL;
+	t->target_tick = UINT32_MAX;
+	dlist_init(&t->timerDL);
+	return;
+}
+
+
 static void timerctl_init(void)
 {
 	timerctl.tick = 0;
@@ -49,33 +66,25 @@ static void timerctl_init(void)
 	TIMER *timerTail = &timerctl.timer[OS_MAX_TIMER - 1];
 	timerctl.listtail = timerTail;
 
-	/* Should never be used */
-	timerTail->flags = 0xffff;
-	timerTail->data = 0;
-	timerTail->fifo = NULL;
-	timerTail->target_tick = UINT32_MAX;
-	dlist_init(&timerTail->timerDL);
+	__timer_set_default_params(timerTail);
+	/* The guard node hould never be modified */
+	timerTail->flags = TIMER_FLAGS_GUARDNODE;
 
 	DLIST *prev = &timerTail->timerDL;
 	for (int32_t i = 0; i < OS_MAX_TIMER - 1; i++)
 	{
 		TIMER *t = &timerctl.timer[i];
-		/* Flag: Unused */
-		t->flags = 0;
-		t->data = 0;
-		t->fifo = NULL;
-		t->target_tick = UINT32_MAX;
+		__timer_set_default_params(t);
 		/* Connect all into a loop */
-		dlist_init(&t->timerDL);
 		dlist_insert_after(prev, &t->timerDL);
 		prev = &t->timerDL;
 	}
 }
 
-
 /**
- * First, allocate a timer
- * By default use a unique fifo buffer
+ * Find a free timer and "allocate"
+ *   - Auto allocate an FIFO
+ * Return NULL when all timers are occupied
  */
 TIMER* timer_alloc(void)
 {
@@ -85,20 +94,47 @@ TIMER* timer_alloc(void)
 	return timer_alloc_customfifobuf(timer_fifo);
 }
 
+
 /**
- * Allocate a timer, allow specifying a custom fifo buffer
+ * WARN: Timer must exist
+ */
+static TIMER* __get_timer_prev(TIMER *timer)
+{
+	if (!timer)
+		return NULL;
+	return container_of(timer->timerDL.prev, TIMER, timerDL);
+}
+
+/**
+ * WARN: Timer must exist
+ */
+static TIMER* __get_timer_next(TIMER *timer)
+{
+	if (!timer)
+		return NULL;
+	return container_of(timer->timerDL.next, TIMER, timerDL);
+}
+
+/**
+ * Find a free timer and "allocate"
+ *   - Attach FIFO (May be NULL)
+ *   - Change its flag to TIMER_FLAGS_ALLOCATED
+ *   - Remove the timer from the DL list
+ * Return NULL when all timers are occupied
  */
 TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 {
 	for (int32_t i = 0; i< OS_MAX_TIMER; i++)
 	{
 		TIMER *t = &timerctl.timer[i];
-		if (t->flags == 0)
+		if (t->flags == TIMER_FLAGS_FREE)
 		{
 			t->flags = TIMER_FLAGS_ALLOCATED;
 			t->fifo = fifo32;
-			t->data = 0;
-			t->target_tick = UINT32_MAX;
+			/**
+			 * The DL is for timers that are running or free
+			 * Because the DL is in tick order, while the position is yet to be known
+			 */
 			dlist_remove(&t->timerDL);
 			return t;
 		}
@@ -107,7 +143,7 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
 }
 
 /**
- * FIXME This is broken AF
+ * Set a timeout and start an ALLOCATED or RUNNING timer
  *   - data == 0 is reserved, means no change to prev data
  *   - when a timer is still running?
  */
@@ -122,52 +158,86 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 	if (data == 0)
 		data = timer->data;
 
-	/* If the timer is still running */
+	/**
+	 * If the timer is still running:
+	 *   - Check if timerctl.next_alarm_on_tick == timer.target_tick; update if necessary
+	 *   - Remove the timer from the timerDL
+	 *   - Set parameters
+	 *   - Update `timerctl.next_alarm_on_tick`
+	 *   - Insert the timer to the timerDL (with optimisation)
+	 */
 	if (timer->flags == TIMER_FLAGS_ONCOUNTDOWN)
 	{
-		DLIST *prevDL = timer->timerDL.prev;
+
+		if (timerctl.next_alarm_on_tick == timer->target_tick)
+		{
+			TIMER *nextTimer = __get_timer_next(timer);
+			timerctl.next_alarm_on_tick = nextTimer->target_tick;
+		}
+
+		TIMER *prevTimer = __get_timer_prev(timer);
+		DLIST *prevDL = &prevTimer->timerDL;
+		/* Remove from the timerDL */
 		dlist_remove(&timer->timerDL);
 
+		/* Set parameters */
 		timer->target_tick = timerctl.tick + timeout;
 		timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
 		timer->data = data;
-
-		TIMER *pos;
-		DLIST *head = prevDL;
-		list_for_each_entry(pos, head, timerDL)
-		{
-			if (pos->target_tick >= timer->target_tick)
-				dlist_insert_before(&pos->timerDL, &timer->timerDL);
-			break;
-		}
-	}
-
-		// TODO
-
-	if (timer->flags == TIMER_FLAGS_ALLOCATED)
-	{
-
-		/* This implementation does not need timeout--, thus faster */
-		timer->target_tick = timerctl.tick + timeout;
-
-		/* Update `next` */
+		/* Update `timerctl.next_alarm_on_tick` */
 		if (timerctl.next_alarm_on_tick > timer->target_tick)
 		{
 			timerctl.next_alarm_on_tick = timer->target_tick;
 		}
 
-		timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
-		timer->data = data;
-
-		/* Insert the timer based on tick order, note that the first pos is the TIMER contains head->next */
+		/**
+	 	 * Insert the new timer back to the correct position in timeDL
+		 *   - By default, listhead = timerctl.listtail
+		 *   - To optimise, compare the `target_tick` with the previous timer,
+		 *   if is postponing, listhead = prevDL
+		 */
 		TIMER *pos;
 		DLIST *head = &timerctl.listtail->timerDL;
-
+		if (prevTimer->target_tick < timer->target_tick)
+			head = prevDL;
 		list_for_each_entry(pos, head, timerDL)
 		{
 			if (pos->target_tick >= timer->target_tick)
+			{
 				dlist_insert_before(&pos->timerDL, &timer->timerDL);
-			break;
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Normally
+	 *   - Set parameters
+	 *   - Update `timerctl.next_alarm_on_tick`
+	 *   - Insert the timer to the timerDL
+	 */
+	if (timer->flags == TIMER_FLAGS_ALLOCATED)
+	{
+		/* Set parameters */
+		timer->target_tick = timerctl.tick + timeout;
+		timer->flags = TIMER_FLAGS_ONCOUNTDOWN;
+		timer->data = data;
+		/* Update `timerctl.next_alarm_on_tick` */
+		if (timerctl.next_alarm_on_tick > timer->target_tick)
+		{
+			timerctl.next_alarm_on_tick = timer->target_tick;
+		}
+
+		/* Insert the timer based on the tick order */
+		TIMER *pos;
+		DLIST *head = &timerctl.listtail->timerDL;
+		list_for_each_entry(pos, head, timerDL)
+		{
+			if (pos->target_tick >= timer->target_tick)
+			{
+				dlist_insert_before(&pos->timerDL, &timer->timerDL);
+				break;
+			}
 		}
 	}
 
@@ -178,21 +248,40 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 }
 
 /**
- * At last, free a timer
- * The TIMER *timer always exists and is 0 initialized
+ * Free a TIMER
+ *   - if not exist, or guardnode(listtail), return
+ *   - if was still RUNNING, cleanup timerctl.next_alarm_on_tick
+ *
+ *   - Remove the TIMER from the list
+ *   - Reset its parameters, free the FIFO32
+ *   - Insert the TIMER back to the listtail
  */
 void timer_free(TIMER *timer)
 {
 	if (!timer)
 		return;
-	timer->flags = 0;
-	timer->data = 0;
-	timer->target_tick = 0;
+	if (timer->flags == TIMER_FLAGS_GUARDNODE)
+		return;
+	if (timer->flags == TIMER_FLAGS_ONCOUNTDOWN)
+	{
+		if (timerctl.next_alarm_on_tick == timer->target_tick)
+		{
+			TIMER *nextTimer = __get_timer_next(timer);
+			timerctl.next_alarm_on_tick = nextTimer->target_tick;
+		}
+	}
+	/**
+	 * This do no harm (changes nothing), when the node is not in the main timerDL circle
+	 */
+	dlist_remove(&timer->timerDL);
 	if (timer->fifo)
 	{
 		kfree(timer->fifo->buf);
 		kfree(timer->fifo);
 	}
+	__timer_set_default_params(timer);
+
+	dlist_insert_before(&timerctl.listtail->timerDL, &timer->timerDL);
 	return;
 }
 
@@ -215,57 +304,56 @@ static void timer_arr_remove_element_u32(TIMER *arr[], uint32_t index_to_remove[
 
 void timer_int_handler()
 {
+	bool isCli = io_get_is_cli();
+	if (!isCli)
+		_io_cli();
+
 	timerctl.tick++;
 	if (timerctl.next_alarm_on_tick > timerctl.tick)
 		return;
-	timerctl.next_alarm_on_tick = UINT32_MAX;
-	/**
-	 * Sorted array
-	 * Timer has been triggerred (thus should be removed):
-	 * TIMER *t = timerctl.timers[triggerred[x]];
-	 */
-	uint32_t triggerred[OS_MAX_TIMER] = {0};
-	/* Temporary, array index */
-	uint32_t __triggerred_arr_len = 0;
-	for (uint32_t i = 0; i < timerctl.total_running; i++)
-	{
-		TIMER *t = timerctl.timers[i];
-		/* Timers that are in use */
-		if (t->flags == TIMER_FLAGS_ONCOUNTDOWN)
-		{
-			/* Trigger */
-			if (t->target_count <= timerctl.tick)
-			{
-				t->flags = TIMER_FLAGS_ALLOCATED;
-				fifo32_enqueue(t->fifo, t->data);
-				/* Push the triggered index, meanwhile this ensures the ascending order */
-				triggerred[__triggerred_arr_len++] = i;
-				continue;
-			}
-			/* Update `next` */
-			if (timerctl.next_alarm_on_count > t->target_count)
-			{
-				timerctl.next_alarm_on_count = t->target_count;
-			}
-		}
-	}
 
-	/**
-	 * Remove the triggerred timers from timerctl.timers
-	 * Assume the triggered[OS_MAX_TIMER] is sorted by value in ascending order
-	 * (which it should because it is the timers that are triggered on the
-	 * same tick, and the loop was by index order)
-	 */
-	timer_arr_remove_element_u32(timerctl.timers, triggerred, timerctl.total_running, __triggerred_arr_len);
-	timerctl.total_running = timerctl.total_running - __triggerred_arr_len;
+	/* mProcess, tss */
+	bool isTssTriggerred = false;
+	TIMER *tssTimer = process_get_tss_timer();
 
-	TIMER *tss_timer = process_get_tss_timer();
-	if (tss_timer)
+	TIMER *pos;
+	DLIST *head = &timerctl.listtail->timerDL;
+	list_for_each_entry(pos, head, timerDL)
 	{
-		int32_t dt = fifo32_dequeue(tss_timer->fifo);
-		if (dt > 0)
-			process_autotaskswitch(100);
+		if (pos->target_tick > timerctl.tick)
+			break;
+		/**
+		 * On trigger,
+		 *   - push data to FIFO (does nothing if FIFO == NULL)
+		 *   - revert a timer back to ALLOCATED (alter the flag, remove from timerDL)
+		 */
+
+		/* mProcess, tss */
+		if (isTssTriggerred == false && tssTimer && pos == tssTimer)
+			isTssTriggerred = true;
+
+		fifo32_enqueue(pos->fifo, pos->data);
+
+		/**
+		 * WARN: Mutating the DList itself
+		 *   - set the pos to the original DList after detaching
+		 */
+		TIMER *prevTimer = __get_timer_prev(pos);
+		pos->flags = TIMER_FLAGS_ALLOCATED;
+		dlist_remove(&pos->timerDL);
+		pos = prevTimer;
+
 	}
+	/* Update `timerctl.next_alarm_on_tick` */
+	TIMER *firstTimer = __get_timer_next(timerctl.listtail);
+	timerctl.next_alarm_on_tick = firstTimer->target_tick;
+
+	if (!isCli)
+		_io_sti();
+
+	/* mProcess, tss */
+	if (isTssTriggerred == true)
+		process_autotaskswitch(100);
 	return;
 }
 
@@ -274,7 +362,4 @@ int32_t timer_gettick()
 {
 	return timerctl.tick;
 }
-
-
-
 

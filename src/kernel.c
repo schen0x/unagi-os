@@ -32,7 +32,11 @@ FIFO32 fifo32_common = {0};
 int32_t __fifo32_buffer[4096] = {0};
 
 uint8_t *task_b_esp = NULL;
+uint8_t *tss4_esp = NULL;
 int32_t counter = 0;
+
+FIFO32 fifoTSS3 = {0};
+int32_t __fifobuf[4096] = {0};
 
 FIFO32* get_fifo32_common(void)
 {
@@ -135,11 +139,9 @@ void kernel_main(void)
 	// heap_debug();
 
 	/**
-	 * Multi-tasking
-	 *   - Import GDTR0 and switch to the GDTR1
-	 *   - Setup a TIMER
+	 *  Import GDTR0 and switch to the GDTR1
 	 */
-	gdt_tss_init();
+	gdt_migration();
 
 	/**
 	 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
@@ -151,10 +153,12 @@ void kernel_main(void)
 	// SHEET* sw = get_sheet_window();
 	// *(uint32_t *)(task_b_esp + 4) = (uint32_t) sw;
 	// __tss_switch4_prep((uint32_t) task_b_esp);
-	task_b_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 4;
 
 	//! process_autotaskswitch_init();
-	mprocess_init();
+	tss4_esp = (uint8_t *)kmalloc(4096 * 16) + 4096*16 - 4;
+	/* TODO tss4 params setup */
+	// __tss_switch4_prep((uint32_t) tss4_esp);
+	// mprocess_init();
 	eventloop();
 }
 
@@ -169,8 +173,8 @@ void eventloop(void)
 	int32_t keymousefifobuf_usedBytes = 0;
 	FIFO32 *keymousefifo = get_keymousefifo();
 
-	FIFO32 fifoTSS3 = {0};
-	int32_t __fifobuf[4096] = {0};
+	// FIFO32 fifoTSS3 = {0};
+	// int32_t __fifobuf[4096] = {0};
 	fifo32_init(&fifoTSS3, __fifobuf, 4096);
 	TIMER *timer_put = NULL, *timer_1s = NULL;
 	(void) timer_put;

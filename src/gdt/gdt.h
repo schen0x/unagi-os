@@ -71,7 +71,7 @@ void gdt_set_segmdesc(GDT32SD *sd, uint32_t limit, uint32_t base, uint8_t ar);
 static void __gdt_import(GDTR32 *gdtrDst, GDT32SD *gdtsDst, GDTR32 *gdtrSrc);
 static void gdt_read_gdtr0();
 uint16_t gdt_append(GDTR32 *r, GDT32SD *d, GDT32SD *d1);
-void gdt_tss_init();
+void gdt_migration();
 bool gdt1_reload(GDTR32 *r);
 
 extern void _gdt_reload(GDTR32 *gdtr);

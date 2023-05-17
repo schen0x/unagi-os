@@ -62,6 +62,7 @@ bool test_dlist();
  * for (pos = addr; &pos->member != head; pos = container_of(pos->member.next, CONTAINER, member)
  *
  * WARNING: any const qualifier of @head->next is lost.
+ * WARNING: Better not mutate the list itself during a loop
  */
 #define list_for_each_entry(pos, head, member) \
 	for (pos = list_entry((head)->next, typeof(*pos), member); \

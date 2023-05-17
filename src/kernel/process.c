@@ -55,12 +55,12 @@ void process_switch_by_cs_index(int64_t cs_index)
 void process_autotaskswitch(uint32_t delay_ms)
 {
 	/* Timer must exist */
-	if (!tss_switch)
+	if (!task_timer)
 		return;
 	bool isCli = io_get_is_cli();
 	if (!isCli)
 		_io_cli();
-	timer_settimer(tss_switch, delay_ms / 10, 0);
+	timer_settimer(task_timer, delay_ms / 10, 0);
 	if (tss_index == TSS3_GDT_INDEX)
 	{
 		tss_index = TSS4_GDT_INDEX;
@@ -88,7 +88,8 @@ void process_autotaskswitch_init(void)
  */
 TIMER* process_get_tss_timer(void)
 {
-	return tss_switch;
+	// return tss_switch;
+	return task_timer;
 }
 
 /**

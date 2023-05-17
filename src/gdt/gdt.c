@@ -72,23 +72,23 @@ bool gdt1_reload(GDTR32 *r)
  * 3. Reload gdtr1
  * 4. Load TSS_a
  */
-void gdt_tss_init()
+void gdt_migration()
 {
 	gdt_read_gdtr0();
-	TSS32* tss_a = process_gettssa();
-	TSS32* tss_b = process_gettssb();
+	//TSS32* tss_a = process_gettssa();
+	//TSS32* tss_b = process_gettssb();
 
-	tss_a->ldtr = 0;
-	tss_a->iopb = 0x40000000;
-	tss_b->ldtr = 0;
-	tss_b->iopb = 0x40000000;
-	GDT32SD tss_a_seg = {0};
-	GDT32SD tss_b_seg = {0};
+	//tss_a->ldtr = 0;
+	//tss_a->iopb = 0x40000000;
+	//tss_b->ldtr = 0;
+	//tss_b->iopb = 0x40000000;
+	//GDT32SD tss_a_seg = {0};
+	//GDT32SD tss_b_seg = {0};
 	/* Use the recommended magic access_byte 0x89 */
-	gdt_set_segmdesc(&tss_a_seg, sizeof(TSS32) - 1, (uint32_t) tss_a, 0x89);
-	gdt_set_segmdesc(&tss_b_seg, sizeof(TSS32) - 1, (uint32_t) tss_b, 0x89);
-	uint16_t tss_a_segment_selector = gdt_append(&gdtr, gdts, &tss_a_seg);
-	gdt_append(&gdtr, gdts, &tss_b_seg);
+	// gdt_set_segmdesc(&tss_a_seg, sizeof(TSS32) - 1, (uint32_t) tss_a, 0x89);
+	// gdt_set_segmdesc(&tss_b_seg, sizeof(TSS32) - 1, (uint32_t) tss_b, 0x89);
+	// uint16_t tss_a_segment_selector = gdt_append(&gdtr, gdts, &tss_a_seg);
+	// gdt_append(&gdtr, gdts, &tss_b_seg);
 
 	bool isCli = io_get_is_cli();
 	if (!isCli)
@@ -100,7 +100,7 @@ void gdt_tss_init()
 	 */
 	_gdt_reload(&gdtr);
 
-	_gdt_load_task_register(tss_a_segment_selector);
+	//_gdt_load_task_register(tss_a_segment_selector);
 
 	if (!isCli)
 		_io_sti();

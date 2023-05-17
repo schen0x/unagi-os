@@ -11,7 +11,7 @@
 /* Max process allowed when multi-tasking */
 #define OS_MPROCESS_TASK_MAX 1000
 /* The first TSS segment in GDT */
-#define OS_MPROCESS_TSS_GDT_INDEX_START 5
+#define OS_MPROCESS_TSS_GDT_INDEX_START 3
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define OS_MEMORY_ALIGN 16
