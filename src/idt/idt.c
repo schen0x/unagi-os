@@ -199,6 +199,7 @@ void int21h(void)
  */
 void int20h()
 {
+	/* ? TODO what(when) is the correct time to send the EOI? */
 	PIC_sendEOI(0); // 20h, IRQ0
 	timer_int_handler();
 	return;

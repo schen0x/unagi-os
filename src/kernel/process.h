@@ -5,6 +5,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define MPROCESS_FLAGS_FREE 0
+#define MPROCESS_FLAGS_ALLOCATED 1
+#define MPROCESS_FLAGS_RUNNING 2
+
 /**
  * Task Status Segment
  */
@@ -50,12 +54,11 @@ typedef struct TASKCTL
 {
 	/* Sum of active tasks */
 	int32_t running;
-	/* Current task */
+	/* Current running TASK *task = taskctl.tasks[taskctl.now] */
 	int32_t now;
 	TASK *tasks[OS_MPROCESS_TASK_MAX];
 	TASK tasks0[OS_MPROCESS_TASK_MAX];
 } TASKCTL;
-
 
 extern void _farjmp(uint32_t eip, uint16_t cs);
 
@@ -64,4 +67,5 @@ TASK *mprocess_init(void);
 TASK *mprocess_task_alloc(void);
 void mprocess_task_run(TASK *task);
 void mprocess_task_autoswitch(void);
+void mprocess_task_sleep(TASK *task);
 #endif

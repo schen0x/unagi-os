@@ -331,7 +331,7 @@ void __tss_b_main()
 		/* Performance Test */
 		if (data == 5)
 		{
-			printf("s:%d ", (counterTSS4)/5);
+			//printf("s:%d ", (counterTSS4)/5);
 			counterTSS4 = 0;
 			timer_settimer(timer_5s, 500, 0);
 		}

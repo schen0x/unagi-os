@@ -92,7 +92,7 @@ int32_t fifo32_peek(const FIFO32 *fifo)
 /*
  * Return the usage of the buffer in Bytes
  */
-int32_t fifo32_status_getUsageB(FIFO32 *fifo)
+int32_t fifo32_status_getUsageB(const FIFO32 *fifo)
 {
 	if (!fifo)
 		return -EIO;
