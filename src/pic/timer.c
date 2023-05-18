@@ -138,7 +138,7 @@ static TIMER* __get_timer_next(TIMER *timer)
  *   - Remove the timer from the DL list
  * Return NULL when all timers are occupied
  */
-TIMER* timer_alloc_customfifo(MPFIFO32 *fifo32)
+TIMER* timer_alloc_customfifo(MPFIFO32 *mpfifo32)
 {
 	for (int32_t i = 0; i< OS_MAX_TIMER; i++)
 	{
@@ -146,7 +146,7 @@ TIMER* timer_alloc_customfifo(MPFIFO32 *fifo32)
 		if (t->flags == TIMER_FLAGS_FREE)
 		{
 			t->flags = TIMER_FLAGS_ALLOCATED;
-			t->fifo = fifo32;
+			t->fifo = mpfifo32;
 			/**
 			 * The DL is for timers that are running or free
 			 * Because the DL is in tick order, while the position is yet to be known
