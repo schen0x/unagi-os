@@ -4,7 +4,7 @@
 #include "memory/memory.h"
 #include "util/printf.h"
 #include "util/containerof.h"
-#include "util/fifo.h"
+#include "kernel/mprocessfifo.h"
 /**
  * Want a structure of timer that can easily be searched based on something (Easy Reset: pointer is known; Insert: need to search based on time; Most performance required at each INT handler, which implies that if a timer is frequently triggered, the time should be quite close to the head)
  *
@@ -105,8 +105,8 @@ TIMER* timer_alloc(void)
 	const int32_t __len = 512;
 	int32_t *fifo32buf = (int32_t *)kzalloc(__len * sizeof(int32_t));
 
-	FIFO32 *timer_fifo = (FIFO32 *)kzalloc(sizeof(FIFO32));
-	fifo32_init(timer_fifo, fifo32buf, __len);
+	MPFIFO32 *timer_fifo = (MPFIFO32 *)kzalloc(sizeof(FIFO32));
+	mpfifo32_init(timer_fifo, fifo32buf, __len, NULL);
 	return timer_alloc_customfifo(timer_fifo);
 }
 
@@ -138,7 +138,7 @@ static TIMER* __get_timer_next(TIMER *timer)
  *   - Remove the timer from the DL list
  * Return NULL when all timers are occupied
  */
-TIMER* timer_alloc_customfifo(FIFO32 *fifo32)
+TIMER* timer_alloc_customfifo(MPFIFO32 *fifo32)
 {
 	for (int32_t i = 0; i< OS_MAX_TIMER; i++)
 	{
@@ -292,7 +292,7 @@ void timer_free(TIMER *timer)
 	dlist_remove(&timer->timerDL);
 	if (timer->fifo)
 	{
-		kfree(timer->fifo->buf);
+		kfree(timer->fifo->fifo32.buf);
 		kfree(timer->fifo);
 	}
 	__timer_set_default_params(timer);
@@ -330,7 +330,7 @@ void timer_int_handler()
 		if (isTssTriggerred == false && mProcessAutoTaskSwitchTimer && pos == mProcessAutoTaskSwitchTimer)
 			isTssTriggerred = true;
 
-		fifo32_enqueue(pos->fifo, pos->data);
+		mpfifo32_enqueue(pos->fifo, pos->data);
 
 		/**
 		 * WARN: Mutating the DList itself

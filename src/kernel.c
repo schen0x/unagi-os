@@ -33,9 +33,9 @@ int32_t __fifo32_buffer[4096] = {0};
 
 int32_t counter = 0;
 
-FIFO32 fifoTSS3 = {0};
+MPFIFO32 fifoTSS3 = {0};
 int32_t __fifobuf3[4096] = {0};
-FIFO32 fifoTSS4 = {0};
+MPFIFO32 fifoTSS4 = {0};
 int32_t __fifobuf4[4096] = {0};
 
 TASK *task3;
@@ -179,8 +179,7 @@ void eventloop(void)
 	// FIFO32 fifoTSS3 = {0};
 	// int32_t __fifobuf[4096] = {0};
 
-	fifo32_init(&fifoTSS3, __fifobuf3, 4096);
-	fifoTSS3.task = task3;
+	mpfifo32_init(&fifoTSS3, __fifobuf3, 4096, task3);
 	TIMER *timer_put = NULL, *timer_1s = NULL;
 	(void) timer_put;
 
@@ -197,7 +196,7 @@ void eventloop(void)
 		 */
 		_io_cli();
 		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
-		if (!fifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
+		if (!mpfifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
 			_io_sti();
 			asm("pause");
@@ -207,13 +206,13 @@ void eventloop(void)
 		 * Every data in the fifo buffer should be sent by an interrupt
 		 * e.g. One mouse move emits 3 data packets, in 3 intterrupts
 		 */
-		if (!fifo32_status_getUsageB(&fifoTSS3))
+		if (!mpfifo32_status_getUsageB(&fifoTSS3))
 		{
 			goto keymouse;
 			// goto wait_next_event;
 		}
 
-		data = fifo32_dequeue(&fifoTSS3);
+		data = mpfifo32_dequeue(&fifoTSS3);
 
 		if (data < 0)
 		{
@@ -298,8 +297,7 @@ void __tss_b_main()
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
 
-	fifo32_init(&fifoTSS4, __fifobuf4, 4096);
-	fifoTSS4.task = task4;
+	mpfifo32_init(&fifoTSS4, __fifobuf4, 4096, task4);
 	TIMER *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
 	timer_1s = timer_alloc_customfifo(&fifoTSS4);
 	timer_settimer(timer_1s, 100, 1);
@@ -315,15 +313,16 @@ void __tss_b_main()
 		counterTSS4++;
 		_io_cli();
 
-		if (fifo32_status_getUsageB(&fifoTSS4) <= 0)
+		if (mpfifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
 			_io_sti();
-			mprocess_task_sleep(task4);
+			// mprocess_task_sleep(task4);
+			printf("b");
 			asm("pause");
 			continue;
 		}
 
-		data = fifo32_dequeue(&fifoTSS4);
+		data = mpfifo32_dequeue(&fifoTSS4);
 
 		if (data == 1)
 		{
