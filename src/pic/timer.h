@@ -2,9 +2,9 @@
 #define _PIC_TIMER_H_
 
 #include "stdint.h"
-#include "util/fifo.h"
 #include "config.h"
 #include "util/dlist.h"
+#include "util/fifo.h"
 
 #define TIMER_FLAGS_FREE 0
 /* Timer is allocated */
@@ -54,9 +54,11 @@ int32_t timer_gettick(void);
 static void __timer_set_default_params(TIMER *t);
 
 void pit_init(void);
-TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32);
+TIMER* timer_alloc_customfifo(FIFO32 *fifo32);
 TIMER* timer_alloc(void);
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data);
 void timer_free(TIMER *timer);
+TIMER* timer_get_tssTimer(void);
+void timer_set_tssTimer(TIMER *t);
 
 #endif

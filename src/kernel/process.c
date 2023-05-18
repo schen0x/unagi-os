@@ -1,22 +1,13 @@
 #include "kernel/process.h"
-#include "pic/timer.h"
-#include "io/io.h"
 #include "gdt/gdt.h"
+#include "io/io.h"
 #include "memory/memory.h"
+#include "pic/timer.h"
 
 #include <stdint.h>
 #include <stdbool.h>
 
 TASKCTL taskctl;
-TIMER *mprocess_task_autoswitch_timer;
-
-/**
- * Maybe NULL
- */
-TIMER* mprocess_get_task_autoswitch_timer(void)
-{
-	return mprocess_task_autoswitch_timer;
-}
 
 /**
  * Should be called after the gdtr migration
@@ -53,7 +44,8 @@ TASK *mprocess_init(void)
 	taskctl.now = 0;
 	taskctl.tasks[0] = task;
 	_gdt_load_task_register(task->gdtSegmentSelector);
-	mprocess_task_autoswitch_timer = timer_alloc_customfifobuf(NULL);
+	TIMER *mprocess_task_autoswitch_timer = timer_alloc_customfifo(NULL);
+	timer_set_tssTimer(mprocess_task_autoswitch_timer);
 	timer_settimer(mprocess_task_autoswitch_timer, 2, 0);
 	if (!isCli)
 		_io_sti();
@@ -102,7 +94,7 @@ void mprocess_task_run(TASK *task)
 
 void mprocess_task_autoswitch(void)
 {
-	timer_settimer(mprocess_task_autoswitch_timer, 2, 0);
+	timer_settimer(timer_get_tssTimer(), 2, 0);
 	if (taskctl.running >= 2)
 	{
 		taskctl.now++;
