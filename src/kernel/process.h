@@ -1,7 +1,7 @@
-#ifndef _KERNEL_PROCESS_H_
-#define _KERNEL_PROCESS_H_
+#ifndef KERNEL_PROCESS_H_
+#define KERNEL_PROCESS_H_
 
-#include "config.h"
+#include "pic/timer.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -62,11 +62,10 @@ typedef struct TASKCTL
 
 extern void _farjmp(uint32_t eip, uint16_t cs);
 
-//TIMER* mprocess_get_task_autoswitch_timer(void);
+TIMER* mprocess_get_task_autoswitch_timer(void);
 TASK *mprocess_init(void);
 TASK *mprocess_task_alloc(void);
 void mprocess_task_run(TASK *task);
 void mprocess_task_autoswitch(void);
 void mprocess_task_sleep(TASK *task);
-static void mprocess_save_segment_registers(TASK *tNow);
 #endif

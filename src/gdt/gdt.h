@@ -75,7 +75,7 @@ void gdt_migration();
 bool gdt1_reload(GDTR32 *r);
 
 extern void _gdt_reload(GDTR32 *gdtr);
-extern void _gdt_ltr(uint16_t tss_segment_selector);
+extern void _gdt_load_task_register(uint16_t tss_segment_selector);
 void _taskswitch4(void);
 void _taskswitch3(void);
 GDTR32* gdt_get_gdtr();
