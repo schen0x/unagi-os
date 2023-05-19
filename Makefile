@@ -20,15 +20,15 @@ compile: ./bin/boot.bin ./bin/kernel.bin ./bin/boot_next.bin
 
 run:
 	qemu-system-i386 -hda ./bin/os.bin -vga std
-	# qemu-system-i386 -hda ./bin/os.bin -vga std -curses
+	#qemu-system-i386 -hda ./bin/os.bin -vga std -curses
 
 rungui:
-	qemu-system-i386 -hda ./bin/os.bin
+	qemu-system-i386 -hda ./bin/os.bin -vga std
 
 gdb:
 	# qemu-system-x86_64 -hda ./bin/os.bin -curses -S -s
 	# qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234 -curses
-	qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234
+	qemu-system-i386 -hda ./bin/os.bin -vga std -S -gdb tcp:127.0.0.1:1234
 
 # The bootloader
 ./bin/boot.bin: ./src/boot/boot.asm
