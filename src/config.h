@@ -35,5 +35,7 @@
 #define DEV_FIFO_MOUSE_START 512 // Inclusive; In fifo, data - 256 == keyboard scancode
 #define DEV_FIFO_MOUSE_END 512 + 0xff + 1 // 768, Exclusive; In fifo, data - 256 == keyboard scancode
 
+
+#define DEBUG_NO_TIMER 1
 #endif
 

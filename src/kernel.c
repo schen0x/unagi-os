@@ -19,6 +19,8 @@
 #include "test.h"
 #include "util/kutil.h"
 #include "util/printf.h"
+#include "drivers/ps2kbc.h"
+#include "pic/pic.h"
 
 extern void loadPageDirectory(uint32_t *pd);
 /* Kernel Page Directory */
@@ -109,23 +111,30 @@ bool heap_debug()
 }
 
 
+/**
+ * TODO
+ *   - e820 routine
+ */
 void kernel_main(void)
 {
 	fifo32_init(&fifo32_common, __fifo32_buffer, 4096);
 	idt_init();
+
+	pit_init();
+	ps2kbc_KBC_init();
+	ps2kbc_MOUSE_init();
+	/* Remap PIC after idt setup. */
+	PIC_remap(0x20, 0x28);
 	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	// uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
 	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
-	_io_sti();
-	// TODO e820 routine
-
 	k_mm_init();
+	_io_sti();
 
 	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	// printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
 	printf("mem_test OK,&=%dMB~%dMB\n", OS_HEAP_ADDRESS/1024/1024, mem);
 	// printf("VRAM: %p\n", ((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->vram);
-	// pg();
 	// printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
 	disk_search_and_init();
 

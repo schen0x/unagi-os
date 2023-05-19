@@ -42,6 +42,9 @@ void ps2kbc_wait_KBC_readReady()
  */
 void ps2kbc_KBC_init(void)
 {
+	bool isCli = io_get_is_cli();
+	if (!isCli)
+		_io_cli();
 	/*
 	 * Ensure the output buffer is not blocked before init.
 	 * If bit 0 is set -> buffer is full -> flush it
@@ -67,6 +70,8 @@ void ps2kbc_KBC_init(void)
 	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_CONFIG_WRITE);
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_DATA_RW, kbc_conf0);
+	if (!isCli)
+		_io_sti();
 }
 
 /*
@@ -77,6 +82,9 @@ void ps2kbc_KBC_init(void)
  */
 void ps2kbc_MOUSE_init(void)
 {
+	bool isCli = io_get_is_cli();
+	if (!isCli)
+		_io_cli();
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
 	ps2kbc_wait_KBC_writeReady();
@@ -108,5 +116,7 @@ void ps2kbc_MOUSE_init(void)
 	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_DATA_RW, PS2MOUSE_CMD_DATA_REPORTING_ENABLE);
+	if (!isCli)
+		_io_sti();
 	return;
 }

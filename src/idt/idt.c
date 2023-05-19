@@ -24,45 +24,17 @@ extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
 FIFO32 keymousefifo = {0};
-int32_t _keymousefifobuf[4096] = {0};
-/**
- * Use the fifo32_common, same buffer with the timer
- * Doing so by adding/substracting an offset to all keyboard and mouse data
- */
-//! FIFO32 *keymousefifo = NULL;
-
-/* 0 before 0xfa; 1 afterwards */
-//static int32_t mouse_phase = 0;
-//FIFO32 mouse_one_move_buf = {0}; // 3 bytes
-//     			//
-//const int32_t MOUSE_ONE_MOVE_CMD_SIZE = 3;
-//uint8_t _mouse_one_move_buf[3] = {0}; // 3 bytes[]
+int32_t _keymousefifobuf[512] = {0};
 
 FIFO32* get_keymousefifo()
 {
 	return &keymousefifo;
 }
-static void chips_init()
-{
-	// keymousefifo = get_fifo32_common();
-	/* TODO refactoring, find somewhere else for the buffer */
-	// uint8_t _keybuf[32] = {0};
-	// uint8_t *_keybuf = (uint8_t*) kzalloc(32); // of course if memory it not yet initialized, this is not possible.
-	//! So the problem is that the idt_init() will return, while eventloop running
-	//! So if _keybuf uses a stack address, it causes panic
-	//! uint8_t _keybuf[32] = {0};
-	fifo32_init(&keymousefifo, _keymousefifobuf, (sizeof(_keymousefifobuf) / sizeof(_keymousefifobuf[0])) );
-	// fifo8_init(&mouse_one_move_buf, _mouse_one_move_buf, sizeof(_mouse_one_move_buf));
-
-	ps2kbc_KBC_init();
-	ps2kbc_MOUSE_init();
-
-	pit_init();
-}
 
 void idt_init()
 {
-	chips_init();
+	fifo32_init(&keymousefifo, _keymousefifobuf, (sizeof(_keymousefifobuf) / sizeof(_keymousefifobuf[0])));
+
 	/* Initialize the IDTR */
 	idtr.size = (uint16_t)(sizeof(idts) - 1);
 	idtr.offset = (uint32_t) idts;
@@ -71,12 +43,11 @@ void idt_init()
 	{
 		set_gatedesc(&idts[i], _int_default_handlers[i], OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
 	}
-
 	// /* Set int21 to use _int21h */
 	// set_gatedesc(&idts[0x21], (intptr_t)&_int21h, OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR, OS_IDT_AR_INTGATE32);
+
 	_idt_load(&idtr);
-	// Remap PIC after idt setup.
-	PIC_remap(0x20, 0x28);
+
 }
 
 /*
@@ -164,8 +135,8 @@ void int3h(void)
 void int2ch(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
-	fifo32_enqueue(&keymousefifo, data + DEV_FIFO_MOUSE_START);
 	PIC_sendEOI(12); // 2ch, IRQ12
+	fifo32_enqueue(&keymousefifo, data + DEV_FIFO_MOUSE_START);
 	return;
 }
 
@@ -180,12 +151,8 @@ void idt_zero()
 void int21h(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
-	// char buf[20]={0};
-	// sprintf(buf, "_%02x_", (uint8_t)data);
-	// kfprint(buf, 4);
-	/* Enqueue first, because it takes no time, and should be safer */
-	fifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
 	PIC_sendEOI(1); // 21h, IRQ1
+	fifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
 	return;
 }
 
