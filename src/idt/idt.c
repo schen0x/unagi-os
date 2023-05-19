@@ -130,7 +130,6 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 
 	if(interrupt_number == 0x21)
 	{
-		// int21h();
 		int21h();
 		return;
 	}

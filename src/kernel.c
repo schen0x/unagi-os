@@ -218,6 +218,7 @@ void eventloop(void)
 
 		if (data == 1)
 		{
+			printf("A");
 			timer_settimer(timer_1s, 100, 1);
 		}
 
