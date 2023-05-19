@@ -37,5 +37,6 @@
 
 
 #define DEBUG_NO_TIMER 1
+#define DEBUG_NO_MULTITASK 1
 #endif
 

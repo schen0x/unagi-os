@@ -54,7 +54,7 @@ int32_t timer_gettick(void);
 static void __timer_set_default_params(TIMER *t);
 
 void pit_init(void);
-TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32);
+TIMER* timer_alloc_customfifo(FIFO32 *fifo32);
 TIMER* timer_alloc(void);
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data);
 void timer_free(TIMER *timer);

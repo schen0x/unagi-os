@@ -86,6 +86,12 @@ void pg(void)
 
 bool heap_debug()
 {
+	uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
+	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
+	printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
+	printf("mem_test OK,&=%dMB~%dMB\n", OS_HEAP_ADDRESS/1024/1024, mem);
+	printf("VRAM: %p\n", ((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->vram);
+	printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
 	int32_t i = 0;
 	uintptr_t handlers[30000] = {0};
 	for (i = 0; i < 28000; i++)
@@ -125,26 +131,19 @@ void kernel_main(void)
 	ps2kbc_MOUSE_init();
 	/* Remap PIC after idt setup. */
 	PIC_remap(0x20, 0x28);
-	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
-	// uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
-	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
-	k_mm_init();
-	_io_sti();
 
+	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
+	k_mm_init();
 	graphic_window_manager_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
-	// printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
-	printf("mem_test OK,&=%dMB~%dMB\n", OS_HEAP_ADDRESS/1024/1024, mem);
-	// printf("VRAM: %p\n", ((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->vram);
-	// printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
 	disk_search_and_init();
 
-	if (!test_all())
-	{
+	_io_sti();
+	if (!test_all()) {
 		printf("Function test FAIL\n");
-	} else
-	{
+	} else {
 		printf("Function test PASS\n");
 	}
+
 	// heap_debug();
 
 	/**
@@ -152,23 +151,26 @@ void kernel_main(void)
 	 */
 	gdt_migration();
 
-	mprocess_init();
-	TASK *task4 = mprocess_task_alloc();
-//	GUARD = 1;
+	if (!DEBUG_NO_MULTITASK)
+	{
+		mprocess_init();
+		TASK *task4 = mprocess_task_alloc();
 
-	/**
-	 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
-	 * -12 if use a far call; anyway, far jumping is used here.
-	 */
-	task4->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 4;
-	task4->tss.eip = (uint32_t) &__tss_b_main;
-	task4->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
-	task4->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	task4->tss.ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	task4->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-	mprocess_task_run(task4);
+		/**
+		 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
+		 * -12 if use a far call; anyway, far jumping is used here.
+		 */
+		task4->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 4;
+		task4->tss.eip = (uint32_t) &__tss_b_main;
+		task4->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
+		task4->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		task4->tss.ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		task4->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		mprocess_task_run(task4);
+	}
+
 	eventloop();
 }
 
@@ -182,14 +184,11 @@ void eventloop(void)
 	int32_t keymousefifobuf_usedBytes = 0;
 	FIFO32 *keymousefifo = get_keymousefifo();
 
-	// FIFO32 fifoTSS3 = {0};
-	// int32_t __fifobuf[4096] = {0};
-
 	fifo32_init(&fifoTSS3, __fifobuf3, 4096);
 	TIMER *timer_put = NULL, *timer_1s = NULL;
 	(void) timer_put;
 
-	timer_1s = timer_alloc_customfifobuf(&fifoTSS3);
+	timer_1s = timer_alloc_customfifo(&fifoTSS3);
 	timer_settimer(timer_1s, 100, 1);
 
 	int32_t countTSS3 = 0;
@@ -200,7 +199,7 @@ void eventloop(void)
 		/**
 		 * Without cli(), it seems the printf in some cases cannot finish (may be buffed sometime)
 		 */
-		_io_cli();
+		//_io_cli();
 		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
 		if (!fifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
@@ -306,11 +305,11 @@ void __tss_b_main()
 
 	fifo32_init(&fifoTSS4, __fifobuf4, 4096);
 	TIMER *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
-	timer_1s = timer_alloc_customfifobuf(&fifoTSS4);
+	timer_1s = timer_alloc_customfifo(&fifoTSS4);
 	timer_settimer(timer_1s, 100, 1);
-	timer_5s = timer_alloc_customfifobuf(&fifoTSS4);
+	timer_5s = timer_alloc_customfifo(&fifoTSS4);
 	timer_settimer(timer_5s, 500, 5);
-	timer_render = timer_alloc_customfifobuf(&fifoTSS4);
+	timer_render = timer_alloc_customfifo(&fifoTSS4);
 	timer_settimer(timer_render, 10, 6);
 	(void) timer_render;
 	int32_t counterTSS4 = 0;

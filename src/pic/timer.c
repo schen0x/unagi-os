@@ -37,7 +37,7 @@ void pit_init(void)
 	_io_out8(PIT_CNT0, 0x9c); // Set low byte of PIT reload value
 	_io_out8(PIT_CNT0, 0x2e); // Set high byte of PIT reload value
 	timerctl_init();
-	tssTimer = timer_alloc_customfifobuf(NULL);
+	tssTimer = timer_alloc_customfifo(NULL);
 	if (!isCli)
 		_io_sti();
 
@@ -98,7 +98,7 @@ TIMER* timer_alloc(void)
 	int32_t *fifo32buf = (int32_t *)kzalloc(512);
 	FIFO32 *timer_fifo = (FIFO32 *)kzalloc(sizeof(FIFO32));
 	fifo32_init(timer_fifo, fifo32buf, 512 / sizeof(fifo32buf[0]));
-	return timer_alloc_customfifobuf(timer_fifo);
+	return timer_alloc_customfifo(timer_fifo);
 }
 
 
@@ -129,7 +129,7 @@ static TIMER* __get_timer_next(TIMER *timer)
  *   - Remove the timer from the DL list
  * Return NULL when all timers are occupied
  */
-TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32)
+TIMER* timer_alloc_customfifo(FIFO32 *fifo32)
 {
 	for (int32_t i = 0; i< OS_MAX_TIMER; i++)
 	{

@@ -152,6 +152,7 @@ void int21h(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
 	PIC_sendEOI(1); // 21h, IRQ1
+	printf("%x", data);
 	fifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
 	return;
 }

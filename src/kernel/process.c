@@ -27,8 +27,18 @@ TASK *mprocess_init(void)
 		taskctl.tasks0[i].flags = MPROCESS_FLAGS_FREE;
 		taskctl.tasks0[i].gdtSegmentSelector = (OS_MPROCESS_TSS_GDT_INDEX_START + i) * 8;
 		GDT32SD sd = {0};
-		/* Use the recommended magic access_byte 0x89 */
-		gdt_set_segmdesc(&sd, sizeof(TSS32) - 1, (uint32_t) &taskctl.tasks0[i].tss, 0x89);
+		/**
+		 * Intel Software Developer Manual, Volume 3-A.
+		 * Section 3.4.5: Segment Descriptors:
+		 *   - Offsets less than or equal to the segment limit generate
+		 * general-protection exceptions or stack-fault exceptions
+		 *
+		 * The `le` condition indicates the `limit` probably should not -1
+		 *
+		 * Use the recommended magic access_byte 0x89
+		 *
+		 */
+		gdt_set_segmdesc(&sd, sizeof(TSS32), (uint32_t) &taskctl.tasks0[i].tss, 0x89);
 		gdt_append(gdtr, gdts, &sd);
 	}
 
