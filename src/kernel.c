@@ -317,7 +317,6 @@ void __tss_b_main()
 		{
 			_io_sti();
 			// mprocess_task_sleep(task4);
-			printf("b");
 			asm("pause");
 			continue;
 		}

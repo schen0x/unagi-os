@@ -1,4 +1,5 @@
 #include "kernel/process.h"
+#include "kernel/mprocessfifo.h"
 #include "gdt/gdt.h"
 #include "io/io.h"
 #include "memory/memory.h"
@@ -43,9 +44,13 @@ TASK *mprocess_init(void)
 	taskctl->running = 1;
 	taskctl->now = 0;
 	taskctl->tasks[0] = task;
-	mprocess_save_segment_registers(task);
+	/* on jmp if correctly setup, the registers should be auto saved */
+	//mprocess_save_segment_registers(task);
 	_gdt_ltr(task->gdtSegmentSelector);
 
+//	MPFIFO32 *mpfifo32 = kzalloc(sizeof(MPFIFO32));
+//	int32_t *__mpfifo32buf = (int32_t*) kzalloc(sizeof(int32_t) * 512);
+//	mpfifo32_init(mpfifo32,__mpfifo32buf, 512, task);
 	TIMER *tss_switch = timer_alloc_customfifo(NULL);
 	timer_set_tssTimer(tss_switch);
 	timer_settimer(tss_switch, 2, 0);
@@ -83,17 +88,17 @@ TASK* mprocess_task_alloc(void)
 	return NULL;
 }
 
-static void mprocess_save_segment_registers(TASK *tNow)
-{
-	asm ("movw %%cs, %0\n" : "=m"(tNow->tss.cs));
-	asm ("movw %%ds, %0\n" : "=m"(tNow->tss.ds));
-	asm ("movw %%es, %0\n" : "=m"(tNow->tss.es));
-	asm ("movw %%fs, %0\n" : "=m"(tNow->tss.fs));
-	asm ("movw %%gs, %0\n" : "=m"(tNow->tss.gs));
-	asm ("movw %%ss, %0\n" : "=m"(tNow->tss.ss));
-	return;
-
-}
+//static void mprocess_save_segment_registers(TASK *tNow)
+//{
+//	asm ("movw %%cs, %0\n" : "=m"(tNow->tss.cs));
+//	asm ("movw %%ds, %0\n" : "=m"(tNow->tss.ds));
+//	asm ("movw %%es, %0\n" : "=m"(tNow->tss.es));
+//	asm ("movw %%fs, %0\n" : "=m"(tNow->tss.fs));
+//	asm ("movw %%gs, %0\n" : "=m"(tNow->tss.gs));
+//	asm ("movw %%ss, %0\n" : "=m"(tNow->tss.ss));
+//	return;
+//
+//}
 
 /**
  * Mark a `task` as RUNNING
@@ -112,8 +117,8 @@ void mprocess_task_autoswitch(void)
 	if (taskctl->running >= 2)
 	{
 		/* Save the current segment registers */
-		TASK *tNow = taskctl->tasks[taskctl->now];
-		mprocess_save_segment_registers(tNow);
+		//TASK *tNow = taskctl->tasks[taskctl->now];
+		//mprocess_save_segment_registers(tNow);
 
 		taskctl->now++;
 		/* Wrap to 0 */
