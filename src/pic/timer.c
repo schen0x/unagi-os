@@ -20,6 +20,7 @@
 #define PIT_CTRL 0x0043
 
 TIMERCTL timerctl;
+TIMER *tssTimer;
 
 /**
  * Get a 100Hz clock (10ms per tick)
@@ -36,10 +37,16 @@ void pit_init(void)
 	_io_out8(PIT_CNT0, 0x9c); // Set low byte of PIT reload value
 	_io_out8(PIT_CNT0, 0x2e); // Set high byte of PIT reload value
 	timerctl_init();
+	tssTimer = timer_alloc_customfifobuf(NULL);
 	if (!isCli)
 		_io_sti();
 
 	return;
+}
+
+TIMER* timer_get_tssTimer(void)
+{
+	return tssTimer;
 }
 
 /**
@@ -297,7 +304,6 @@ void timer_int_handler()
 
 	/* mProcess, tss */
 	bool isTssTriggerred = false;
-	TIMER *tssTimer = mprocess_get_task_autoswitch_timer();
 
 	TIMER *pos;
 	DLIST *head = &timerctl.listtail->timerDL;

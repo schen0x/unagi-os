@@ -58,5 +58,6 @@ TIMER* timer_alloc_customfifobuf(FIFO32 *fifo32);
 TIMER* timer_alloc(void);
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data);
 void timer_free(TIMER *timer);
+TIMER* timer_get_tssTimer(void);
 
 #endif
