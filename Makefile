@@ -2,6 +2,7 @@ FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/
 GCC_KERNEL_INCLUDES = -I./src
 GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -fvar-tracking -Iinc -O0
 TOOLPATH = $(HOME)/opt/cross/bin
+QEMUPATH = /usr/bin
 
 all: clean builddir compile run
 allcompile: clean builddir compile
@@ -16,19 +17,22 @@ compile: ./bin/boot.bin ./bin/kernel.bin ./bin/boot_next.bin
 	dd if=./bin/boot.bin >> ./bin/os.bin
 	dd if=./bin/boot_next.bin >> ./bin/os.bin
 	dd if=./bin/kernel.bin >> ./bin/os.bin
-	dd if=/dev/zero bs=512 count=200 >> ./bin/os.bin
+	dd if=/dev/zero bs=512 count=2048 >> ./bin/os.bin
+	mv ./bin/os.bin /run/shm/os.bin
+	dd if=/run/shm/os.bin bs=512 count=2048 of=./bin/os.bin
+	#dd if=./bin/os.bin bs=512 count=2048 of=/data/VirtualBox_VMs/os0/os0/os0.vdi
 
 run:
-	qemu-system-i386 -hda ./bin/os.bin -vga std
-	#qemu-system-i386 -hda ./bin/os.bin -vga std -curses
+	$(QEMUPATH)/qemu-system-i386 -hda ./bin/os.bin -vga std
+	# $(QEMUPATH)/qemu-system-i386 -hda ./bin/os.bin -vga std -curses
 
 rungui:
-	qemu-system-i386 -hda ./bin/os.bin -vga std
+	$(QEMUPATH)/qemu-system-i386 -hda ./bin/os.bin -vga std -usbdevice tablet
 
 gdb:
-	# qemu-system-x86_64 -hda ./bin/os.bin -curses -S -s
-	# qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234 -curses
-	qemu-system-i386 -hda ./bin/os.bin -vga std -S -gdb tcp:127.0.0.1:1234
+	# $(QEMUPATH)/qemu-system-x86_64 -hda ./bin/os.bin -curses -S -s
+	# $(QEMUPATH)/qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234 -curses
+	$(QEMUPATH)/qemu-system-i386 -hda ./bin/os.bin -S -gdb tcp:127.0.0.1:1234
 
 # The bootloader
 ./bin/boot.bin: ./src/boot/boot.asm
