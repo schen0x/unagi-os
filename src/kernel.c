@@ -208,7 +208,7 @@ void eventloop(void)
 		/**
 		 * Without cli(), it seems the printf in some cases cannot finish (may be buffed sometime)
 		 */
-		//_io_cli();
+		_io_cli();
 		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
 		if (!fifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
@@ -330,6 +330,7 @@ void __tss_b_main()
 
 		if (fifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
+			printf("B");
 			_io_sti();
 			asm("pause");
 			continue;

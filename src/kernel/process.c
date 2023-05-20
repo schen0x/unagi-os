@@ -3,6 +3,7 @@
 #include "io/io.h"
 #include "gdt/gdt.h"
 #include "memory/memory.h"
+#include "util/printf.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -53,7 +54,7 @@ TASK *mprocess_init(void)
 	taskctl.running = 1;
 	taskctl.now = 0;
 	taskctl.tasks[0] = task;
-	_gdt_load_task_register(task->gdtSegmentSelector);
+	_gdt_ltr(task->gdtSegmentSelector);
 	TIMER *tssTimer = timer_get_tssTimer();
 	timer_settimer(tssTimer, 10, 0);
 	if (!isCli)
@@ -113,7 +114,9 @@ void mprocess_task_autoswitch(void)
 		{
 			taskctl.now = 0;
 		}
-		_farjmp(0, taskctl.tasks[taskctl.now]->gdtSegmentSelector);
+		uint16_t ss = taskctl.tasks[taskctl.now]->gdtSegmentSelector;
+		printf("ss:%d", ss);
+		_farjmp(0, ss);
 	}
 	return;
 }

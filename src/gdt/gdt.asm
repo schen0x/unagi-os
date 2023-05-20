@@ -11,8 +11,8 @@ _gdt_reload:				; Reload the gdt (can be used in protected mode); Especially car
     pop ebp
     ret
 
-global _gdt_load_task_register:FUNCTION
-_gdt_load_task_register:
+global _gdt_ltr:FUNCTION		; Load Task Register
+_gdt_ltr:
     push ebp
     mov ebp, esp
 
