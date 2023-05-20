@@ -2,7 +2,7 @@
 #define _PIC_TIMER_H_
 
 #include "stdint.h"
-#include "util/fifo.h"
+#include "kernel/mprocessfifo.h"
 #include "config.h"
 #include "util/dlist.h"
 
@@ -27,7 +27,7 @@ typedef struct TIMER {
 	uint32_t target_tick;
 	uint32_t flags;
 	/* This uses heap, only allocated on use */
-	FIFO32 *fifo;
+	MPFIFO32 *fifo;
 	uint8_t data;
 } TIMER;
 
@@ -54,7 +54,7 @@ int32_t timer_gettick(void);
 static void __timer_set_default_params(TIMER *t);
 
 void PIT_init(void);
-TIMER* timer_alloc_customfifo(FIFO32 *fifo32);
+TIMER* timer_alloc_customfifo(MPFIFO32 *fifo32);
 TIMER* timer_alloc(void);
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data);
 void timer_free(TIMER *timer);

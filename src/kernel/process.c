@@ -101,10 +101,14 @@ TASK* mprocess_task_alloc(void)
 }
 
 /**
- * Mark a `task` as RUNNING
+ * Mark an ALLOCATED `task` as RUNNING
  */
 void mprocess_task_run(TASK *task)
 {
+	if (!task)
+		return;
+	if (task->flags != MPROCESS_FLAGS_ALLOCATED)
+		return;
 	task->flags = MPROCESS_FLAGS_RUNNING;
 	taskctl->tasks[taskctl->running] = task;
 	taskctl->running++;

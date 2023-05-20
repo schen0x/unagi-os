@@ -18,18 +18,16 @@
 #include "pic/pic.h"
 #include "kernel/mprocessfifo.h"
 
+int32_t counter, __GUARD0;
 MOUSE_DATA_BUNDLE mouse_one_move = {0};
 
 FIFO32 fifo32_common = {0};
 int32_t __fifo32_buffer[4096] = {0};
-int32_t counter = 0;
 
-FIFO32 fifoTSS3 = {0};
-int32_t __fifobuf3[4096] = {0};
-FIFO32 fifoTSS4 = {0};
-int32_t __fifobuf4[4096] = {0};
+MPFIFO32 fifoTSS3 = {0}, fifoTSS4 = {0};
+int32_t __fifobuf3[4096] = {0}, __fifobuf4[4096] = {0};
 
-int32_t __GUARD0;
+TASK *task3, *task4;
 
 FIFO32* get_fifo32_common(void)
 {
@@ -85,8 +83,8 @@ void kernel_main(void)
 	if (!DEBUG_NO_MULTITASK)
 	{
 		_io_cli();
-		mprocess_init();
-		TASK *task4 = mprocess_task_alloc();
+		task3 = mprocess_init();
+		task4 = mprocess_task_alloc();
 
 		/**
 		 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
@@ -115,7 +113,7 @@ void eventloop(void)
 	int32_t keymousefifobuf_usedBytes = 0;
 	FIFO32 *keymousefifo = get_keymousefifo();
 
-	fifo32_init(&fifoTSS3, __fifobuf3, 4096);
+	mpfifo32_init(&fifoTSS3, __fifobuf3, 4096, task3);
 	TIMER *timer_put = NULL, *timer_1s = NULL;
 	(void) timer_put;
 
@@ -132,7 +130,7 @@ void eventloop(void)
 		 */
 		_io_cli();
 		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
-		if (!fifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
+		if (!mpfifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
 			_io_sti();
 			asm("pause");
@@ -142,13 +140,13 @@ void eventloop(void)
 		 * Every data in the fifo buffer should be sent by an interrupt
 		 * e.g. One mouse move emits 3 data packets, in 3 intterrupts
 		 */
-		if (!fifo32_status_getUsageB(&fifoTSS3))
+		if (!mpfifo32_status_getUsageB(&fifoTSS3))
 		{
 			goto keymouse;
 			// goto wait_next_event;
 		}
 
-		data = fifo32_dequeue(&fifoTSS3);
+		data = mpfifo32_dequeue(&fifoTSS3);
 
 		if (data < 0)
 		{
@@ -202,7 +200,7 @@ void __tss_b_main()
 	int32_t data = 0;
 	int32_t color = COL8_FFFFFF;
 
-	fifo32_init(&fifoTSS4, __fifobuf4, 4096);
+	mpfifo32_init(&fifoTSS4, __fifobuf4, 4096, task4);
 	TIMER *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
 	timer_1s = timer_alloc_customfifo(&fifoTSS4);
 	timer_settimer(timer_1s, 100, 1);
@@ -218,14 +216,14 @@ void __tss_b_main()
 		counterTSS4++;
 		_io_cli();
 
-		if (fifo32_status_getUsageB(&fifoTSS4) <= 0)
+		if (mpfifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
 			_io_sti();
 			asm("pause");
 			continue;
 		}
 
-		data = fifo32_dequeue(&fifoTSS4);
+		data = mpfifo32_dequeue(&fifoTSS4);
 
 		if (data == 1)
 		{
