@@ -60,7 +60,7 @@ void PIC_sendEOI(uint8_t irq)
  * 	vectors on the master become offset1..offset1+7
  * offset2 - same for slave PIC: offset2..offset2+7
  */
-void PIC_remap(uint8_t offset0, uint8_t offset1)
+void PIC_init(uint8_t offset0, uint8_t offset1)
 {
 	_io_out8(PIC0_DATA, 0xff);			// Mask all
 	_io_out8(PIC1_DATA, 0xff);			//

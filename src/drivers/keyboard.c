@@ -23,6 +23,7 @@
 #include "util/kutil.h"
 #include "include/uapi/graphic.h"
 #include "util/printf.h"
+#include "io/io.h"
 #define BREAK_MASK (0x80)
 
 static unsigned char atakbd_keycode[0x73] = {	/* American layout */

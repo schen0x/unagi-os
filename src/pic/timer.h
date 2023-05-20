@@ -47,13 +47,13 @@ typedef struct TIMERCTL {
 	TIMER timer[OS_MAX_TIMER];
 } TIMERCTL;
 
-void pit_init(void);
+void PIT_init(void);
 static void timerctl_init(void);
 void timer_int_handler(void);
 int32_t timer_gettick(void);
 static void __timer_set_default_params(TIMER *t);
 
-void pit_init(void);
+void PIT_init(void);
 TIMER* timer_alloc_customfifo(FIFO32 *fifo32);
 TIMER* timer_alloc(void);
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data);

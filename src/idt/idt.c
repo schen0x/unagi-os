@@ -106,9 +106,9 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame)
 	}
 	if(interrupt_number >= 0x20 && interrupt_number < 0x30)
 	{
-		//char i[10] = {0};
-		//sprintf(i, "%x", interrupt_number);
-		//kfprint(i, 4);
+		/* Spurious IRQs Handling (makeshift, no EOI) */
+		if (interrupt_number == 0x20 + 7 || interrupt_number == 0x28 + 7)
+			return;
 		PIC_sendEOI((uint8_t)((interrupt_number & 0xff) - 0x20)); // for 0x20-0x27, report to PIC0, 0:7; otherwise to PIC1, 8:15;
 		return;
 	}
@@ -152,7 +152,6 @@ void int21h(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
 	PIC_sendEOI(1); // 21h, IRQ1
-	printf("%x", data);
 	fifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
 	return;
 }

@@ -126,11 +126,20 @@ void kernel_main(void)
 	fifo32_init(&fifo32_common, __fifo32_buffer, 4096);
 	idt_init();
 
-	pit_init();
+	/**
+	 * PIC_remap() must be later than the idt setup
+	 * PIC_remap may be later than the PIC KBD/MOUSE setup
+	 * But?
+	 *   - Possible QEMU bug
+	 *   - More logical to re-wire the int first before enabling/config the chip
+	 * But But?
+	 *   - QEMU 8.0.0 seems really angry when init PIC before PIC kbd/mouse
+	 *   - Yolo, this does not matter, do handling on the KBD and MOUSE init, clear all data
+	 */
+	PIT_init();
 	ps2kbc_KBC_init();
 	ps2kbc_MOUSE_init();
-	/* Remap PIC after idt setup. */
-	PIC_remap(0x20, 0x28);
+	PIC_init(0x20, 0x28);
 
 	graphic_init((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS);
 	k_mm_init();

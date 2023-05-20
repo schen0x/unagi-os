@@ -27,7 +27,7 @@ TIMER *tssTimer;
  * Setup the Programmable Interval Timer (PIT) chip (Intel 8353/8254)
  * Set counter to 0x2e9c (11932) => (1.1931816666 MHz / 11932 = 99.99846 Hz)
  */
-void pit_init(void)
+void PIT_init(void)
 {
 	bool isCli = io_get_is_cli();
 	if (!isCli)

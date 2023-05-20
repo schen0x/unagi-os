@@ -37,8 +37,8 @@ void ps2kbc_wait_KBC_readReady()
 }
 
 /*
- * "PS/2 Controller Configuration Byte"
- * The straight goal should be to set the "Second PS/2 port interrupt"
+ * Enable to "Second PS/2 port interrupt"
+ * - Read and alter the "PS/2 Controller Configuration Byte"
  */
 void ps2kbc_KBC_init(void)
 {
@@ -59,17 +59,44 @@ void ps2kbc_KBC_init(void)
 	ps2kbc_wait_KBC_readReady();
 	uint8_t kbc_conf0 = _io_in8(PS2KBC_PORT_DATA_RW);
 
-	/* Test the bit 5 (0-indexed) (Second PS/2 port clock), if 0 (enabled), the dual channel controller is probably not supported, because by default it should be 1 (disabled)  */
+	/**
+	 * A test on if the dual channel ps2 controller is supported, if not, do not continue
+	 *   - By the default "bit 5 (0-indexed) (Second PS/2 port clock)" should be 1 (disabled)
+	 *   - If 0 (enabled), probably not supported, do not continue
+	 */
 	if (((kbc_conf0 >> 5) & 1) == 0)
 		return;
 
 	/* Enable mouse (IRQ12) by setting the bit 1 (0-indexed) (Second PS/2 port interrupt (1 = enabled, 0 = disabled, only if 2 PS/2 ports supported)) */
 	kbc_conf0 |= 1 << 1;
-	/* Write back the flags (the "next byte" after PS2KBC_CMD_CONFIG_WRITE) */
+	/* Write back the updated flags */
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_CONFIG_WRITE);
+ 	/* The flag; the "next byte" of the PS2KBC_CMD_CONFIG_WRITE command) */
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_DATA_RW, kbc_conf0);
+
+	/* Reset & selftest */
+	ps2kbc_wait_KBC_writeReady();
+	_io_out8(PS2KBC_PORT_CMD_W, 0xff);
+
+	/**
+	 * ps2kbc_wait_KBC_readReady();
+	 * _io_in8(PS2KBC_PORT_DATA_RW);
+	 *
+	 * There suppose to be a response to the selftest, e.g., 0xfa ACK or 0xAA 0x00 or whatever the heck it should be, just consume it, do not let it block io.
+	 * Did not find the standard. QEMU also changed the implementation back and forth between versions
+	 */
+	for (volatile int32_t i = 0; i < 1000; i++)
+	{
+		if ((_io_in8(PS2KBC_PORT_STATUS_R) & PS2KBC_STATUS_FLAG_OUTPUT_BUF_FULL) == 1)
+		{
+			_io_in8(PS2KBC_PORT_DATA_RW);
+		}
+		io_wait();
+		asm("pause");
+
+	}
 	if (!isCli)
 		_io_sti();
 }
@@ -85,6 +112,8 @@ void ps2kbc_MOUSE_init(void)
 	bool isCli = io_get_is_cli();
 	if (!isCli)
 		_io_cli();
+	if ((_io_in8(PS2KBC_PORT_STATUS_R) & PS2KBC_STATUS_FLAG_OUTPUT_BUF_FULL) == 1)
+		_io_in8(PS2KBC_PORT_DATA_RW);
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
 	ps2kbc_wait_KBC_writeReady();
@@ -116,6 +145,25 @@ void ps2kbc_MOUSE_init(void)
 	_io_out8(PS2KBC_PORT_CMD_W, PS2KBC_CMD_REDIRECT_C2_INBUF);
 	ps2kbc_wait_KBC_writeReady();
 	_io_out8(PS2KBC_PORT_DATA_RW, PS2MOUSE_CMD_DATA_REPORTING_ENABLE);
+	ps2kbc_wait_KBC_writeReady();
+
+	/* Reset & selftest */
+	ps2kbc_wait_KBC_writeReady();
+	_io_out8(PS2KBC_PORT_CMD_W, 0xff);
+
+	/**
+	 * Same as the ps2kbc_KBC_init, there suppose to be a response but the standard is blur
+	 * Wait and consume whatever possible response for a while, don't let it block.
+	 */
+	for (volatile int32_t i = 0; i < 1000; i++)
+	{
+		if ((_io_in8(PS2KBC_PORT_STATUS_R) & PS2KBC_STATUS_FLAG_OUTPUT_BUF_FULL) == 1)
+		{
+			_io_in8(PS2KBC_PORT_DATA_RW);
+		}
+		io_wait();
+		asm("pause");
+	}
 	if (!isCli)
 		_io_sti();
 	return;

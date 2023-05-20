@@ -3,5 +3,5 @@
 
 #include <stdint.h>
 void PIC_sendEOI(uint8_t irq);
-void PIC_remap(uint8_t offset0, uint8_t offset1);
+void PIC_init(uint8_t offset0, uint8_t offset1);
 #endif
