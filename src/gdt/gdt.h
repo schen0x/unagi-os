@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define GDT_SD_FLAGS_AR_KCODE 0x9a
+#define GDT_SD_FLAGS_AR_KDATA 0x92
+#define GDT_SD_FLAGS_AR_UCODE 0xfa
+#define GDT_SD_FLAGS_AR_UDATA 0xf2
+#define GDT_SD_FLAGS_AR_TSS 0x89
+
 /**
  * Global Descriptor Table Entry (Segment Descriptor), 8 bytes
  */

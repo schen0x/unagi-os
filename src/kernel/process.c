@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 TASKCTL *taskctl;
+int32_t __MPGUARD = 0;
 
 /**
  * Should be called after the gdtr migration
@@ -19,6 +20,14 @@ TASKCTL *taskctl;
  */
 TASK *mprocess_init(void)
 {
+	/* Overflow guard */
+ 	__MPGUARD++;
+	if (__MPGUARD > 1)
+	{
+		printf("__MPGUARD");
+		asm("HLT");
+	}
+
 	TASK *task;
 	GDTR32 *gdtr = gdt_get_gdtr();
 	GDT32SD *gdts = gdt_get_gdts();

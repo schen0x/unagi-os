@@ -162,6 +162,7 @@ void kernel_main(void)
 
 	if (!DEBUG_NO_MULTITASK)
 	{
+		_io_cli();
 		mprocess_init();
 		TASK *task4 = mprocess_task_alloc();
 
@@ -178,6 +179,7 @@ void kernel_main(void)
 		task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		mprocess_task_run(task4);
+		_io_sti();
 	}
 
 	eventloop();
