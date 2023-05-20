@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-TASKCTL taskctl;
+TASKCTL *taskctl;
 
 /**
  * Should be called after the gdtr migration
@@ -22,11 +22,11 @@ TASK *mprocess_init(void)
 	TASK *task;
 	GDTR32 *gdtr = gdt_get_gdtr();
 	GDT32SD *gdts = gdt_get_gdts();
-	// taskctl = (TASKCTL *) kzalloc(sizeof(TASKCTL));
+	taskctl = (TASKCTL *) kzalloc(sizeof(TASKCTL));
 	for (int32_t i = 0; i < OS_MPROCESS_TASK_MAX; i++)
 	{
-		taskctl.tasks0[i].flags = MPROCESS_FLAGS_FREE;
-		taskctl.tasks0[i].gdtSegmentSelector = (OS_MPROCESS_TSS_GDT_INDEX_START + i) * 8;
+		taskctl->tasks0[i].flags = MPROCESS_FLAGS_FREE;
+		taskctl->tasks0[i].gdtSegmentSelector = (OS_MPROCESS_TSS_GDT_INDEX_START + i) * 8;
 		GDT32SD sd = {0};
 		/**
 		 * Intel Software Developer Manual, Volume 3-A.
@@ -39,7 +39,7 @@ TASK *mprocess_init(void)
 		 * Use the recommended magic access_byte 0x89
 		 *
 		 */
-		gdt_set_segmdesc(&sd, sizeof(TSS32), (uint32_t) &taskctl.tasks0[i].tss, 0x89);
+		gdt_set_segmdesc(&sd, sizeof(TSS32), (uint32_t) &taskctl->tasks0[i].tss, 0x89);
 		gdt_append(gdtr, gdts, &sd);
 	}
 
@@ -51,10 +51,10 @@ TASK *mprocess_init(void)
 
 	task = mprocess_task_alloc();
 	task->flags = MPROCESS_FLAGS_RUNNING;
-	taskctl.running = 1;
-	taskctl.now = 0;
-	taskctl.tasks[0] = task;
-	_gdt_ltr(task->gdtSegmentSelector);
+	taskctl->running = 1;
+	taskctl->now = 0;
+	taskctl->tasks[0] = task;
+	_gdt_ltr((uint16_t) task->gdtSegmentSelector);
 	TIMER *tssTimer = timer_get_tssTimer();
 	timer_settimer(tssTimer, 10, 0);
 	if (!isCli)
@@ -66,9 +66,9 @@ TASK* mprocess_task_alloc(void)
 {
 	for (int32_t i = 0 ; i < OS_MPROCESS_TASK_MAX; i++)
 	{
-		if (taskctl.tasks0[i].flags == MPROCESS_FLAGS_FREE)
+		if (taskctl->tasks0[i].flags == MPROCESS_FLAGS_FREE)
 		{
-			TASK *taskNew = &taskctl.tasks0[i];
+			TASK *taskNew = &taskctl->tasks0[i];
 			taskNew->flags = MPROCESS_FLAGS_ALLOCATED;
  			/* IF = 1 */
 			taskNew->tss.eflags = 0x00000202;
@@ -97,8 +97,8 @@ TASK* mprocess_task_alloc(void)
 void mprocess_task_run(TASK *task)
 {
 	task->flags = MPROCESS_FLAGS_RUNNING;
-	taskctl.tasks[taskctl.running] = task;
-	taskctl.running++;
+	taskctl->tasks[taskctl->running] = task;
+	taskctl->running++;
 	return;
 }
 
@@ -106,15 +106,15 @@ void mprocess_task_autoswitch(void)
 {
 	TIMER *tssTimer = timer_get_tssTimer();
 	timer_settimer(tssTimer, 8, 0);
-	if (taskctl.running >= 2)
+	if (taskctl->running >= 2)
 	{
-		taskctl.now++;
+		taskctl->now++;
 		/* Wrap to 0 */
-		if (taskctl.now == taskctl.running)
+		if (taskctl->now == taskctl->running)
 		{
-			taskctl.now = 0;
+			taskctl->now = 0;
 		}
-		uint16_t ss = taskctl.tasks[taskctl.now]->gdtSegmentSelector;
+		uint16_t ss = taskctl->tasks[taskctl->now]->gdtSegmentSelector;
 		printf("ss:%d", ss);
 		_farjmp(0, ss);
 	}
@@ -136,33 +136,33 @@ void mprocess_task_sleep(TASK *task)
 	if (task->flags != MPROCESS_FLAGS_RUNNING)
 		return;
 	/* The current running task wishes to enter its slumber */
-	if (task == taskctl.tasks[taskctl.now])
+	if (task == taskctl->tasks[taskctl->now])
 		needTaskSwitchNow = true;
 	/* Find the task */
-	for (i = 0; i < taskctl.running; i++)
+	for (i = 0; i < taskctl->running; i++)
 	{
-		if (taskctl.tasks[i] == task)
+		if (taskctl->tasks[i] == task)
 		{
 			break;
 		}
 	}
 	/* No hit; ERROR */
-	if (i > taskctl.running)
+	if (i > taskctl->running)
 		return;
 
 	/* Remove the task from the scheduler */
-	taskctl.running--;
-	if (i < taskctl.now)
-		taskctl.now--;
-	for (; i< taskctl.running; i++)
-		taskctl.tasks[i] = taskctl.tasks[i + 1];
+	taskctl->running--;
+	if (i < taskctl->now)
+		taskctl->now--;
+	for (; i< taskctl->running; i++)
+		taskctl->tasks[i] = taskctl->tasks[i + 1];
 	task->flags = MPROCESS_FLAGS_ALLOCATED;
 	if (needTaskSwitchNow != 0)
 	{
-		taskctl.now++;
-		if (taskctl.now >= taskctl.running)
-			taskctl.now = 0;
-		_farjmp(0, taskctl.tasks[taskctl.now]->gdtSegmentSelector);
+		taskctl->now++;
+		if (taskctl->now >= taskctl->running)
+			taskctl->now = 0;
+		_farjmp(0, taskctl->tasks[taskctl->now]->gdtSegmentSelector);
 	}
 }
 
