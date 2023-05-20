@@ -2,7 +2,7 @@ FILES = ./build/kernel.asm.o ./build/kernel.o ./build/idt/idt.asm.o ./build/idt/
 GCC_KERNEL_INCLUDES = -I./src
 GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -fvar-tracking -Iinc -O0
 TOOLPATH = $(HOME)/opt/cross/bin
-QEMUPATH = /usr/bin
+QEMUPATH = /usr/local/bin
 
 all: clean builddir compile run
 allcompile: clean builddir compile
