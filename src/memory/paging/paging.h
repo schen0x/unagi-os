@@ -63,5 +63,5 @@ void paging_switch(PAGE_DIRECTORY_4KB* directory);
 extern void enable_paging();
 PAGE_DIRECTORY_4KB* pd_init(uint32_t flags);
 uint32_t paging_set_page(PAGE_DIRECTORY_ENTRY_4KB *dir, void* virtual_address, uint32_t data);
-
+void _loadPageDirectory(uint32_t *pd);
 #endif

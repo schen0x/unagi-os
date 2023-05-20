@@ -114,7 +114,7 @@ void mprocess_task_run(TASK *task)
 void mprocess_task_autoswitch(void)
 {
 	TIMER *tssTimer = timer_get_tssTimer();
-	timer_settimer(tssTimer, 8, 0);
+	timer_settimer(tssTimer, 2, 0);
 	if (taskctl->running >= 2)
 	{
 		taskctl->now++;
@@ -124,7 +124,7 @@ void mprocess_task_autoswitch(void)
 			taskctl->now = 0;
 		}
 		uint16_t ss = taskctl->tasks[taskctl->now]->gdtSegmentSelector;
-		printf("ss:%d", ss);
+		// printf("ss:%d", ss);
 		_farjmp(0, ss);
 	}
 	return;

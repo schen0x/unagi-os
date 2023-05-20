@@ -1,38 +1,27 @@
 #include "config.h"
-#include "disk/disk.h"
 #include "disk/dstream.h"
-#include "drivers/graphic/videomode.h"
 #include "drivers/keyboard.h"
 #include "drivers/ps2mouse.h"
 #include "fs/pathparser.h"
 #include "gdt/gdt.h"
-#include "idt/idt.h"
 #include "include/uapi/bootinfo.h"
-#include "include/uapi/graphic.h"
 #include "io/io.h"
 #include "kernel.h"
 #include "kernel/process.h"
 #include "memory/heapdl.h"
 #include "memory/memory.h"
-#include "memory/paging/paging.h"
 #include "pic/timer.h"
 #include "test.h"
 #include "util/kutil.h"
 #include "util/printf.h"
 #include "drivers/ps2kbc.h"
 #include "pic/pic.h"
+#include "kernel/mprocessfifo.h"
 
-extern void loadPageDirectory(uint32_t *pd);
-/* Kernel Page Directory */
-PAGE_DIRECTORY_4KB* kpd = 0;
 MOUSE_DATA_BUNDLE mouse_one_move = {0};
-
-uint32_t page_directory[1024] __attribute__((aligned(4096)));
-uint32_t first_page_table[1024] __attribute__((aligned(4096)));
 
 FIFO32 fifo32_common = {0};
 int32_t __fifo32_buffer[4096] = {0};
-
 int32_t counter = 0;
 
 FIFO32 fifoTSS3 = {0};
@@ -40,7 +29,7 @@ int32_t __fifobuf3[4096] = {0};
 FIFO32 fifoTSS4 = {0};
 int32_t __fifobuf4[4096] = {0};
 
-int32_t GUARD;
+int32_t __GUARD0;
 
 FIFO32* get_fifo32_common(void)
 {
@@ -49,73 +38,8 @@ FIFO32* get_fifo32_common(void)
 
 int32_t get_guard()
 {
-	return GUARD;
+	return __GUARD0;
 }
-
-void pg(void)
-{
-	(void) kpd;
-	//uint32_t pd_entries_flags = 0b111;
-	//kpd = pd_init(pd_entries_flags);
-	//paging_switch(kpd);
-	//enable_paging();
-	//set each entry to not present
-	for(int32_t i = 0; i < 1024; i++)
-	{
-		// This sets the following flags to the pages:
-		//   Supervisor: Only kernel-mode can access them
-		//   Write Enabled: It can be both read from and written to
-		//   Not Present: The page table is not present
-		page_directory[i] = 0x00000002;
-	}
-	// holds the physical address where we want to start mapping these pages to.
-	// in this case, we want to map these pages to the very beginning of memory.
-	//we will fill all 1024 entries in the table, mapping 4 megabytes
-	for(uint32_t i = 0; i < 1024; i++)
-	{
-	    // As the address is page aligned, it will always leave 12 bits zeroed.
-	    // Those bits are used by the attributes ;)
-	    first_page_table[i] = (i * 0x1000) | 3; // attributes: supervisor level, read/write, present.
-	}
-	// attributes: supervisor level, read/write, present
-	// page_directory[0] = ((unsigned int)first_page_table) | 3;
-	page_directory[0] = ((unsigned int)first_page_table) | 0b111;
-	loadPageDirectory(page_directory);
-	enable_paging();
-}
-
-bool heap_debug()
-{
-	uintptr_t mem0 = kmemtest(0x7E00, 0x7ffff);
-	uintptr_t mem = kmemtest(OS_HEAP_ADDRESS, 0xbfffffff) / 1024 / 1024; // End at 0x0800_0000 (128MB) in QEMU
-	printf("mem_test OK from addr %4x to %4x \n", 0x7E00, mem0);
-	printf("mem_test OK,&=%dMB~%dMB\n", OS_HEAP_ADDRESS/1024/1024, mem);
-	printf("VRAM: %p\n", ((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->vram);
-	printf("Used: %dKB", k_heapdl_mm_get_usage()/1024);
-	int32_t i = 0;
-	uintptr_t handlers[30000] = {0};
-	for (i = 0; i < 28000; i++)
-	{
-		handlers[i] = (uintptr_t)kzalloc(2048);
-		if (!handlers[i])
-		{
-			printf("NULL, i: %d", i);
-			break;
-		}
-
-	}
-	for (i = 0; i < 28000; i++)
-		kfree((void *)handlers[i]);
-
-	char *a = (char *) kzalloc(10);
-	printf("a: %p", a);
-	printf("f: %d", k_heapdl_mm_get_free()/1024/1024);
-	printf("chunks: %d", debug__k_heapdl_mm_get_chunks());
-	printf("fc: %d", debug__k_heapdl_mm_get_chunksfree());
-
-	return true;
-}
-
 
 /**
  * TODO
@@ -155,9 +79,7 @@ void kernel_main(void)
 
 	// heap_debug();
 
-	/**
-	 *  Import GDTR0 and switch to the GDTR1
-	 */
+	/* Import GDTR0 and switch to the GDTR1 */
 	gdt_migration();
 
 	if (!DEBUG_NO_MULTITASK)
@@ -185,9 +107,7 @@ void kernel_main(void)
 	eventloop();
 }
 
-/**
- * TSS3
- */
+/* TSS3 */
 void eventloop(void)
 {
 	int32_t data = 0;
@@ -237,7 +157,6 @@ void eventloop(void)
 
 		if (data == 1)
 		{
-			printf("A");
 			timer_settimer(timer_1s, 100, 1);
 		}
 
@@ -254,9 +173,7 @@ keymouse:
 			goto wait_next_event;
 		}
 		data_keymouse = fifo32_dequeue(keymousefifo);
-		/**
-		 * Maybe -EIO
-		 */
+		/* May be -EIO */
 		if (data_keymouse < 0)
 			// continue;
 			goto wait_next_event;
@@ -278,36 +195,7 @@ wait_next_event:
 	}
 }
 
-/*
- * MOUSE data handler
- * scancode: uint8_t _scancode
- */
-void int2ch_handler(uint8_t scancode)
-{
-	ps2mouse_decode(scancode, &mouse_one_move);
-	SCREEN_MOUSEXY xy0 = {0};
-	getMouseXY(&xy0);
-	graphic_move_mouse(&mouse_one_move);
-	/* Mutated in the `graphic_move_mouse` */
-	SCREEN_MOUSEXY xy1 = {0};
-	getMouseXY(&xy1);
-	/* If the left button is pressed */
-	if ((mouse_one_move.btn & 0b1) != 0)
-	{
-		SHEET *w = get_sheet_window();
-		if (isCursorWithinSheet(&xy1, w))
-		{
-			sheet_slide(w, w->xStart + xy1.mouseX - xy0.mouseX, w->yStart + xy1.mouseY - xy0.mouseY);
-		}
-
-	}
-}
-
-
-/**
- * TSS4
- */
-// void __tss_b_main(SHEET* sw)
+/* TSS4 */
 void __tss_b_main()
 {
 	SHEET* sw = get_sheet_window();
@@ -332,7 +220,6 @@ void __tss_b_main()
 
 		if (fifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
-			printf("B");
 			_io_sti();
 			asm("pause");
 			continue;
@@ -384,6 +271,32 @@ void __tss_b_main()
 				color ^= COL8_C6C6C6;
 			}
 
+		}
+
+	}
+}
+
+
+/*
+ * MOUSE data handler
+ * scancode: uint8_t _scancode
+ */
+void int2ch_handler(uint8_t scancode)
+{
+	ps2mouse_decode(scancode, &mouse_one_move);
+	SCREEN_MOUSEXY xy0 = {0};
+	getMouseXY(&xy0);
+	graphic_move_mouse(&mouse_one_move);
+	/* Mutated in the `graphic_move_mouse` */
+	SCREEN_MOUSEXY xy1 = {0};
+	getMouseXY(&xy1);
+	/* If the left button is pressed */
+	if ((mouse_one_move.btn & 0b1) != 0)
+	{
+		SHEET *w = get_sheet_window();
+		if (isCursorWithinSheet(&xy1, w))
+		{
+			sheet_slide(w, w->xStart + xy1.mouseX - xy0.mouseX, w->yStart + xy1.mouseY - xy0.mouseY);
 		}
 
 	}

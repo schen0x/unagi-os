@@ -22,8 +22,8 @@ enable_paging:
     pop ebp
     ret
 
-global loadPageDirectory
-loadPageDirectory:
+global _loadPageDirectory:function
+_loadPageDirectory:
     push ebp
     mov ebp, esp
     mov eax, [ebp+8]
