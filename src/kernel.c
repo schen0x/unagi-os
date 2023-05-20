@@ -111,7 +111,8 @@ void eventloop(void)
 	int32_t data = 0;
 	int32_t data_keymouse = 0;
 	int32_t keymousefifobuf_usedBytes = 0;
-	FIFO32 *keymousefifo = get_keymousefifo();
+	MPFIFO32 *keymousefifo = get_keymousefifo();
+	keymousefifo->task = task3;
 
 	mpfifo32_init(&fifoTSS3, __fifobuf3, 4096, task3);
 	TIMER *timer_put = NULL, *timer_1s = NULL;
@@ -129,7 +130,7 @@ void eventloop(void)
 		 * Without cli(), it seems the printf in some cases cannot finish (may be buffed sometime)
 		 */
 		_io_cli();
-		keymousefifobuf_usedBytes = fifo32_status_getUsageB(keymousefifo);
+		keymousefifobuf_usedBytes = mpfifo32_status_getUsageB(keymousefifo);
 		if (!mpfifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
 			_io_sti();
@@ -170,7 +171,7 @@ keymouse:
 		{
 			goto wait_next_event;
 		}
-		data_keymouse = fifo32_dequeue(keymousefifo);
+		data_keymouse = mpfifo32_dequeue(keymousefifo);
 		/* May be -EIO */
 		if (data_keymouse < 0)
 			// continue;
@@ -219,7 +220,7 @@ void __tss_b_main()
 		if (mpfifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
 			_io_sti();
-			asm("pause");
+			mprocess_task_sleep(fifoTSS4.task);
 			continue;
 		}
 

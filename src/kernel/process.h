@@ -67,4 +67,5 @@ TASK *mprocess_task_alloc(void);
 void mprocess_task_run(TASK *task);
 void mprocess_task_autoswitch(void);
 void mprocess_task_sleep(TASK *task);
+static void __mprocess_task_idle(void);
 #endif

@@ -14,6 +14,7 @@
 #include "util/kutil.h"
 #include "util/printf.h"
 #include "kernel.h"
+#include "kernel/mprocessfifo.h"
 
 /*
  * intptr_t _int_handlers_default[256] ; where _int_default_handlers[i] points to a default asm function
@@ -23,17 +24,17 @@ extern intptr_t _int_default_handlers[OS_IDT_TOTAL_INTERRUPTS];
 
 static IDT_IDTR_32 idtr = {0}; // static or not, global variable, address loaded into memory (probably .data), whose relative address to the entry is known in linktime.
 static IDT_GATE_DESCRIPTOR_32 idts[OS_IDT_TOTAL_INTERRUPTS] = {0};
-FIFO32 keymousefifo = {0};
+MPFIFO32 keymousefifo = {0};
 int32_t _keymousefifobuf[512] = {0};
 
-FIFO32* get_keymousefifo()
+MPFIFO32* get_keymousefifo()
 {
 	return &keymousefifo;
 }
 
 void idt_init()
 {
-	fifo32_init(&keymousefifo, _keymousefifobuf, (sizeof(_keymousefifobuf) / sizeof(_keymousefifobuf[0])));
+	mpfifo32_init(&keymousefifo, _keymousefifobuf, (sizeof(_keymousefifobuf) / sizeof(_keymousefifobuf[0])), NULL);
 
 	/* Initialize the IDTR */
 	idtr.size = (uint16_t)(sizeof(idts) - 1);
@@ -136,7 +137,7 @@ void int2ch(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
 	PIC_sendEOI(12); // 2ch, IRQ12
-	fifo32_enqueue(&keymousefifo, data + DEV_FIFO_MOUSE_START);
+	mpfifo32_enqueue(&keymousefifo, data + DEV_FIFO_MOUSE_START);
 	return;
 }
 
@@ -152,7 +153,7 @@ void int21h(void)
 {
 	uint8_t volatile data = _io_in8(PS2KBC_PORT_DATA_RW);
 	PIC_sendEOI(1); // 21h, IRQ1
-	fifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
+	mpfifo32_enqueue(&keymousefifo, data+DEV_FIFO_KBD_START);
 	return;
 }
 

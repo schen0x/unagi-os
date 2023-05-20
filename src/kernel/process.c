@@ -179,3 +179,10 @@ void mprocess_task_sleep(TASK *task)
 	}
 }
 
+static void __mprocess_task_idle(void)
+{
+	for (;;)
+	{
+		_io_hlt();
+	}
+}

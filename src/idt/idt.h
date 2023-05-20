@@ -2,7 +2,7 @@
 #define IDT_IDT_H_
 
 #include <stdint.h>
-#include "util/fifo.h"
+#include "kernel/mprocessfifo.h"
 typedef struct IDT_GATE_DESCRIPTOR_32
 {
 	/*
@@ -43,7 +43,7 @@ void idt_int_default_handler(uint32_t interrupt_number, uintptr_t frame);
 void int3h(void);
 void int21h(void);
 void int2ch(void);
-FIFO32* get_keymousefifo();
+MPFIFO32* get_keymousefifo();
 
 void idt_zero();
 void int20h();
