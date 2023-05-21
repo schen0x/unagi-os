@@ -154,6 +154,7 @@ TIMER* timer_alloc_customfifo(MPFIFO32 *fifo32)
  * Set a timeout and start an ALLOCATED or RUNNING timer
  *   - data == 0 is reserved, means no change to prev data
  *   - when a timer is still running?
+ * @timeout: in ticks. 1 tick == 10ms
  */
 void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {

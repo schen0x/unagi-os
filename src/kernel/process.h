@@ -47,6 +47,8 @@ typedef struct TASK
 {
 	uint32_t gdtSegmentSelector;
 	uint32_t flags;
+	/* Effect the timer, as ticks; 0 is reserved, means to keep the current priority */
+	uint32_t priority;
 	TSS32 tss;
 } TASK;
 
@@ -64,7 +66,7 @@ extern void _farjmp(uint32_t eip, uint16_t cs);
 
 TASK *mprocess_init(void);
 TASK *mprocess_task_alloc(void);
-void mprocess_task_run(TASK *task);
+void mprocess_task_run(TASK *task, uint32_t priority);
 void mprocess_task_autoswitch(void);
 void mprocess_task_sleep(TASK *task);
 static void __mprocess_task_idle(void);

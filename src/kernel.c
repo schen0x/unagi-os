@@ -98,7 +98,7 @@ void kernel_main(void)
 		task4->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-		mprocess_task_run(task4);
+		mprocess_task_run(task4, 5);
 		_io_sti();
 	}
 
@@ -134,7 +134,8 @@ void eventloop(void)
 		if (!mpfifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
 			_io_sti();
-			asm("pause");
+			// asm("pause");
+			mprocess_task_sleep(task3);
 			continue;
 		}
 		/**
@@ -219,8 +220,11 @@ void __tss_b_main()
 
 		if (mpfifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
+			/* Sleep first, avoid interrupt */
+			// mprocess_task_sleep(fifoTSS4.task);
 			_io_sti();
-			mprocess_task_sleep(fifoTSS4.task);
+			asm("pause");
+
 			continue;
 		}
 
@@ -238,7 +242,7 @@ void __tss_b_main()
 		/* Performance Test */
 		if (data == 5)
 		{
-			//printf("s:%d ", (counterTSS4)/5);
+			printf("s:%d ", (counterTSS4)/5);
 			counterTSS4 = 0;
 			timer_settimer(timer_5s, 500, 0);
 		}

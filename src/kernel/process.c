@@ -58,14 +58,17 @@ TASK *mprocess_init(void)
 
 	gdt1_reload(gdtr);
 
+	/* Init the current task */
 	task = mprocess_task_alloc();
 	task->flags = MPROCESS_FLAGS_RUNNING;
+	/* Whose timer is 2 ticks == 20ms; must not be 0 here */
+	task->priority = 2;
 	taskctl->running = 1;
 	taskctl->now = 0;
 	taskctl->tasks[0] = task;
 	_gdt_ltr((uint16_t) task->gdtSegmentSelector);
 	TIMER *tssTimer = timer_get_tssTimer();
-	timer_settimer(tssTimer, 10, 0);
+	timer_settimer(tssTimer, task->priority, 0);
 	if (!isCli)
 		_io_sti();
 	return task;
@@ -79,6 +82,7 @@ TASK* mprocess_task_alloc(void)
 		{
 			TASK *taskNew = &taskctl->tasks0[i];
 			taskNew->flags = MPROCESS_FLAGS_ALLOCATED;
+			taskNew->priority = 5;
  			/* IF = 1 */
 			taskNew->tss.eflags = 0x00000202;
 			taskNew->tss.eax = 0;
@@ -102,31 +106,45 @@ TASK* mprocess_task_alloc(void)
 
 /**
  * Mark an ALLOCATED `task` as RUNNING
+ * @priority: if 0, keep the previous priority
  */
-void mprocess_task_run(TASK *task)
+void mprocess_task_run(TASK *task, uint32_t priority)
 {
 	if (!task)
 		return;
+	/* if 0, do not change (waking from sleep) */
+	if (priority > 0)
+		task->priority = priority;
 	if (task->flags != MPROCESS_FLAGS_ALLOCATED)
 		return;
 	task->flags = MPROCESS_FLAGS_RUNNING;
+	task->priority = priority;
 	taskctl->tasks[taskctl->running] = task;
 	taskctl->running++;
 	return;
 }
 
+/**
+ * A timer is triggerred
+ * Time to hand the control over, to the next task
+ *   - The next timeout is the priority of the next task
+ *   - The next task with 0xFFFFFFFF timeout runs forever
+ */
 void mprocess_task_autoswitch(void)
 {
 	TIMER *tssTimer = timer_get_tssTimer();
-	timer_settimer(tssTimer, 2, 0);
+	TASK *nextTask = NULL;
+
+	taskctl->now++;
+	/* Wrap to 0 */
+	if (taskctl->now == taskctl->running)
+	{
+		taskctl->now = 0;
+	}
+	nextTask = taskctl->tasks[taskctl->now];
+	timer_settimer(tssTimer, nextTask->priority, 0);
 	if (taskctl->running >= 2)
 	{
-		taskctl->now++;
-		/* Wrap to 0 */
-		if (taskctl->now == taskctl->running)
-		{
-			taskctl->now = 0;
-		}
 		uint16_t ss = taskctl->tasks[taskctl->now]->gdtSegmentSelector;
 		// printf("ss:%d", ss);
 		_farjmp(0, ss);
@@ -186,3 +204,5 @@ static void __mprocess_task_idle(void)
 		_io_hlt();
 	}
 }
+
+
