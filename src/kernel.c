@@ -84,21 +84,22 @@ void kernel_main(void)
 	{
 		_io_cli();
 		task3 = mprocess_init();
-		task4 = mprocess_task_alloc();
+		mprocess_task_run(task3, 1, 2);
 
+		task4 = mprocess_task_alloc();
 		/**
 		 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
 		 * -12 if use a far call; anyway, far jumping is used here.
 		 */
 		task4->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 4;
-		task4->tss.eip = (uint32_t) &__tss_b_main;
+		task4->tss.eip = (uint32_t) &__tss4_main;
 		task4->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
 		task4->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-		mprocess_task_run(task4, 5);
+		mprocess_task_run(task4, 2, 2);
 		_io_sti();
 	}
 
@@ -133,9 +134,9 @@ void eventloop(void)
 		keymousefifobuf_usedBytes = mpfifo32_status_getUsageB(keymousefifo);
 		if (!mpfifo32_status_getUsageB(&fifoTSS3) && keymousefifobuf_usedBytes <= 0)
 		{
+			mprocess_task_sleep(task3);
 			_io_sti();
 			// asm("pause");
-			mprocess_task_sleep(task3);
 			continue;
 		}
 		/**
@@ -196,7 +197,7 @@ wait_next_event:
 }
 
 /* TSS4 */
-void __tss_b_main()
+void __tss4_main()
 {
 	SHEET* sw = get_sheet_window();
 	int32_t data = 0;
@@ -220,8 +221,8 @@ void __tss_b_main()
 
 		if (mpfifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
-			/* Sleep first, avoid interrupt */
-			// mprocess_task_sleep(fifoTSS4.task);
+			/* Sleep first, then sti(), to avoid interrupt */
+			//mprocess_task_sleep(fifoTSS4.task);
 			_io_sti();
 			asm("pause");
 

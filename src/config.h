@@ -29,6 +29,9 @@
 /* Max (total) numbers of timer that can exist in the OS */
 #define OS_MAX_TIMER 500
 
+#define OS_MPROCESS_TASKLEVELS_MAX 10
+#define OS_MPROCESS_TASKLEVEL_TASKS_MAX 100
+
 #define DEV_FIFO_KBD_START 256 // Inclusive; In fifo, data - 256 == keyboard scancode
 #define DEV_FIFO_KBD_END 256 + 0xff + 1 // 512, Exclusive; In fifo, data - 256 == keyboard scancode
 					//

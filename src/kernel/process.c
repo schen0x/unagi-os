@@ -1,3 +1,7 @@
+/**
+ * TODO Find a better way to impl
+ *   - This is not easily testable and uses too many states
+ */
 #include "kernel/process.h"
 #include "pic/timer.h"
 #include "io/io.h"
@@ -63,9 +67,9 @@ TASK *mprocess_init(void)
 	task->flags = MPROCESS_FLAGS_RUNNING;
 	/* Whose timer is 2 ticks == 20ms; must not be 0 here */
 	task->priority = 2;
-	taskctl->running = 1;
-	taskctl->now = 0;
-	taskctl->tasks[0] = task;
+	task->level = 0;
+	mprocess_task_add(task);
+	mprocess_task_update_currentlv();
 	_gdt_ltr((uint16_t) task->gdtSegmentSelector);
 	TIMER *tssTimer = timer_get_tssTimer();
 	timer_settimer(tssTimer, task->priority, 0);
@@ -82,7 +86,7 @@ TASK* mprocess_task_alloc(void)
 		{
 			TASK *taskNew = &taskctl->tasks0[i];
 			taskNew->flags = MPROCESS_FLAGS_ALLOCATED;
-			taskNew->priority = 5;
+			taskNew->priority = 2;
  			/* IF = 1 */
 			taskNew->tss.eflags = 0x00000202;
 			taskNew->tss.eax = 0;
@@ -106,21 +110,30 @@ TASK* mprocess_task_alloc(void)
 
 /**
  * Mark an ALLOCATED `task` as RUNNING
+ * @level: if < 0, keep the previous level
  * @priority: if 0, keep the previous priority
  */
-void mprocess_task_run(TASK *task, uint32_t priority)
+void mprocess_task_run(TASK *task, int32_t level, uint32_t priority)
 {
 	if (!task)
 		return;
-	/* if 0, do not change (waking from sleep) */
+	if (level < 0)
+		level = task->level; /* no change if < 0 */
+	/* Update priority; if 0, no change (waking from sleep) */
 	if (priority > 0)
 		task->priority = priority;
-	if (task->flags != MPROCESS_FLAGS_ALLOCATED)
-		return;
-	task->flags = MPROCESS_FLAGS_RUNNING;
-	task->priority = priority;
-	taskctl->tasks[taskctl->running] = task;
-	taskctl->running++;
+	if (task->flags == MPROCESS_FLAGS_RUNNING && task->level != level)
+	{
+		/* will change flag */
+		mprocess_task_remove(task);
+	}
+	if (task->flags == MPROCESS_FLAGS_ALLOCATED)
+	{
+		task->level = level;
+		mprocess_task_add(task);
+	}
+	taskctl->lv_change = true;
+
 	return;
 }
 
@@ -133,68 +146,52 @@ void mprocess_task_run(TASK *task, uint32_t priority)
 void mprocess_task_autoswitch(void)
 {
 	TIMER *tssTimer = timer_get_tssTimer();
-	TASK *nextTask = NULL;
+	TASKLEVEL *tl = &taskctl->level[taskctl->now_lv];
+	TASK *taskNext = NULL, *taskCurrent = tl->tasks[tl->now];
 
-	taskctl->now++;
-	/* Wrap to 0 */
-	if (taskctl->now == taskctl->running)
+	/**
+	 * A level change happens when higher level tasks[] are depleted
+	 * In that case, goto tlNext->tasks[0]
+	 */
+	tl->now++;
+	if (tl->now == tl->running)
+		tl->now = 0;
+	if (taskctl->lv_change == true)
 	{
-		taskctl->now = 0;
+		mprocess_task_update_currentlv();
+		tl = &taskctl->level[taskctl->now_lv];
 	}
-	nextTask = taskctl->tasks[taskctl->now];
-	timer_settimer(tssTimer, nextTask->priority, 0);
-	if (taskctl->running >= 2)
-	{
-		uint16_t ss = taskctl->tasks[taskctl->now]->gdtSegmentSelector;
-		// printf("ss:%d", ss);
-		_farjmp(0, ss);
-	}
+	taskNext = tl->tasks[tl->now];
+	timer_settimer(tssTimer, taskNext->priority, 0);
+	if (taskNext != taskCurrent)
+		_farjmp(0, taskNext->gdtSegmentSelector);
 	return;
 }
 
 /**
  * Remove a task from the scheduler
- *   - `needTaskSwitchNow` if the task calls for `sleep()`
- *
- * TODO Reimplement; not good code
+ *   - do switch if the current task wishes to `sleep()`
  */
 void mprocess_task_sleep(TASK *task)
 {
-
-	int32_t i = 0;
-	bool needTaskSwitchNow = false;
-	/* Task must be running */
+	if (!task)
+		return;
 	if (task->flags != MPROCESS_FLAGS_RUNNING)
 		return;
-	/* The current running task wishes to enter its slumber */
-	if (task == taskctl->tasks[taskctl->now])
-		needTaskSwitchNow = true;
-	/* Find the task */
-	for (i = 0; i < taskctl->running; i++)
-	{
-		if (taskctl->tasks[i] == task)
-		{
-			break;
-		}
-	}
-	/* No hit; ERROR */
-	if (i > taskctl->running)
-		return;
+	TASK *taskCurrent = mprocess_task_get_current();
+	mprocess_task_remove(task);
 
-	/* Remove the task from the scheduler */
-	taskctl->running--;
-	if (i < taskctl->now)
-		taskctl->now--;
-	for (; i< taskctl->running; i++)
-		taskctl->tasks[i] = taskctl->tasks[i + 1];
-	task->flags = MPROCESS_FLAGS_ALLOCATED;
-	if (needTaskSwitchNow != 0)
+	/**
+	 * The current running task wishes to enter its slumber
+	 *   - do switch
+	 */
+	if (task == taskCurrent)
 	{
-		taskctl->now++;
-		if (taskctl->now >= taskctl->running)
-			taskctl->now = 0;
-		_farjmp(0, taskctl->tasks[taskctl->now]->gdtSegmentSelector);
+		mprocess_task_update_currentlv();
+		taskCurrent = mprocess_task_get_current();
+		_farjmp(0, taskCurrent->gdtSegmentSelector);
 	}
+	return;
 }
 
 static void __mprocess_task_idle(void)
@@ -205,4 +202,57 @@ static void __mprocess_task_idle(void)
 	}
 }
 
+TASK* mprocess_task_get_current(void)
+{
+	TASKLEVEL *tl = &taskctl->level[taskctl->now_lv];
+	return tl->tasks[tl->now];
+}
+
+void mprocess_task_add(TASK *task)
+{
+	TASKLEVEL *tl = &taskctl->level[task->level];
+	tl->tasks[tl->running] = task;
+	tl->running++;
+	task->flags = MPROCESS_FLAGS_RUNNING;
+	return;
+}
+
+void mprocess_task_remove(TASK *task)
+{
+	int32_t i;
+	TASKLEVEL *tl = &taskctl->level[task->level];
+
+	for (i = 0; i < tl->running; i++)
+	{
+		if (tl->tasks[i] == task)
+			break; /* Found */
+	}
+
+	tl->running--;
+
+	if (i < tl->now)
+		tl->now--;
+	if (tl->now >= tl->running)
+		tl->now = 0;
+
+	task->flags = MPROCESS_FLAGS_ALLOCATED;
+
+	for (; i < tl->running; i++)
+		tl->tasks[i] = tl->tasks[i + 1];
+	return;
+
+}
+
+void mprocess_task_update_currentlv(void)
+{
+	int32_t i = 0;
+	for (i = 0; i < OS_MPROCESS_TASKLEVELS_MAX; i++)
+	{
+		if (taskctl->level[i].running > 0)
+			break;
+	}
+	taskctl->now_lv = i;
+	taskctl->lv_change = false;
+	return;
+}
 

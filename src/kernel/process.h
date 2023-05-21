@@ -47,27 +47,43 @@ typedef struct TASK
 {
 	uint32_t gdtSegmentSelector;
 	uint32_t flags;
-	/* Effect the timer, as ticks; 0 is reserved, means to keep the current priority */
+	/* UINT32_MAX is the highest; affect the timer, as ticks; 0 is reserved, means to keep the current priority */
 	uint32_t priority;
+	/* 0 is the highest */
+	int32_t level;
 	TSS32 tss;
 } TASK;
 
-typedef struct TASKCTL
+typedef struct TASKLEVEL
 {
 	/* Sum of active tasks */
 	int32_t running;
 	/* Current running TASK *task = taskctl.tasks[taskctl.now] */
 	int32_t now;
-	TASK *tasks[OS_MPROCESS_TASK_MAX];
+	TASK *tasks[OS_MPROCESS_TASKLEVEL_TASKS_MAX];
+} TASKLEVEL;
+
+typedef struct TASKCTL
+{
+	/* Current running TASK *task = taskctl.tasks[taskctl.now] */
+	int32_t now_lv;
+	bool lv_change;
+	TASKLEVEL level[OS_MPROCESS_TASKLEVELS_MAX];
 	TASK tasks0[OS_MPROCESS_TASK_MAX];
 } TASKCTL;
+
 
 extern void _farjmp(uint32_t eip, uint16_t cs);
 
 TASK *mprocess_init(void);
 TASK *mprocess_task_alloc(void);
-void mprocess_task_run(TASK *task, uint32_t priority);
+void mprocess_task_run(TASK *task, int32_t level, uint32_t priority);
 void mprocess_task_autoswitch(void);
 void mprocess_task_sleep(TASK *task);
 static void __mprocess_task_idle(void);
+
+TASK* mprocess_task_get_current(void);
+void mprocess_task_add(TASK *task);
+void mprocess_task_remove(TASK *task);
+void mprocess_task_update_currentlv(void);
 #endif
