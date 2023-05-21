@@ -160,9 +160,9 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 {
 	if (!timer)
 		return;
-	bool isCli = io_get_is_cli();
-	if (!isCli)
-		_io_cli();
+//	bool isCli = io_get_is_cli();
+//	if (!isCli)
+//		_io_cli();
 
 	if (data == 0)
 		data = timer->data;
@@ -250,8 +250,8 @@ void timer_settimer(TIMER *timer, uint32_t timeout, uint8_t data)
 		}
 	}
 
-	if (!isCli)
-		_io_sti();
+//	if (!isCli)
+//		_io_sti();
 
 	return;
 }

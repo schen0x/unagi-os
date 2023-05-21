@@ -83,7 +83,7 @@ void mprocess_task_sleep(TASK *task);
 static void __mprocess_task_idle(void);
 
 TASK* mprocess_task_get_current(void);
-void mprocess_task_add(TASK *task);
+void __mprocess_task_add(TASK *task);
 void mprocess_task_remove(TASK *task);
-void mprocess_task_update_currentlv(void);
+void __mprocess_task_update_currentlv(void);
 #endif

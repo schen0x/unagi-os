@@ -99,7 +99,7 @@ void kernel_main(void)
 		task4->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-		mprocess_task_run(task4, 2, 2);
+		mprocess_task_run(task4, 2, 1);
 		_io_sti();
 	}
 
@@ -136,7 +136,7 @@ void eventloop(void)
 		{
 			mprocess_task_sleep(task3);
 			_io_sti();
-			// asm("pause");
+			//asm("pause");
 			continue;
 		}
 		/**
@@ -206,11 +206,11 @@ void __tss4_main()
 	mpfifo32_init(&fifoTSS4, __fifobuf4, 4096, task4);
 	TIMER *timer_render = NULL, *timer_1s = NULL, *timer_5s = NULL;
 	timer_1s = timer_alloc_customfifo(&fifoTSS4);
-	timer_settimer(timer_1s, 100, 1);
+	timer_settimer(timer_1s, 100, 11);
 	timer_5s = timer_alloc_customfifo(&fifoTSS4);
-	timer_settimer(timer_5s, 500, 5);
+	timer_settimer(timer_5s, 500, 15);
 	timer_render = timer_alloc_customfifo(&fifoTSS4);
-	timer_settimer(timer_render, 10, 6);
+	timer_settimer(timer_render, 50, 16);
 	(void) timer_render;
 	int32_t counterTSS4 = 0;
 
@@ -222,18 +222,18 @@ void __tss4_main()
 		if (mpfifo32_status_getUsageB(&fifoTSS4) <= 0)
 		{
 			/* Sleep first, then sti(), to avoid interrupt */
-			//mprocess_task_sleep(fifoTSS4.task);
+			mprocess_task_sleep(task4);
 			_io_sti();
-			asm("pause");
+			//asm("pause");
 
 			continue;
 		}
 
 		data = mpfifo32_dequeue(&fifoTSS4);
 
-		if (data == 1)
+		if (data == 11)
 		{
-			timer_settimer(timer_1s, 100, 1);
+			timer_settimer(timer_1s, 100, 0);
 		}
 
 		if (data < 0)
@@ -241,15 +241,15 @@ void __tss4_main()
 			continue;
 		}
 		/* Performance Test */
-		if (data == 5)
+		if (data == 15)
 		{
-			printf("s:%d ", (counterTSS4)/5);
+			//printf("s:%d ", (counterTSS4)/5);
 			counterTSS4 = 0;
 			timer_settimer(timer_5s, 500, 0);
 		}
 
 		/* TIMER timer_render, Screen Redraw */
-		if (data == 6)
+		if (data == 16)
 		{
 			timer_settimer(timer_render, 10, 0);
 

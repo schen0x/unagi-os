@@ -65,14 +65,26 @@ TASK *mprocess_init(void)
 	/* Init the current task */
 	task = mprocess_task_alloc();
 	task->flags = MPROCESS_FLAGS_RUNNING;
-	/* Whose timer is 2 ticks == 20ms; must not be 0 here */
 	task->priority = 2;
 	task->level = 0;
-	mprocess_task_add(task);
-	mprocess_task_update_currentlv();
+	__mprocess_task_add(task);
+	__mprocess_task_update_currentlv();
 	_gdt_ltr((uint16_t) task->gdtSegmentSelector);
 	TIMER *tssTimer = timer_get_tssTimer();
 	timer_settimer(tssTimer, task->priority, 0);
+
+	TASK *taskIdle = mprocess_task_alloc();
+	taskIdle->level = OS_MPROCESS_TASKLEVELS_MAX - 1;
+	taskIdle->priority = 1;
+	taskIdle->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096) + 4096 - 4;
+	taskIdle->tss.eip = (uint32_t) &__mprocess_task_idle;
+	taskIdle->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
+	taskIdle->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	taskIdle->tss.ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	taskIdle->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	taskIdle->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	taskIdle->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+	mprocess_task_run(taskIdle, -1, 0);
 	if (!isCli)
 		_io_sti();
 	return task;
@@ -122,15 +134,16 @@ void mprocess_task_run(TASK *task, int32_t level, uint32_t priority)
 	/* Update priority; if 0, no change (waking from sleep) */
 	if (priority > 0)
 		task->priority = priority;
+	/* Change level while running */
 	if (task->flags == MPROCESS_FLAGS_RUNNING && task->level != level)
 	{
-		/* will change flag */
+		/* will change flag to allocated */
 		mprocess_task_remove(task);
 	}
 	if (task->flags == MPROCESS_FLAGS_ALLOCATED)
 	{
 		task->level = level;
-		mprocess_task_add(task);
+		__mprocess_task_add(task);
 	}
 	taskctl->lv_change = true;
 
@@ -158,7 +171,7 @@ void mprocess_task_autoswitch(void)
 		tl->now = 0;
 	if (taskctl->lv_change == true)
 	{
-		mprocess_task_update_currentlv();
+		__mprocess_task_update_currentlv();
 		tl = &taskctl->level[taskctl->now_lv];
 	}
 	taskNext = tl->tasks[tl->now];
@@ -187,7 +200,7 @@ void mprocess_task_sleep(TASK *task)
 	 */
 	if (task == taskCurrent)
 	{
-		mprocess_task_update_currentlv();
+		__mprocess_task_update_currentlv();
 		taskCurrent = mprocess_task_get_current();
 		_farjmp(0, taskCurrent->gdtSegmentSelector);
 	}
@@ -208,9 +221,15 @@ TASK* mprocess_task_get_current(void)
 	return tl->tasks[tl->now];
 }
 
-void mprocess_task_add(TASK *task)
+void __mprocess_task_add(TASK *task)
 {
 	TASKLEVEL *tl = &taskctl->level[task->level];
+	/* Prevent a task to be added multiple times */
+	for (int32_t i = 0; i < tl->running; i++)
+	{
+		if (tl->tasks[i] == task)
+			return;
+	}
 	tl->tasks[tl->running] = task;
 	tl->running++;
 	task->flags = MPROCESS_FLAGS_RUNNING;
@@ -219,6 +238,8 @@ void mprocess_task_add(TASK *task)
 
 void mprocess_task_remove(TASK *task)
 {
+	if (!task)
+		return;
 	int32_t i;
 	TASKLEVEL *tl = &taskctl->level[task->level];
 
@@ -227,7 +248,6 @@ void mprocess_task_remove(TASK *task)
 		if (tl->tasks[i] == task)
 			break; /* Found */
 	}
-
 	tl->running--;
 
 	if (i < tl->now)
@@ -239,11 +259,13 @@ void mprocess_task_remove(TASK *task)
 
 	for (; i < tl->running; i++)
 		tl->tasks[i] = tl->tasks[i + 1];
+	if (tl->running == 0)
+		taskctl->lv_change = true;
 	return;
 
 }
 
-void mprocess_task_update_currentlv(void)
+void __mprocess_task_update_currentlv(void)
 {
 	int32_t i = 0;
 	for (i = 0; i < OS_MPROCESS_TASKLEVELS_MAX; i++)
@@ -251,6 +273,8 @@ void mprocess_task_update_currentlv(void)
 		if (taskctl->level[i].running > 0)
 			break;
 	}
+	if (i >= OS_MPROCESS_TASKLEVELS_MAX)
+		i = OS_MPROCESS_TASKLEVELS_MAX - 1;
 	taskctl->now_lv = i;
 	taskctl->lv_change = false;
 	return;
