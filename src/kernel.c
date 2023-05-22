@@ -27,7 +27,7 @@ int32_t __fifo32_buffer[4096] = {0};
 MPFIFO32 fifoTSS3 = {0}, fifoTSS4 = {0};
 int32_t __fifobuf3[4096] = {0}, __fifobuf4[4096] = {0};
 
-TASK *task3, *task4;
+TASK *task3, *task4, *taskConsole;
 
 FIFO32* get_fifo32_common(void)
 {
@@ -100,6 +100,22 @@ void kernel_main(void)
 		task4->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		task4->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		mprocess_task_run(task4, 2, 1);
+
+		taskConsole = mprocess_task_alloc();
+		/**
+		 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
+		 * -12 if use a far call; anyway, far jumping is used here.
+		 */
+		taskConsole->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 8;
+		*(uint32_t *)(taskConsole->tss.esp + 4) = (uint32_t) get_sheet_window();
+		taskConsole->tss.eip = (uint32_t) &console_main;
+		taskConsole->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
+		taskConsole->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		taskConsole->tss.ss = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		taskConsole->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		taskConsole->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		taskConsole->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
+		mprocess_task_run(task4, 2, 2);
 		_io_sti();
 	}
 
@@ -304,6 +320,48 @@ void int2ch_handler(uint8_t scancode)
 		}
 
 	}
+}
+
+void console_main(SHEET *sheet)
+{
+	MPFIFO32 *mpfifo32 = kzalloc(sizeof(MPFIFO32));
+	TIMER *timer;
+	TASK *task = mprocess_task_get_current();
+
+	int32_t i;
+	int32_t *__fifobuf = kzalloc(sizeof(int32_t) * 512);
+	mpfifo32_init(mpfifo32, __fifobuf, 512, task);
+	int32_t cursorBufPosX = 8, cursorColor = COL8_000000;
+	timer = timer_alloc_customfifo(mpfifo32);
+
+	uint32_t timeoutBlink = 50;
+	timer_settimer(timer, timeoutBlink, 21);
+
+	for (;;)
+	{
+		_io_cli();
+		if (mpfifo32_status_getUsageB(mpfifo32) == 0) {
+			mprocess_task_sleep(task);
+			_io_sti();
+		} else {
+			i = mpfifo32_dequeue(mpfifo32);
+			_io_sti();
+			if (i <= 1)
+			{
+				if (i != 0)
+				{
+					timer_settimer(timer, timeoutBlink, 20);
+					cursorColor = COL8_FFFFFF;
+				} else {
+					timer_settimer(timer, timeoutBlink, 21);
+					cursorColor = COL8_000000;
+				}
+				boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorBufPosX, 28, cursorBufPosX + 7, 43);
+				sheet_update_sheet(sheet, cursorBufPosX, 28, cursorBufPosX + 8, 44);
+			}
+		}
+	}
+
 }
 
 

@@ -22,6 +22,7 @@ SHTCTL *ctl = NULL;
 SHEET *sheet_desktop = NULL;
 SHEET *sheet_mouse = NULL;
 SHEET *sheet_window = NULL;
+SHEET *sheet_console = NULL;
 
 void videomode_window_initialize(BOOTINFO* bi)
 {
@@ -55,8 +56,11 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	ctl = shtctl_init(vram, scrnx, scrny);
 	sheet_desktop = sheet_alloc(ctl);
 	sheet_mouse = sheet_alloc(ctl);
+	sheet_console = sheet_alloc(ctl);
 	uint8_t *buf_desktop = (uint8_t *) kmalloc(scrnx * scrny);
 	uint8_t *buf_mouse = (uint8_t *) kmalloc(16 * 16);
+	uint8_t *buf_console = kzalloc(256 * 165);
+	make_window8((uintptr_t) buf_console, 256, 165, "Console");
 
 	draw_desktop((uintptr_t)buf_desktop, scrnx, scrny);
 	putfonts8_asc((uintptr_t)buf_desktop, scrnx, 9, 9, COL8_000000, "Haribote OS");
@@ -71,6 +75,8 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	/* Set the starting positon of `st_desktop` */
 	sheet_slide(sheet_desktop, 0, 0);
 
+	sheet_slide(sheet_console, 32, 4);
+
 	/* Set the starting positon of `st_mouse` */
 	int32_t mouseX = (scrnx - 16) / 2;
 	int32_t mouseY = (scrny - 16) / 2;
@@ -84,8 +90,9 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_slide(sheet_window, 120, 122);
 
 	sheet_updown(sheet_desktop, 0);
-	sheet_updown(sheet_window, 1);
-	sheet_updown(sheet_mouse, 2);
+	sheet_updown(sheet_console, 1);
+	sheet_updown(sheet_window, 2);
+	sheet_updown(sheet_mouse, 3);
 
 	sheet_update_zmap(ctl, 0, 0, scrnx, scrny, 0);
 	sheet_update_with_screenxy(ctl, 0, 0, scrnx, scrny, 0, -1);

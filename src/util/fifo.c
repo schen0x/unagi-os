@@ -12,6 +12,10 @@
  */
 void fifo32_init(FIFO32 *fifo, int32_t *buf, int32_t buflen)
 {
+	if (!fifo)
+		return;
+	if (!buf)
+		return;
 	fifo->buflen = buflen;
 	fifo->buf = buf;
 	fifo->free = buflen;

@@ -15,5 +15,6 @@ FIFO32* get_fifo32_common(void);
 // void __tss_b_main(SHEET* sw);
 void __tss4_main();
 int32_t get_guard();
+void console_main(SHEET *sheet);
 
 #endif

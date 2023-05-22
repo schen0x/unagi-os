@@ -8,6 +8,10 @@
 
 void mpfifo32_init(MPFIFO32 *f, int32_t *buf, int32_t size, TASK *task)
 {
+	if (!f)
+		return;
+	if (!buf)
+		return;
 	fifo32_init(&f->fifo32, buf, size);
 	f->task = task;
 	return;
