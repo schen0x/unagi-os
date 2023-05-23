@@ -300,19 +300,32 @@ void int2ch_handler(uint8_t scancode)
 	ps2mouse_decode(scancode, &mouse_one_move);
 	SCREEN_MOUSEXY xy0 = {0};
 	getMouseXY(&xy0);
+
 	graphic_move_mouse(&mouse_one_move);
-	/* Mutated in the `graphic_move_mouse` */
-	SCREEN_MOUSEXY xy1 = {0};
-	getMouseXY(&xy1);
+	SCREEN_MOUSEXY xy = {0};
+	getMouseXY(&xy);
 	/* If the left button is pressed */
 	if ((mouse_one_move.btn & 0b1) != 0)
 	{
+		SHEET *selected = get_sheet_by_cursor(&xy0);
+		if (!selected)
+			return;
+		sheet_updown(selected, selected->ctl->zTop - 1);
 		SHEET *w = get_sheet_window();
-		if (isCursorWithinSheet(&xy0, w))
+		// if (isCursorWithinSheet(&xy0, w))
+		SHEET *c = get_sheet_console();
+		if (selected == w)
 		{
-			sheet_slide(w, w->xStart + xy1.mouseX - xy0.mouseX, w->yStart + xy1.mouseY - xy0.mouseY);
+			make_wtitle8((uintptr_t) w->buf, w->bufXsize, w->bufYsize, "window", true);
+			make_wtitle8((uintptr_t) c->buf, c->bufXsize, c->bufYsize, "console", false);
+			sheet_update_sheet(c, 0, 0, c->bufXsize, 21);
+			// sheet_slide(c, c->xStart, c->yStart);
+		} else if (selected == c) {
+			make_wtitle8((uintptr_t) w->buf, w->bufXsize, w->bufYsize, "window", false);
+			make_wtitle8((uintptr_t) c->buf, c->bufXsize, c->bufYsize, "console", true);
+			sheet_update_sheet(w, 0, 0, w->bufXsize, 21);
 		}
-
+		sheet_slide(selected, selected->xStart + xy.mouseX - xy0.mouseX, selected->yStart + xy.mouseY - xy0.mouseY);
 	}
 }
 
