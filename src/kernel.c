@@ -91,7 +91,7 @@ void kernel_main(void)
 		 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
 		 * -12 if use a far call; anyway, far jumping is used here.
 		 */
-		task4->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 4;
+		task4->tss.esp = (uint32_t) (uintptr_t) kzalloc(4096 * 16) + 4096*16 - 4;
 		task4->tss.eip = (uint32_t) &__tss4_main;
 		task4->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
 		task4->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
@@ -106,7 +106,7 @@ void kernel_main(void)
 		 * -8 if __tss_b_main(...) has 1 parameter (to keep ESP+4 inbound), or
 		 * -12 if use a far call; anyway, far jumping is used here.
 		 */
-		taskConsole->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 8;
+		taskConsole->tss.esp = (uint32_t) (uintptr_t) kzalloc(4096 * 16) + 4096*16 - 8;
 		*(uint32_t *)(taskConsole->tss.esp + 4) = (uint32_t) get_sheet_console();
 		taskConsole->tss.eip = (uint32_t) &console_main;
 		taskConsole->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
@@ -115,7 +115,7 @@ void kernel_main(void)
 		taskConsole->tss.ds = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		taskConsole->tss.fs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
 		taskConsole->tss.gs = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
-		mprocess_task_run(task4, 2, 2);
+		mprocess_task_run(taskConsole, 2, 2);
 		_io_sti();
 	}
 
@@ -247,11 +247,6 @@ void __tss4_main()
 
 		data = mpfifo32_dequeue(&fifoTSS4);
 
-		if (data == 11)
-		{
-			timer_settimer(timer_1s, 100, 0);
-		}
-
 		if (data < 0)
 		{
 			continue;
@@ -277,14 +272,13 @@ void __tss4_main()
 				boxfill8((uintptr_t)sw->buf, sw->bufXsize, color, 40, 28, 40+7, 28+15);
 				putfonts8_asc((uintptr_t)sw->buf, sw->bufXsize, 40, 28, COL8_000000, ctc);
 				sheet_update_sheet(sw, 40, 28, 120, 44);
-
 			}
 
 		}
 
-		if (data == 1)
+		if (data == 11)
 		{
-			timer_settimer(timer_1s, 100, 1);
+			timer_settimer(timer_1s, 100, 11);
 			if (sw)
 			{
 				/* Blinking cursor (toggle color) */
@@ -324,41 +318,38 @@ void int2ch_handler(uint8_t scancode)
 
 void console_main(SHEET *sheet)
 {
-	MPFIFO32 *mpfifo32 = kzalloc(sizeof(MPFIFO32));
-	TIMER *timer;
 	TASK *task = mprocess_task_get_current();
+	MPFIFO32 *mpfifo32Console = kzalloc(sizeof(MPFIFO32));
+	int32_t *__fifobuf = kzalloc(sizeof(int32_t) * 512);
+	mpfifo32_init(mpfifo32Console, __fifobuf, 512, task);
 
 	int32_t i;
-	int32_t *__fifobuf = kzalloc(sizeof(int32_t) * 512);
-	mpfifo32_init(mpfifo32, __fifobuf, 512, task);
-	int32_t cursorBufPosX = 8, cursorColor = COL8_000000;
-	timer = timer_alloc_customfifo(mpfifo32);
+	int32_t cursorBufPosX = 8, cursorColor = COL8_FFFFFF;
 
-	uint32_t timeoutBlink = 50;
-	timer_settimer(timer, timeoutBlink, 21);
+	uint32_t timeoutBlink = 80;
+	TIMER *timer;
+	timer = timer_alloc_customfifo(mpfifo32Console);
+	timer_settimer(timer, timeoutBlink, 20);
 
 	for (;;)
 	{
 		_io_cli();
-		if (mpfifo32_status_getUsageB(mpfifo32) == 0) {
+		if (mpfifo32_status_getUsageB(mpfifo32Console) == 0) {
 			mprocess_task_sleep(task);
 			_io_sti();
 		} else {
-			i = mpfifo32_dequeue(mpfifo32);
+			i = mpfifo32_dequeue(mpfifo32Console);
 			_io_sti();
-			if (i <= 1)
-			{
-				if (i != 0)
-				{
-					timer_settimer(timer, timeoutBlink, 20);
-					cursorColor = COL8_FFFFFF;
-				} else {
-					timer_settimer(timer, timeoutBlink, 21);
-					cursorColor = COL8_000000;
-				}
-				boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorBufPosX, 28, cursorBufPosX + 7, 43);
-				sheet_update_sheet(sheet, cursorBufPosX, 28, cursorBufPosX + 8, 44);
+			if (i == 21) {
+				timer_settimer(timer, timeoutBlink, 20);
+				cursorColor = COL8_FFFFFF;
 			}
+			if (i == 20) {
+				timer_settimer(timer, timeoutBlink, 21);
+				cursorColor = COL8_000000;
+			}
+			boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorBufPosX, 28, cursorBufPosX + 7, 43);
+			sheet_update_sheet(sheet, cursorBufPosX, 28, cursorBufPosX + 8, 44);
 		}
 	}
 

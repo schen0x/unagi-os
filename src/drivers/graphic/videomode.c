@@ -83,7 +83,9 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	uint8_t *buf_console = kzalloc(256 * 165);
 	sheet_setbuf(sheet_console, buf_console, 256, 165, -1);
 	make_window8((uintptr_t) buf_console, 256, 165, "Console");
-	sheet_slide(sheet_console, 32, 4);
+	make_textbox8(sheet_console, 8, 28, 240, 128, COL8_000000);
+
+	sheet_slide(sheet_console, 320, 40);
 
 	/* A Floating window */
 	sheet_window = sheet_alloc(ctl);
@@ -559,3 +561,20 @@ static void draw_desktop(uintptr_t vram, int32_t screenXsize, int32_t screenYsiz
 	boxfill8(vram, xsize, COL8_FFFFFF, xsize - 3,	ysize - 24, xsize - 3,	ysize - 3); // White, tray.r.edge
 }
 
+/* Write a box in a given buffer */
+void make_textbox8(SHEET *sheet, int32_t xStart, int32_t yStart, int32_t width, int32_t height, int8_t color)
+{
+
+	int32_t xEnd = xStart + width;
+	int32_t yEnd = yStart + height;
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_848484, xStart - 2, yStart - 3, xEnd + 1, yStart - 3);
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_848484, xStart - 3, yStart - 3, xEnd - 3, yEnd + 1);
+
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_FFFFFF, xStart - 3, yEnd + 2, xEnd + 1, yEnd + 2);
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_FFFFFF, xStart + 2, yStart - 3, xStart + 1, yStart + 1);
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_000000, xStart - 1, yStart - 2, xEnd + 0, yStart - 2);
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_000000, xStart - 2, yStart - 2, xStart - 2, yEnd + 0);
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_C6C6C6, xStart - 2, yEnd + 1, xEnd + 0, yEnd + 1);
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, COL8_C6C6C6, xEnd + 1, yStart - 2, xEnd + 1, yEnd + 1);
+	boxfill8((uintptr_t) sheet->buf, sheet->bufXsize, color,           xStart - 1, yStart - 1, xEnd + 0, yEnd + 0);
+}

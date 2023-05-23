@@ -126,5 +126,5 @@ SHEET* get_sheet_window();
 SHEET* get_sheet_console();
 SCREEN_MOUSEXY* getMouseXY(SCREEN_MOUSEXY *xy);
 bool isCursorWithinSheet(const SCREEN_MOUSEXY *xy, const SHEET *s);
-
+void make_textbox8(SHEET *sheet, int32_t xStart, int32_t yStart, int32_t width, int32_t height, int8_t color);
 #endif
