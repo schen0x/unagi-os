@@ -123,6 +123,7 @@ static void display_scroll(uintptr_t vram, int32_t vga_width, int32_t vga_height
 SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny);
 void putfonts8_asc(uintptr_t vram, int32_t xsize, int32_t x, int32_t y, uint8_t color, char *s);
 SHEET* get_sheet_window();
+SHEET* get_sheet_console();
 SCREEN_MOUSEXY* getMouseXY(SCREEN_MOUSEXY *xy);
 bool isCursorWithinSheet(const SCREEN_MOUSEXY *xy, const SHEET *s);
 

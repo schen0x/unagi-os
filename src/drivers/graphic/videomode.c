@@ -49,40 +49,43 @@ void videomode_window_initialize(BOOTINFO* bi)
 }
 
 /**
- * TODO add comment
+ * graphic_window_manager_init
  */
 SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 {
+	/* CTL */
 	ctl = shtctl_init(vram, scrnx, scrny);
-	sheet_desktop = sheet_alloc(ctl);
-	sheet_mouse = sheet_alloc(ctl);
-	sheet_console = sheet_alloc(ctl);
-	uint8_t *buf_desktop = (uint8_t *) kmalloc(scrnx * scrny);
-	uint8_t *buf_mouse = (uint8_t *) kmalloc(16 * 16);
-	uint8_t *buf_console = kzalloc(256 * 165);
-	make_window8((uintptr_t) buf_console, 256, 165, "Console");
 
+	/* Desktop */
+	sheet_desktop = sheet_alloc(ctl);
+	uint8_t *buf_desktop = (uint8_t *) kmalloc(scrnx * scrny);
 	draw_desktop((uintptr_t)buf_desktop, scrnx, scrny);
 	putfonts8_asc((uintptr_t)buf_desktop, scrnx, 9, 9, COL8_000000, "Haribote OS");
 	putfonts8_asc((uintptr_t)buf_desktop, scrnx, 8, 8, COL8_FFFFFF, "Haribote OS");
-
 	sheet_setbuf(sheet_desktop, buf_desktop, scrnx, scrny, -1);
+	/* Set the starting positon of `st_desktop` */
+	sheet_slide(sheet_desktop, 0, 0);
+
+	/* Mouse */
+	sheet_mouse = sheet_alloc(ctl);
+	uint8_t *buf_mouse = (uint8_t *) kmalloc(16 * 16);
 	/* Set the `color_invisible` of `buf_mouse` buffer to color 99 */
 	sheet_setbuf(sheet_mouse, buf_mouse, 16, 16, 99);
 	/* Also mouse block bg color to 99 */
 	init_mouse_cursor8((intptr_t)buf_mouse, 99);
-
-	/* Set the starting positon of `st_desktop` */
-	sheet_slide(sheet_desktop, 0, 0);
-
-	sheet_slide(sheet_console, 32, 4);
-
 	/* Set the starting positon of `st_mouse` */
 	int32_t mouseX = (scrnx - 16) / 2;
 	int32_t mouseY = (scrny - 16) / 2;
 	sheet_slide(sheet_mouse, mouseX, mouseY);
 
+	/* Console */
+	sheet_console = sheet_alloc(ctl);
+	uint8_t *buf_console = kzalloc(256 * 165);
+	sheet_setbuf(sheet_console, buf_console, 256, 165, -1);
+	make_window8((uintptr_t) buf_console, 256, 165, "Console");
+	sheet_slide(sheet_console, 32, 4);
 
+	/* A Floating window */
 	sheet_window = sheet_alloc(ctl);
 	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
 	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
@@ -102,6 +105,11 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 SHEET* get_sheet_window()
 {
 	return sheet_window;
+}
+
+SHEET* get_sheet_console()
+{
+	return sheet_console;
 }
 
 /*

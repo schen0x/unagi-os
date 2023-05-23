@@ -107,7 +107,7 @@ void kernel_main(void)
 		 * -12 if use a far call; anyway, far jumping is used here.
 		 */
 		taskConsole->tss.esp = (uint32_t) (uintptr_t) kmalloc(4096 * 16) + 4096*16 - 8;
-		*(uint32_t *)(taskConsole->tss.esp + 4) = (uint32_t) get_sheet_window();
+		*(uint32_t *)(taskConsole->tss.esp + 4) = (uint32_t) get_sheet_console();
 		taskConsole->tss.eip = (uint32_t) &console_main;
 		taskConsole->tss.cs = OS_GDT_KERNEL_CODE_SEGMENT_SELECTOR;
 		taskConsole->tss.es = OS_GDT_KERNEL_DATA_SEGMENT_SELECTOR;
