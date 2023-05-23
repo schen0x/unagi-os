@@ -308,7 +308,7 @@ void int2ch_handler(uint8_t scancode)
 	if ((mouse_one_move.btn & 0b1) != 0)
 	{
 		SHEET *w = get_sheet_window();
-		if (isCursorWithinSheet(&xy1, w))
+		if (isCursorWithinSheet(&xy0, w))
 		{
 			sheet_slide(w, w->xStart + xy1.mouseX - xy0.mouseX, w->yStart + xy1.mouseY - xy0.mouseY);
 		}
