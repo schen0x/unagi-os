@@ -82,7 +82,7 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_console = sheet_alloc(ctl);
 	uint8_t *buf_console = kzalloc(256 * 165);
 	sheet_setbuf(sheet_console, buf_console, 256, 165, -1);
-	make_window8((uintptr_t) buf_console, 256, 165, "Console");
+	make_window8((uintptr_t) buf_console, 256, 165, "Console", true);
 	make_textbox8(sheet_console, 8, 28, 240, 128, COL8_000000);
 
 	sheet_slide(sheet_console, 320, 40);
@@ -91,7 +91,7 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_window = sheet_alloc(ctl);
 	uint8_t *buf_window = (uint8_t *) kmalloc(160 * 68);
 	sheet_setbuf(sheet_window, buf_window, 160, 68, -1);
-	make_window8((uintptr_t)buf_window, 160, 68, "window");
+	make_window8((uintptr_t)buf_window, 160, 68, "window", false);
 	sheet_slide(sheet_window, 120, 122);
 
 	sheet_updown(sheet_desktop, 0);
@@ -438,7 +438,24 @@ static void set_palette(uint8_t start, uint8_t end, unsigned char *rgb)
  * Draw a notification in the buffer
  * e.g. make_window8(buf_window, 160, 68, "window");
  */
-void make_window8(uintptr_t buf, int xsize, int ysize, char *title)
+void make_window8(uintptr_t buf, int xsize, int ysize, char *title, bool isFocus)
+{
+    boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         xsize - 1, 0        );
+    boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         xsize - 2, 1        );
+    boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         0,         ysize - 1);
+    boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         1,         ysize - 2);
+    boxfill8(buf, xsize, COL8_848484, xsize - 2, 1,         xsize - 2, ysize - 2);
+    boxfill8(buf, xsize, COL8_000000, xsize - 1, 0,         xsize - 1, ysize - 1);
+    /* The window body */
+    boxfill8(buf, xsize, COL8_C6C6C6, 2,         2,         xsize - 3, ysize - 3);
+    boxfill8(buf, xsize, COL8_848484, 1,         ysize - 2, xsize - 2, ysize - 2);
+    boxfill8(buf, xsize, COL8_000000, 0,         ysize - 1, xsize - 1, ysize - 1);
+    make_wtitle8(buf, xsize, ysize, title, isFocus);
+    return;
+}
+
+
+void make_wtitle8(uintptr_t buf, int xsize, int ysize, char *title, bool isFocus)
 {
     static char closebtn[14][16] = {
         "OOOOOOOOOOOOOOO@",
@@ -457,20 +474,21 @@ void make_window8(uintptr_t buf, int xsize, int ysize, char *title)
         "@@@@@@@@@@@@@@@@"
     };
     int x, y;
-    char c;
-    boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         xsize - 1, 0        );
-    boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         xsize - 2, 1        );
-    boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         0,         ysize - 1);
-    boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         1,         ysize - 2);
-    boxfill8(buf, xsize, COL8_848484, xsize - 2, 1,         xsize - 2, ysize - 2);
-    boxfill8(buf, xsize, COL8_000000, xsize - 1, 0,         xsize - 1, ysize - 1);
-    /* The window body */
-    boxfill8(buf, xsize, COL8_C6C6C6, 2,         2,         xsize - 3, ysize - 3);
+    char c, titleFontColor, titleBarColor;
+    (void) ysize; // TODO check if in bound
+
+    if (isFocus)
+    {
+	    titleFontColor = COL8_FFFFFF;
+	    titleBarColor = COL8_000084;
+    } else {
+	    titleFontColor = COL8_C6C6C6;
+	    titleBarColor = COL8_848484;
+    }
+
     /* The title bar */
-    boxfill8(buf, xsize, COL8_000084, 3,         3,         xsize - 4, 20       );
-    boxfill8(buf, xsize, COL8_848484, 1,         ysize - 2, xsize - 2, ysize - 2);
-    boxfill8(buf, xsize, COL8_000000, 0,         ysize - 1, xsize - 1, ysize - 1);
-    putfonts8_asc(buf, xsize, 24, 4, COL8_FFFFFF, title);
+    boxfill8(buf, xsize, titleBarColor, 3,         3,         xsize - 4, 20       );
+    putfonts8_asc(buf, xsize, 24, 4, titleFontColor, title);
     for (y = 0; y < 14; y++) {
         for (x = 0; x < 16; x++) {
             c = closebtn[y][x];
@@ -491,7 +509,7 @@ void make_window8(uintptr_t buf, int xsize, int ysize, char *title)
             ((uint8_t *)buf)[(5 + y) * xsize + (xsize - 21 + x)] = c;
         }
     }
-    return;
+
 }
 
 SCREEN_MOUSEXY* getMouseXY(SCREEN_MOUSEXY *xy)
@@ -513,6 +531,21 @@ bool isCursorWithinSheet(const SCREEN_MOUSEXY *xy, const SHEET *s)
 	return false;
 }
 
+/* Loop sheets from top to down, find the intuitively proper SHEET where the mouse is pointing at */
+SHEET* get_sheet_by_cursor(const SCREEN_MOUSEXY *xy)
+{
+	if (!xy)
+		return NULL;
+	/* zTop is mouse; 0 is desktop */
+	for (int32_t i = ctl->zTop - 1; i > 0; i--)
+	{
+
+		SHEET *s = ctl->sheets[i];
+		if (isCursorWithinSheet(xy, s))
+			return s;
+	}
+	return NULL;
+}
 
 
 /* Draw stripes on the screen */

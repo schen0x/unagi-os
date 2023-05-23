@@ -115,7 +115,6 @@ static void init_block_fill(uint8_t *block_start, const uint8_t filling_color, c
 static void init_palette(void);
 static void draw_desktop(uintptr_t vram, int32_t screenXsize, int32_t screenYsize);
 void init_mouse_cursor8(intptr_t mouseBuf, uint8_t back_color);
-void make_window8(uintptr_t buf, int xsize, int ysize, char *title);
 void putblock8_8(intptr_t vram, int32_t vxsize, int32_t pxsize, int32_t pysize, int32_t px0, int32_t py0, uint8_t* buf, int32_t bxsize);
 void videomode_kfprint(const char* str, uint8_t color);
 void graphic_move_mouse(MOUSE_DATA_BUNDLE *mouse_one_move);
@@ -126,5 +125,8 @@ SHEET* get_sheet_window();
 SHEET* get_sheet_console();
 SCREEN_MOUSEXY* getMouseXY(SCREEN_MOUSEXY *xy);
 bool isCursorWithinSheet(const SCREEN_MOUSEXY *xy, const SHEET *s);
+void make_window8(uintptr_t buf, int xsize, int ysize, char *title, bool isFocus);
 void make_textbox8(SHEET *sheet, int32_t xStart, int32_t yStart, int32_t width, int32_t height, int8_t color);
+void make_wtitle8(uintptr_t buf, int xsize, int ysize, char *title, bool isFocus);
+SHEET* get_sheet_by_cursor(const SCREEN_MOUSEXY *xy);
 #endif

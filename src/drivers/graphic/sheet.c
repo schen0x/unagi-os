@@ -280,6 +280,7 @@ void sheet_update_all(SHTCTL *ctl)
 
 }
 
+
 /*
  * Set zNew to a new sheet
  * @sheet The sheet to adjust zIndex

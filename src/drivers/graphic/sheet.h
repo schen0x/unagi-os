@@ -18,7 +18,7 @@ typedef struct SHEET
 	int32_t yStart;
 	/* @col_inv: color */
 	int32_t color_invisible;
-	/* @height: z index */
+	/* @height: z index; -1 hidden, [-1, SHTCTL->zTop]  */
 	int32_t z;
 	/* @flags: SHEET_IN_USE == 1 */
 	int32_t flags;
