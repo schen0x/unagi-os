@@ -15,6 +15,7 @@
 #include "util/kutil.h"
 #include "util/printf.h"
 #include "drivers/ps2kbc.h"
+#include "drivers/keyboard.h"
 #include "pic/pic.h"
 #include "kernel/mprocessfifo.h"
 
@@ -39,6 +40,9 @@ int32_t get_guard()
 {
 	return __GUARD0;
 }
+
+uint32_t LRShift = 0;
+bool isCapLock = false;
 
 /**
  * TODO
@@ -393,7 +397,24 @@ void console_main(SHEET *sheet)
 			if (i >= DEV_FIFO_KBD_START && i < DEV_FIFO_KBD_END)
 			{
 				int32_t kbdscancode = i - DEV_FIFO_KBD_START;
-				char c = input_get_char(kbdscancode);
+				if (kbdscancode == 0x0e)
+					// TODO backspace
+					continue;
+				if (kbdscancode == 0x0f)
+					// TODO tab
+					continue;
+				/* LShift */
+				if (kbdscancode == 0x2a)
+					LRShift |= 1;
+				if (kbdscancode == 0x36)
+					LRShift |= 2;
+				if (kbdscancode == (0x2a | BREAK_MASK))
+					LRShift &= ~1;
+				if (kbdscancode == (0x36 | BREAK_MASK))
+					LRShift &= ~2;
+
+				bool isShift = !!(LRShift > 0);
+				char c = input_get_char(kbdscancode, isShift);
 				if (!c)
 					continue;
 				c2[0] = c;

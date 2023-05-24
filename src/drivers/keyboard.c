@@ -156,14 +156,30 @@ void atakbd_interrupt(uint8_t rawscancode)
  *
  * The array index should correspond to the "eventcode" defined in
  * "include/uapi/input-event-code.h"
+ *
+ * JIS keyboard
+ * TODO US keytable; 0x73?
  */
-static char keytable[0x54] = {
+static char keytable0[0x80] = {
 	0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,
 	'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '[', 0, 0, 'a', 's',
 	'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':', 0, 0, ']', 'z', 'x', 'c', 'v',
 	'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
-	'2', '3', '0', '.' };
+	'2', '3', '0', '.', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0x5c, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5c, 0, 0
+};
+static char keytable1[0x80] = {
+	0, 0, '!', 0x22, '#', '$', '%', '&', 0x27, '(', ')', '~', '=', '~', 0, 0,
+	'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '`', '{', 0, 0, 'A', 'S',
+	'D', 'F', 'G', 'H', 'J', 'K', 'L', '+', '*', 0, 0, '}', 'Z', 'X', 'C', 'V',
+	'B', 'N', 'M', '<', '>', '?', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
+	'2', '3', '0', '.', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, '_', 0, 0, 0, 0, 0, 0, 0, 0, 0, '|', 0, 0
+};
 
 
 /**
@@ -176,7 +192,7 @@ void input_report_key(uint8_t scancode, uint8_t down)
 	{
 		return;
 	}
-	char c = keytable[scancode];
+	char c = keytable0[scancode];
 	printf("%c", c);
 	return;
 }
@@ -184,7 +200,7 @@ void input_report_key(uint8_t scancode, uint8_t down)
 /**
  * rawscancode to char
  */
-char input_get_char(uint8_t rawscancode)
+char input_get_char(uint8_t rawscancode, bool isShift)
 {
 	bool keyUp = false;
 
@@ -197,7 +213,10 @@ char input_get_char(uint8_t rawscancode)
 	if (keyUp)
 		return 0;
 	uint8_t uscancode = atakbd_keycode[rawscancode & ~BREAK_MASK];
-	return keytable[uscancode];
+	if (!isShift)
+		return keytable0[uscancode];
+	else
+		return keytable1[uscancode];
 }
 
 
