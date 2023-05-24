@@ -181,6 +181,25 @@ void input_report_key(uint8_t scancode, uint8_t down)
 	return;
 }
 
+/**
+ * rawscancode to char
+ */
+char input_get_char(uint8_t rawscancode)
+{
+	bool keyUp = false;
+
+	if ((rawscancode | BREAK_MASK) < (0x73 | BREAK_MASK)) {		/* scancodes for keys, on press and on release */
+		if (rawscancode > BREAK_MASK)
+		{
+			keyUp = true;
+		}
+	}
+	if (keyUp)
+		return 0;
+	uint8_t uscancode = atakbd_keycode[rawscancode & ~BREAK_MASK];
+	return keytable[uscancode];
+}
+
 
 /*
  * Keyboard interrupt handler

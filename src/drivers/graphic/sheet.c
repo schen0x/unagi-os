@@ -235,6 +235,7 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
  * @yStartInBuf relative coordinate in the buffer
  * @xEndInBuf relative coordinate in the buffer
  * @yEndInBuf relative coordinate in the buffer
+ * The EndInBuf can be overbound (will be normalize)
  *
  */
 void sheet_update_sheet(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int32_t xEndInBuf, int32_t yEndInBuf)

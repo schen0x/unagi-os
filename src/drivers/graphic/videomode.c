@@ -207,6 +207,74 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 	return;
 }
 
+//static void increase_y(const int32_t bufWidth, const int32_t bufHeight, int32_t *posX, int32_t *posY, const int32_t lineHeight)
+//{
+//	if (!lineHeight)
+//		lineHeight = 24;
+//	*posY += lineHeight;
+//}
+
+/**
+ * Fill a line till the end of line with @fillColor
+ */
+static void __fill_until_eol(uintptr_t buf, const int32_t bufWidth, const int32_t posX, const int32_t posY, const int32_t lineHeight, const uint8_t fillColor)
+{
+	uint8_t *p = NULL;
+	uint8_t *eol = NULL;
+	for (int32_t row = 0; row < lineHeight; row++)
+	{
+		p = (uint8_t *)buf + (posY + row) * bufWidth + posX;
+		eol = (uint8_t *)buf + (posY + row + 1) * bufWidth;
+		for (;p < eol; p++)
+		{
+			*p = fillColor;
+		}
+	}
+	return;
+}
+
+/**
+ * Call after printing a char; for a buffer with reasonable size, will make sure (x,y) has enough space for at leaset one character
+ */
+static void __wrap_pos_xy(const int32_t bufWidth, const int32_t bufHeight, int32_t *posX, int32_t *posY, const int32_t fontWidth, const int32_t lineHeight, const int32_t padding_t, const int32_t padding_r, const int32_t padding_b, const int32_t padding_l)
+{
+	if (*posX + fontWidth > bufWidth - padding_r)
+	{
+		*posX = padding_l;
+		*posY += lineHeight;
+	}
+	if (*posY + lineHeight > bufHeight - padding_b)
+	{
+		*posY = padding_t;
+	}
+}
+
+/**
+ * @posX [IN, OUT]
+ * @posY [IN, OUT]
+ * @pd_* padding top, right, bottom, left
+ */
+void putfonts8_asc_buf(uintptr_t buf, int32_t bufWidth, int32_t bufHeight, int32_t *posX, int32_t *posY, int32_t padding_t, int32_t padding_r, int32_t padding_b, int32_t padding_l, uint8_t color, char *s)
+{
+	const int32_t fontWidth = 8;
+	const int32_t lineHeight = 24;
+	for(; *s != 0; s++)
+	{
+		if (*s == '\n')
+		{
+			__fill_until_eol(buf, bufWidth, *posX, *posY, lineHeight, COL8_000000);
+			*posX = padding_l;
+			*posY += lineHeight;
+			__wrap_pos_xy(bufWidth, bufHeight, posX, posY, fontWidth, lineHeight, padding_t, padding_r, padding_b, padding_l);
+			continue;
+		}
+		putfont8(buf, bufWidth, *posX, *posY, color, hankaku + *s * 16);
+		*posX += fontWidth;
+		__wrap_pos_xy(bufWidth, bufHeight, posX, posY, fontWidth, lineHeight, padding_t, padding_r, padding_b, padding_l);
+	}
+	return;
+}
+
 static void display_scroll(uintptr_t vram, int32_t vga_width, int32_t vga_height)
 {
 	// TODO Scroll
@@ -241,6 +309,22 @@ void videomode_kfprint(const char* str, uint8_t color)
 	return;
 }
 
+/**
+ * write characters in a buffer
+ * @posX relative coordinate in a buffer
+ * @posY relative coordinate in a buffer
+ */
+//void videomode_kfprint_buf(const char* str, uint8_t color, uint8_t *buf, int32_t bufWidth, int32_t bufHeight, int32_t *posX, int32_t *posY)
+//{
+//	(void) bufHeight;
+//	if (!color)
+//		color = COL8_FFFFFF;
+//
+//	// if ((int64_t)kstrlen(str) * 8 + posX > (int64_t)((canvasHeight - posY)/24 * canvasWidth))
+//		// display_scroll((uintptr_t)buf, canvasWidth, canvasHeight);
+//	putfonts8_asc_buf((uintptr_t)buf, bufWidth, bufHeight, posX, posY, color, (char *) str);
+//	return;
+//}
 
 /*
  * Fill the array
@@ -537,7 +621,7 @@ SHEET* get_sheet_by_cursor(const SCREEN_MOUSEXY *xy)
 	if (!xy)
 		return NULL;
 	/* zTop is mouse; 0 is desktop */
-	for (int32_t i = ctl->zTop - 1; i > 0; i--)
+	for (int32_t i = ctl->zTop - 1; i >= 0; i--)
 	{
 
 		SHEET *s = ctl->sheets[i];

@@ -28,6 +28,7 @@ MPFIFO32 fifoTSS3 = {0}, fifoTSS4 = {0};
 int32_t __fifobuf3[4096] = {0}, __fifobuf4[4096] = {0};
 
 TASK *task3, *task4, *taskConsole;
+MPFIFO32 *mpfifo32Console = NULL;
 
 FIFO32* get_fifo32_common(void)
 {
@@ -195,10 +196,31 @@ keymouse:
 			// continue;
 			goto wait_next_event;
 
+		/**
+		 * Keyboard;
+		 *   - Get focus (sheet at Top - 1) -> buffer
+		 *   - Send scancode to correspond task
+		 */
 		if (data_keymouse >= DEV_FIFO_KBD_START && data_keymouse < DEV_FIFO_KBD_END)
 		{
 			int32_t kbdscancode = data_keymouse - DEV_FIFO_KBD_START;
-			int21h_handler(kbdscancode & 0xff);
+			SHEET *sc = get_sheet_console();
+			if (!sc)
+			{
+fallback:
+				int21h_handler(kbdscancode & 0xff);
+				continue;
+			}
+			SHEET *focus = sc->ctl->sheets[sc->ctl->zTop - 1];
+			if (focus == sc)
+			{
+				if (!mpfifo32Console)
+					goto fallback;
+				mpfifo32_enqueue(mpfifo32Console, data_keymouse);
+			} else {
+				printf("d");
+			}
+
 		} else if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
 		{
 			int32_t mousescancode = data_keymouse - DEV_FIFO_MOUSE_START;
@@ -310,7 +332,6 @@ void int2ch_handler(uint8_t scancode)
 		SHEET *selected = get_sheet_by_cursor(&xy0);
 		if (!selected)
 			return;
-		sheet_updown(selected, selected->ctl->zTop - 1);
 		SHEET *w = get_sheet_window();
 		// if (isCursorWithinSheet(&xy0, w))
 		SHEET *c = get_sheet_console();
@@ -318,21 +339,31 @@ void int2ch_handler(uint8_t scancode)
 		{
 			make_wtitle8((uintptr_t) w->buf, w->bufXsize, w->bufYsize, "window", true);
 			make_wtitle8((uintptr_t) c->buf, c->bufXsize, c->bufYsize, "console", false);
+			sheet_updown(selected, selected->ctl->zTop - 1);
 			sheet_update_sheet(c, 0, 0, c->bufXsize, 21);
 			// sheet_slide(c, c->xStart, c->yStart);
 		} else if (selected == c) {
 			make_wtitle8((uintptr_t) w->buf, w->bufXsize, w->bufYsize, "window", false);
 			make_wtitle8((uintptr_t) c->buf, c->bufXsize, c->bufYsize, "console", true);
+			sheet_updown(selected, selected->ctl->zTop - 1);
 			sheet_update_sheet(w, 0, 0, w->bufXsize, 21);
+		} else {
+			make_wtitle8((uintptr_t) w->buf, w->bufXsize, w->bufYsize, "window", false);
+			make_wtitle8((uintptr_t) c->buf, c->bufXsize, c->bufYsize, "console", false);
+			sheet_update_sheet(w, 0, 0, w->bufXsize, 21);
+			sheet_update_sheet(c, 0, 0, c->bufXsize, 21);
+			return;
+
 		}
 		sheet_slide(selected, selected->xStart + xy.mouseX - xy0.mouseX, selected->yStart + xy.mouseY - xy0.mouseY);
 	}
+	return;
 }
 
 void console_main(SHEET *sheet)
 {
 	TASK *task = mprocess_task_get_current();
-	MPFIFO32 *mpfifo32Console = kzalloc(sizeof(MPFIFO32));
+	mpfifo32Console = kzalloc(sizeof(MPFIFO32));
 	int32_t *__fifobuf = kzalloc(sizeof(int32_t) * 512);
 	mpfifo32_init(mpfifo32Console, __fifobuf, 512, task);
 
@@ -343,6 +374,12 @@ void console_main(SHEET *sheet)
 	TIMER *timer;
 	timer = timer_alloc_customfifo(mpfifo32Console);
 	timer_settimer(timer, timeoutBlink, 20);
+	char c2[10] = {0};
+	uint8_t consoleCharBgColor = COL8_000000;
+	uint8_t consoleCharColor = COL8_FFFFFF;
+
+	// int32_t posX = 8, posY = 28;
+	int32_t cursorBufPosY = 28;
 
 	for (;;)
 	{
@@ -353,6 +390,20 @@ void console_main(SHEET *sheet)
 		} else {
 			i = mpfifo32_dequeue(mpfifo32Console);
 			_io_sti();
+			if (i >= DEV_FIFO_KBD_START && i < DEV_FIFO_KBD_END)
+			{
+				int32_t kbdscancode = i - DEV_FIFO_KBD_START;
+				char c = input_get_char(kbdscancode);
+				if (!c)
+					continue;
+				c2[0] = c;
+				int32_t prevX = cursorBufPosX;
+				int32_t prevY = cursorBufPosY;
+				boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, cursorBufPosX, cursorBufPosY, cursorBufPosX + 7, cursorBufPosY + 15);
+				putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, c2);
+				/* If the end is overbound, it will be normalized */
+				sheet_update_sheet(sheet, prevX, prevY, prevX + 9, prevY + 16);
+			}
 			if (i == 21) {
 				timer_settimer(timer, timeoutBlink, 20);
 				cursorColor = COL8_FFFFFF;
@@ -361,8 +412,8 @@ void console_main(SHEET *sheet)
 				timer_settimer(timer, timeoutBlink, 21);
 				cursorColor = COL8_000000;
 			}
-			boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorBufPosX, 28, cursorBufPosX + 7, 43);
-			sheet_update_sheet(sheet, cursorBufPosX, 28, cursorBufPosX + 8, 44);
+			boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorBufPosX, cursorBufPosY, cursorBufPosX + 7, cursorBufPosY + 15);
+			sheet_update_sheet(sheet, cursorBufPosX, cursorBufPosY, cursorBufPosX + 8, cursorBufPosX + 15);
 		}
 	}
 
