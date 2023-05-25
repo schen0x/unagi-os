@@ -82,7 +82,7 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_console = sheet_alloc(ctl);
 	uint8_t *buf_console = kzalloc(256 * 165);
 	sheet_setbuf(sheet_console, buf_console, 256, 165, -1);
-	make_window8((uintptr_t) buf_console, 256, 165, "Console", true);
+	make_window8((uintptr_t) buf_console, 256, 165, "console", true);
 	make_textbox8(sheet_console, 8, 28, 240, 128, COL8_000000);
 
 	sheet_slide(sheet_console, 320, 40);

@@ -296,7 +296,7 @@ void __tss4_main()
 		/* TIMER timer_render, Screen Redraw */
 		if (data == 16)
 		{
-			timer_settimer(timer_render, 10, 0);
+			timer_settimer(timer_render, 8, 0);
 
 			if (sw)
 			{
@@ -392,6 +392,9 @@ void console_main(SHEET *sheet)
 
 	// int32_t posX = 8, posY = 28;
 	int32_t cursorBufPosY = 28;
+	putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, ">");
+	/* If the end is overbound, it will be normalized */
+	sheet_update_sheet(sheet, 8, 28, cursorBufPosX + 9, cursorBufPosY + 30);
 
 	for (;;)
 	{
@@ -445,7 +448,7 @@ void console_main(SHEET *sheet)
 				cursorColor = COL8_000000;
 			}
 			boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorBufPosX, cursorBufPosY, cursorBufPosX + 7, cursorBufPosY + 15);
-			sheet_update_sheet(sheet, cursorBufPosX, cursorBufPosY, cursorBufPosX + 8, cursorBufPosX + 15);
+			sheet_update_sheet(sheet, cursorBufPosX, cursorBufPosY, cursorBufPosX + 8, cursorBufPosY + 15);
 		}
 	}
 
