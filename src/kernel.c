@@ -31,6 +31,15 @@ int32_t __fifobuf3[4096] = {0}, __fifobuf4[4096] = {0};
 TASK *task3, *task4, *taskConsole;
 MPFIFO32 *mpfifo32Console = NULL;
 
+uint32_t LRShift = 0;
+bool isCapLock = false;
+/**
+ * bit 0:7, ScrollLock, NumLock, CapsLock, ...
+ * So keyLEDs & 4 == isCapsLock
+ */
+uint8_t keyLEDs = 0;
+
+
 FIFO32* get_fifo32_common(void)
 {
 	return &fifo32_common;
@@ -40,9 +49,6 @@ int32_t get_guard()
 {
 	return __GUARD0;
 }
-
-uint32_t LRShift = 0;
-bool isCapLock = false;
 
 /**
  * TODO
@@ -84,6 +90,8 @@ void kernel_main(void)
 
 	/* Import GDTR0 and switch to the GDTR1 */
 	gdt_migration();
+
+	keyLEDs = (((BOOTINFO*) OS_BOOT_BOOTINFO_ADDRESS)->leds >> 4) & 0b111;
 
 	if (!DEBUG_NO_MULTITASK)
 	{
@@ -412,8 +420,11 @@ void console_main(SHEET *sheet)
 					LRShift &= ~1;
 				if (kbdscancode == (0x36 | BREAK_MASK))
 					LRShift &= ~2;
+				/* CapsLock */
+				if (kbdscancode == (0x3a))
+					LRShift ^= 4;
 
-				bool isShift = !!(LRShift > 0);
+				bool isShift = !!((LRShift & 3) > 0) ^ !!(LRShift & 4);
 				char c = input_get_char(kbdscancode, isShift);
 				if (!c)
 					continue;

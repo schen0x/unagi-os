@@ -15,7 +15,7 @@ GDTR0 equ 0x0fe8					; **GDTR
 VBE_MODE EQU 0x105					; VESA (105h) 1024×768 256 color
 ; VGA/VBE BOOT INFO
 CYLS equ 0x0ff0						; ? OS_BOOT_BOOTINFO_ADDRESS?
-LEDS equ 0x0ff1
+LEDS equ 0x0ff1						; Keyboard LEDs status
 VMODE equ 0x0ff2					; ?
 SCRNX equ 0x0ff4					; Screen Resolution X
 SCRNY equ 0x0ff6					; Screen Resolution Y
@@ -74,9 +74,19 @@ VESA_INIT:						; Select video mode
 
 KEYBOARD_STATUS:
     ; Get keyboard status
+    ;     Shift Status (AL)
+    ; 7 6 5 4 3 2 1 0
+    ; 1 . . . . . . .      Insert locked
+    ; . 1 . . . . . .      Caps Lock locked
+    ; . . 1 . . . . .      Num Lock locked
+    ; . . . 1 . . . .      Scroll Lock locked
+    ; . . . . 1 . . .      Alt key is pressed
+    ; . . . . . 1 . .      Ctrl key is pressed
+    ; . . . . . . 1 .      Left Shift key is pressed
+    ; . . . . . . . 1      Right Shift key is pressed
     mov ah, 0x02
-    int 0x16						; keyboard BIOS
-    mov [LEDS], al
+    int 0x16						; keyboard BIOS; May not work in Ubuntu/Debian?
+    mov [LEDS], al					;
 
 
 LOAD_PROTECTED:
