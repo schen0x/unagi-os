@@ -217,14 +217,14 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 /**
  * Fill a line till the end of line with @fillColor
  */
-static void __fill_until_eol(uintptr_t buf, const int32_t bufWidth, const int32_t posX, const int32_t posY, const int32_t lineHeight, const uint8_t fillColor)
+static void __fill_until_eol(uintptr_t buf, const int32_t bufWidth, const int32_t posX, const int32_t posY, const int32_t lineHeight, const int32_t padding_r, const uint8_t fillColor)
 {
 	uint8_t *p = NULL;
 	uint8_t *eol = NULL;
 	for (int32_t row = 0; row < lineHeight; row++)
 	{
 		p = (uint8_t *)buf + (posY + row) * bufWidth + posX;
-		eol = (uint8_t *)buf + (posY + row + 1) * bufWidth;
+		eol = (uint8_t *)buf + (posY + row + 1) * bufWidth - padding_r;
 		for (;p < eol; p++)
 		{
 			*p = fillColor;
@@ -262,7 +262,8 @@ void putfonts8_asc_buf(uintptr_t buf, int32_t bufWidth, int32_t bufHeight, int32
 	{
 		if (*s == '\n')
 		{
-			__fill_until_eol(buf, bufWidth, *posX, *posY, lineHeight, COL8_000000);
+			__fill_until_eol(buf, bufWidth, *posX, *posY, lineHeight, padding_r, COL8_000000);
+			//__fill_until_eol(buf, bufWidth, *posX, *posY, lineHeight, padding_r, COL8_840000);
 			*posX = padding_l;
 			*posY += lineHeight;
 			__wrap_pos_xy(bufWidth, bufHeight, posX, posY, fontWidth, lineHeight, padding_t, padding_r, padding_b, padding_l);

@@ -129,7 +129,7 @@ void make_window8(uintptr_t buf, int xsize, int ysize, char *title, bool isFocus
 void make_textbox8(SHEET *sheet, int32_t xStart, int32_t yStart, int32_t width, int32_t height, int8_t color);
 void make_wtitle8(uintptr_t buf, int xsize, int ysize, char *title, bool isFocus);
 SHEET* get_sheet_by_cursor(const SCREEN_MOUSEXY *xy);
-static void __fill_until_eol(uintptr_t buf, const int32_t bufWidth, const int32_t posX, const int32_t posY, const int32_t lineHeight, const uint8_t fillColor);
 static void __wrap_pos_xy(const int32_t bufWidth, const int32_t bufHeight, int32_t *posX, int32_t *posY, const int32_t fontWidth, const int32_t lineHeight, const int32_t padding_t, const int32_t padding_r, const int32_t padding_b, const int32_t padding_l);
 void putfonts8_asc_buf(uintptr_t buf, int32_t bufWidth, int32_t bufHeight, int32_t *posX, int32_t *posY, int32_t padding_t, int32_t padding_r, int32_t padding_b, int32_t padding_l, uint8_t color, char *s);
+static void __fill_until_eol(uintptr_t buf, const int32_t bufWidth, const int32_t posX, const int32_t posY, const int32_t lineHeight, const int32_t padding_r, const uint8_t fillColor);
 #endif

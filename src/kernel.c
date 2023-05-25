@@ -414,6 +414,29 @@ void console_main(SHEET *sheet)
 				if (kbdscancode == 0x0f)
 					// TODO tab
 					continue;
+				/* Enter */
+				if (kbdscancode == 0x1c)
+				{
+					int32_t prevX = cursorBufPosX;
+					int32_t prevY = cursorBufPosY;
+					boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, cursorBufPosX, cursorBufPosY, cursorBufPosX + 7, cursorBufPosY + 15);
+					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, "\n");
+					/* FIXME when out of bound */
+					// sheet_update_sheet(sheet, cursorBufPosX - 8, cursorBufPosY - 28, 250, cursorBufPosY + 28);
+					sheet_update_sheet(sheet, prevX, prevY, 250, prevY + 28);
+					prevX = cursorBufPosX;
+					prevY = cursorBufPosY;
+					/**
+					 * TODO rewrite this, so that another function take sheet as input, thus when finished writing call partial update
+					 *   - add text box struct in a sheet storing metadata margin etc.
+					 */
+					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, ">");
+					/* If the end is overbound, it will be normalized */
+					// sheet_update_sheet(sheet, prevX, prevY, 250, prevY + 28);
+					sheet_update_sheet(sheet, cursorBufPosX - 8, cursorBufPosY, cursorBufPosX + 8, cursorBufPosY + 15);
+					// sheet_update_sheet(sheet, 0, 0, INT32_MAX, INT32_MAX);
+					continue;
+				}
 				/* LShift */
 				if (kbdscancode == 0x2a)
 					LRShift |= 1;
