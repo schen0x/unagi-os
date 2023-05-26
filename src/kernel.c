@@ -380,7 +380,10 @@ void console_main(SHEET *sheet)
 	mpfifo32_init(mpfifo32Console, __fifobuf, 512, task);
 
 	int32_t i;
-	int32_t cursorBufPosX = 8, cursorColor = COL8_FFFFFF;
+	/* Buf position */
+	int32_t cursorX = 8, cursorColor = COL8_FFFFFF;
+	/* Buf position */
+	int32_t cursorY = 28;
 
 	uint32_t timeoutBlink = 80;
 	TIMER *timer;
@@ -391,10 +394,9 @@ void console_main(SHEET *sheet)
 	uint8_t consoleCharColor = COL8_FFFFFF;
 
 	// int32_t posX = 8, posY = 28;
-	int32_t cursorBufPosY = 28;
-	putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, ">");
+	putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, ">");
 	/* If the end is overbound, it will be normalized */
-	sheet_update_sheet(sheet, 8, 28, cursorBufPosX + 9, cursorBufPosY + 30);
+	sheet_update_sheet(sheet, 8, 28, cursorX + 9, cursorY + 30);
 
 	for (;;)
 	{
@@ -417,23 +419,26 @@ void console_main(SHEET *sheet)
 				/* Enter */
 				if (kbdscancode == 0x1c)
 				{
-					int32_t prevX = cursorBufPosX;
-					int32_t prevY = cursorBufPosY;
-					boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, cursorBufPosX, cursorBufPosY, cursorBufPosX + 7, cursorBufPosY + 15);
-					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, "\n");
+					int32_t prevX = cursorX;
+					int32_t prevY = cursorY;
+					for (int32_t x = cursorX; x < sheet->bufXsize - 8; x++)
+					{
+						boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, x, cursorY, x + 7, cursorY + 15);
+					}
+					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, "\n");
 					/* FIXME when out of bound */
 					// sheet_update_sheet(sheet, cursorBufPosX - 8, cursorBufPosY - 28, 250, cursorBufPosY + 28);
 					sheet_update_sheet(sheet, prevX, prevY, 250, prevY + 28);
-					prevX = cursorBufPosX;
-					prevY = cursorBufPosY;
+					prevX = cursorX;
+					prevY = cursorY;
 					/**
 					 * TODO rewrite this, so that another function take sheet as input, thus when finished writing call partial update
 					 *   - add text box struct in a sheet storing metadata margin etc.
 					 */
-					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, ">");
+					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, ">");
 					/* If the end is overbound, it will be normalized */
 					// sheet_update_sheet(sheet, prevX, prevY, 250, prevY + 28);
-					sheet_update_sheet(sheet, cursorBufPosX - 8, cursorBufPosY, cursorBufPosX + 8, cursorBufPosY + 15);
+					sheet_update_sheet(sheet, prevX, prevY, prevX + 66, prevY + 15);
 					// sheet_update_sheet(sheet, 0, 0, INT32_MAX, INT32_MAX);
 					continue;
 				}
@@ -455,10 +460,10 @@ void console_main(SHEET *sheet)
 				if (!c)
 					continue;
 				c2[0] = c;
-				int32_t prevX = cursorBufPosX;
-				int32_t prevY = cursorBufPosY;
-				boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, cursorBufPosX, cursorBufPosY, cursorBufPosX + 7, cursorBufPosY + 15);
-				putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorBufPosX, &cursorBufPosY, 28, 8, 8, 8, consoleCharColor, c2);
+				int32_t prevX = cursorX;
+				int32_t prevY = cursorY;
+				boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, cursorX, cursorY, cursorX + 7, cursorY + 15);
+				putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, c2);
 				/* If the end is overbound, it will be normalized */
 				sheet_update_sheet(sheet, prevX, prevY, prevX + 9, prevY + 16);
 			}
@@ -470,8 +475,8 @@ void console_main(SHEET *sheet)
 				timer_settimer(timer, timeoutBlink, 21);
 				cursorColor = COL8_000000;
 			}
-			boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorBufPosX, cursorBufPosY, cursorBufPosX + 7, cursorBufPosY + 15);
-			sheet_update_sheet(sheet, cursorBufPosX, cursorBufPosY, cursorBufPosX + 8, cursorBufPosY + 15);
+			boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorX, cursorY, cursorX + 7, cursorY + 15);
+			sheet_update_sheet(sheet, cursorX, cursorY, cursorX + 8, cursorY + 15);
 		}
 	}
 

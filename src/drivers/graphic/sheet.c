@@ -1,5 +1,6 @@
 #include "drivers/graphic/sheet.h"
 #include "config.h"
+#include "status.h"
 #include "memory/memory.h"
 
 SHTCTL* shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize)
@@ -43,11 +44,53 @@ SHEET* sheet_alloc(SHTCTL *ctl)
 			sheet = &ctl->sheet0[i];
 			sheet->flags = SHEET_IN_USE; // in use
 			sheet->z = -1; // is hidden
+			sheet->textbox = NULL;
 			return sheet;
 		}
 	}
 	return NULL; // all sheets are occupied
 }
+
+/**
+ * Init the textbox
+ *   - alloc memory
+ *   - set position by margin top right bottom left
+ */
+SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml)
+{
+	s->textbox = kzalloc(sizeof(TEXTBOX));
+	s->textbox->lineBuf = kzalloc(OS_TEXTBOX_LINE_BUFFER_SIZE);
+	/* Success */
+	if (s->textbox && s->textbox->lineBuf)
+	{
+		TEXTBOX *t = s->textbox;
+		t->sheet = s;
+		t->cursorX = 0;
+		t->cursorY = 0;
+		t->lineCharPos = 0;
+		t->lineEolPos = 0;
+		t->xS = ml;
+		t->yS = mt;
+		t->xE = s->bufXsize - mr;
+		t->yE = s->bufYsize - mb;
+		return s;
+	}
+	/* Fail; cleanup */
+	sheet_textbox_free(s);
+	return s;
+}
+
+//int32_t sheet_textbox_set_bymargin(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml)
+//{
+//	if (!s || !s->textbox)
+//		return -EIO;
+//	TEXTBOX *t = s->textbox;
+//	t->xS = ml;
+//	t->yS = mt;
+//	t->xE = s->bufXsize - mr;
+//	t->yE = s->bufYsize - mb;
+//	return 0;
+//}
 
 void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int32_t color_invisible)
 {
@@ -401,8 +444,23 @@ void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst)
 	return;
 }
 
+/* Free the TEXTBOX if exists */
+static void sheet_textbox_free(SHEET *sheet)
+{
+	if (!sheet)
+		return;
+	if (sheet->textbox)
+	{
+		kfree(sheet->textbox->lineBuf);
+		kfree(sheet->textbox);
+		sheet->textbox = NULL;
+	}
+	return;
+
+}
 void sheet_free(SHEET *sheet)
 {
+	sheet_textbox_free(sheet);
 	if (sheet->z >= 0)
 	{
 		sheet_updown(sheet, -1);
