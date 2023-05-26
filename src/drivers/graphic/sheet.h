@@ -64,6 +64,16 @@ typedef struct TEXTBOX
 	int32_t lineCharPos;
 	/* The sheet which the textbox is in */
 	SHEET *sheet;
+	/* @bgColor background color of the textbox */
+	uint32_t bgColor;
+ 	/* @charBgColor background color of the character */
+	uint32_t charBgColor;
+ 	/* @charColor color of the character */
+	uint32_t charColor;
+	/* i.e., character width */
+	uint32_t incrementX;
+	/* i.e., line height */
+	uint32_t incrementY;
 } TEXTBOX;
 
 SHTCTL *shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize);
@@ -78,6 +88,6 @@ void sheet_updown(SHEET *sheet, int32_t zNew);
 void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst);
 static void sheet_textbox_free(SHEET *sheet);
 void sheet_free(SHEET *sheet);
-SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml);
+SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml, int32_t bgColor, int32_t charBgColor, int32_t charColor);
 
 #endif

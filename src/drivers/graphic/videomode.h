@@ -132,4 +132,6 @@ SHEET* get_sheet_by_cursor(const SCREEN_MOUSEXY *xy);
 static void __wrap_pos_xy(const int32_t bufWidth, const int32_t bufHeight, int32_t *posX, int32_t *posY, const int32_t fontWidth, const int32_t lineHeight, const int32_t padding_t, const int32_t padding_r, const int32_t padding_b, const int32_t padding_l);
 void putfonts8_asc_buf(uintptr_t buf, int32_t bufWidth, int32_t bufHeight, int32_t *posX, int32_t *posY, int32_t padding_t, int32_t padding_r, int32_t padding_b, int32_t padding_l, uint8_t color, char *s);
 static void __fill_until_eol(uintptr_t buf, const int32_t bufWidth, const int32_t posX, const int32_t posY, const int32_t lineHeight, const int32_t padding_r, const uint8_t fillColor);
+void v_textbox_boxfill8(TEXTBOX *t, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1);
+int32_t __v_textbox_xy_to_sheetxy(TEXTBOX *t, const int32_t textboxX, const int32_t textboxY, int32_t *sheetX, int32_t *sheetY);
 #endif

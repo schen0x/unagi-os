@@ -2,6 +2,7 @@
 #include "config.h"
 #include "status.h"
 #include "memory/memory.h"
+#include "drivers/graphic/videomode.h"
 
 SHTCTL* shtctl_init(uintptr_t vram, int32_t xsize, int32_t ysize)
 {
@@ -55,8 +56,11 @@ SHEET* sheet_alloc(SHTCTL *ctl)
  * Init the textbox
  *   - alloc memory
  *   - set position by margin top right bottom left
+ * @bgColor background color of the textbox
+ * @charBgColor background color of the character
+ * @charColor color of the character
  */
-SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml)
+SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml, int32_t bgColor, int32_t charBgColor, int32_t charColor)
 {
 	s->textbox = kzalloc(sizeof(TEXTBOX));
 	s->textbox->lineBuf = kzalloc(OS_TEXTBOX_LINE_BUFFER_SIZE);
@@ -73,6 +77,20 @@ SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t
 		t->yS = mt;
 		t->xE = s->bufXsize - mr;
 		t->yE = s->bufYsize - mb;
+		t->incrementX = 8;
+		t->incrementY = 28;
+		if (bgColor > -1)
+			t->bgColor = bgColor;
+		else
+			t->bgColor = COL8_000000;
+		if (charBgColor > -1)
+			t->charBgColor = charBgColor;
+		else
+			t->charBgColor = COL8_000000;
+		if (charColor > -1)
+			t->charColor = charColor;
+		else
+			t->charColor = COL8_FFFFFF;
 		return s;
 	}
 	/* Fail; cleanup */
@@ -115,26 +133,30 @@ void sheet_update_zmap(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScre
 	uint8_t *buf, color;
 	uint8_t *zMap = (uint8_t *) ctl->zMap;
 	SHEET *sheet;
+	xStartOnScreen -= 1;
+	yStartOnScreen -= 1;
+	xEndOnScreen += 1;
+	yEndOnScreen += 1;
 	/**
 	 * Discard out of screen pixels
 	 * Because otherwise it may cause wrap of undefined behavior
 	 */
 	if (xStartOnScreen < 0)
 		xStartOnScreen = 0;
-	if (xStartOnScreen > ctl->xsize)
-		xStartOnScreen = ctl->xsize;
+	if (xStartOnScreen >= ctl->xsize)
+		xStartOnScreen = ctl->xsize - 1;
 	if (xEndOnScreen < 0)
 		xEndOnScreen = 0;
-	if (xEndOnScreen > ctl->xsize)
-		xEndOnScreen = ctl->xsize;
+	if (xEndOnScreen >= ctl->xsize)
+		xEndOnScreen = ctl->xsize - 1;
 	if (yStartOnScreen < 0)
 		yStartOnScreen = 0;
-	if (yStartOnScreen > ctl->ysize)
-		yStartOnScreen = ctl->ysize;
+	if (yStartOnScreen >= ctl->ysize)
+		yStartOnScreen = ctl->ysize - 1;
 	if (yEndOnScreen < 0)
 		yEndOnScreen = 0;
-	if (yEndOnScreen > ctl->ysize)
-		yEndOnScreen = ctl->ysize;
+	if (yEndOnScreen >= ctl->ysize)
+		yEndOnScreen = ctl->ysize - 1;
 
 
 	/**
@@ -165,15 +187,15 @@ void sheet_update_zmap(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScre
 			xStartInBuf = 0;
 		if (yStartInBuf < 0)
 			yStartInBuf = 0;
-		if (xEndInBuf > sheet->bufXsize)
-			xEndInBuf = sheet->bufXsize;
-		if (yEndInBuf > sheet->bufYsize)
-			yEndInBuf = sheet->bufYsize;
+		if (xEndInBuf >= sheet->bufXsize)
+			xEndInBuf = sheet->bufXsize - 1;
+		if (yEndInBuf >= sheet->bufYsize)
+			yEndInBuf = sheet->bufYsize - 1;
 
-		for (int32_t bufY = yStartInBuf; bufY < yEndInBuf; bufY++)
+		for (int32_t bufY = yStartInBuf; bufY <= yEndInBuf; bufY++)
 		{
 			int32_t y = sheet->yStart + bufY;
-			for (int32_t bufX = xStartInBuf; bufX < xEndInBuf; bufX++)
+			for (int32_t bufX = xStartInBuf; bufX <= xEndInBuf; bufX++)
 			{
 				int32_t x = sheet->xStart + bufX;
 				color = buf[bufY * sheet->bufXsize + bufX];
@@ -197,6 +219,7 @@ void sheet_update_zmap(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScre
  * @yEnd: the destination y, real coordinate (screen)
  * @zStart: sheet->z; (to update only the sheets with z >= zStart)
  * @zEnd: sheet->z; (to update only the sheets with z <= zEnd), if zEnd == -1, set zEnd to `ctl->zTop`
+ * xy all coordinates, which means inclusive, they must exists
  */
 void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t yStartOnScreen, int32_t xEndOnScreen, int32_t yEndOnScreen, int32_t zStart, int32_t zEnd)
 {
@@ -204,26 +227,30 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 	uint8_t *vram = (uint8_t *) ctl->vram;
 	uint8_t *zMap = (uint8_t *) ctl->zMap;
 	SHEET *sheet;
+	xStartOnScreen -= 1;
+	yStartOnScreen -= 1;
+	xEndOnScreen += 1;
+	yEndOnScreen += 1;
 	/**
 	 * Discard out of screen pixels
 	 * Because otherwise it may cause wrap of undefined behavior
 	 */
 	if (xStartOnScreen < 0)
 		xStartOnScreen = 0;
-	if (xStartOnScreen > ctl->xsize)
-		xStartOnScreen = ctl->xsize;
+	if (xStartOnScreen >= ctl->xsize)
+		xStartOnScreen = ctl->xsize - 1;
 	if (xEndOnScreen < 0)
 		xEndOnScreen = 0;
-	if (xEndOnScreen > ctl->xsize)
-		xEndOnScreen = ctl->xsize;
+	if (xEndOnScreen >= ctl->xsize)
+		xEndOnScreen = ctl->xsize - 1;
 	if (yStartOnScreen < 0)
 		yStartOnScreen = 0;
-	if (yStartOnScreen > ctl->ysize)
-		yStartOnScreen = ctl->ysize;
+	if (yStartOnScreen >= ctl->ysize)
+		yStartOnScreen = ctl->ysize - 1;
 	if (yEndOnScreen < 0)
 		yEndOnScreen = 0;
-	if (yEndOnScreen > ctl->ysize)
-		yEndOnScreen = ctl->ysize;
+	if (yEndOnScreen >= ctl->ysize)
+		yEndOnScreen = ctl->ysize - 1;
 
 	if (zEnd == -1)
 		zEnd = ctl->zTop;
@@ -250,15 +277,15 @@ void sheet_update_with_screenxy(SHTCTL *ctl, int32_t xStartOnScreen, int32_t ySt
 			xStartInBuf = 0;
 		if (yStartInBuf < 0)
 			yStartInBuf = 0;
-		if (xEndInBuf > sheet->bufXsize)
-			xEndInBuf = sheet->bufXsize;
-		if (yEndInBuf > sheet->bufYsize)
-			yEndInBuf = sheet->bufYsize;
+		if (xEndInBuf >= sheet->bufXsize)
+			xEndInBuf = sheet->bufXsize - 1;
+		if (yEndInBuf >= sheet->bufYsize)
+			yEndInBuf = sheet->bufYsize - 1;
 
-		for (int32_t bufY = yStartInBuf; bufY < yEndInBuf; bufY++)
+		for (int32_t bufY = yStartInBuf; bufY <= yEndInBuf; bufY++)
 		{
 			int32_t y = sheet->yStart + bufY;
-			for (int32_t bufX = xStartInBuf; bufX < xEndInBuf; bufX++)
+			for (int32_t bufX = xStartInBuf; bufX <= xEndInBuf; bufX++)
 			{
 				int32_t x = sheet->xStart + bufX;
 				color = buf[sheet->bufXsize * bufY + bufX];
@@ -435,7 +462,7 @@ void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst)
 	/* If sheet is hidden, the position should still be updated, but do not render */
 	if (sheet->z < 0)
 		return;
-	sheet_update_zmap(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize, 0);
+	sheet_update_zmap(ctl, xStart, yStart, xStart + sheet->bufXsize , yStart + sheet->bufYsize, 0);
 	sheet_update_zmap(ctl, xDst, yDst, xDst + sheet->bufXsize, yDst + sheet->bufYsize, sheet->z);
 	/* Redraw the background (z < this.z) when leaving */
 	sheet_update_with_screenxy(ctl, xStart, yStart, xStart + sheet->bufXsize, yStart + sheet->bufYsize, 0, sheet->z - 1);

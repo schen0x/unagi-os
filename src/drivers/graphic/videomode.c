@@ -8,6 +8,7 @@
 #include "util/kutil.h"
 #include "drivers/graphic/sheet.h"
 #include "memory/memory.h"
+#include "status.h"
 
 static uintptr_t video_mem_start = (uintptr_t)(0xa0000); /* create a local pointer to the absolute address */
 static uintptr_t video_mem_end = (uintptr_t)(0xaffff); /* create a local pointer to the absolute address */
@@ -84,6 +85,7 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_setbuf(sheet_console, buf_console, 256, 165, -1);
 	make_window8((uintptr_t) buf_console, 256, 165, "console", true);
 	make_textbox8(sheet_console, 8, 28, 240, 128, COL8_000000);
+	sheet_textbox_alloc(sheet_console, 28, 8, 9, 8, COL8_000000, -1, COL8_FF0000);
 
 	sheet_slide(sheet_console, 320, 40);
 
@@ -203,6 +205,46 @@ void putfonts8_ascv2(uintptr_t vram, int32_t xsize, int32_t posXnew, int32_t pos
 			posY += incrementY;
 		}
 
+	}
+	return;
+}
+
+void v_textbox_putfonts8_asc(TEXTBOX *t, int32_t color, char *s)
+{
+	if (!t || !t->sheet || !t->sheet->buf)
+		return;
+	if (color < 0)
+		color = t->charColor;
+	for(; *s != 0; s++)
+	{
+		int32_t sX = 0, sY = 0;
+		int32_t r = __v_textbox_xy_to_sheetxy(t, t->cursorX, t->cursorY, &sX, &sY);
+		/* ? throw */
+		if (r < 0)
+			continue;
+
+		/* Not necessarily the enter key */
+		if (*s == '\n')
+		{
+			/* Clear the current line afterwards */
+			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, INT32_MAX, t->cursorY + t->incrementY);
+			sheet_update_sheet(t->sheet, sX, sY, INT32_MAX, sY + t->incrementY);
+			t->cursorX = 0;
+			t->cursorY += t->incrementY;
+			if ((int32_t)(t->cursorY + t->incrementY) > t->yE)
+				t->cursorY = t->yS;
+			/* Clear the new line too (we may write whatever into it later) */
+			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, INT32_MAX, t->cursorY + t->incrementY);
+		 	__v_textbox_xy_to_sheetxy(t, t->cursorX, t->cursorY, &sX, &sY);
+			sheet_update_sheet(t->sheet, sX, sY, INT32_MAX, sY + t->incrementY);
+			continue;
+		}
+		/* Normal */
+		putfont8((uintptr_t)t->sheet->buf, t->sheet->bufXsize, sX, sY, t->charColor, hankaku + *s * 16);
+		t->cursorX += t->incrementX;
+		if ((int32_t)(t->cursorX + t->incrementX) > t->xE)
+			t->cursorX = t->xS;
+		sheet_update_sheet(t->sheet, sX, sY, sX + t->incrementX, sY + t->incrementY);
 	}
 	return;
 }
@@ -436,6 +478,48 @@ void putblock8_8(intptr_t vram, int32_t vxsize, int32_t pxsize,
 			((uint8_t *)vram)[(py0 + y) * vxsize + (px0 + x)] = buf[y * bxsize + x];
 		}
 	}
+}
+
+/**
+ * 0 based xy
+ */
+int32_t __v_textbox_xy_to_sheetxy(TEXTBOX *t, const int32_t textboxX, const int32_t textboxY, int32_t *sheetX, int32_t *sheetY)
+{
+	if (!t->sheet || !t->sheet->buf)
+		return -EIO;
+	*sheetX = textboxX + t->xS;
+	*sheetY = textboxY + t->yS;
+
+	if (*sheetX >= t->sheet->bufXsize)
+		*sheetX = t->sheet->bufXsize - 1;
+	if (*sheetY >= t->sheet->bufYsize)
+		*sheetY = t->sheet->bufYsize - 1;
+	return 0;
+}
+/**
+ * use relative xy coordinate in the textbox
+ * x0y0 x1y1 are inclusive
+ * TODO guard overflow
+ */
+void v_textbox_boxfill8(TEXTBOX *t, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
+{
+	if (!t->sheet || !t->sheet->buf)
+		return;
+	int32_t sheetX0 = 0;
+	int32_t sheetY0 = 0;
+	int32_t sheetX1 = 0;
+	int32_t sheetY1 = 0;
+	int32_t r0 = __v_textbox_xy_to_sheetxy(t, x0, y0, &sheetX0, &sheetY0);
+	int32_t r1 = __v_textbox_xy_to_sheetxy(t, x1, y1, &sheetX1, &sheetY1);
+	if (r0 < 0 || r1 < 0)
+		return;
+
+	for(int32_t y = sheetY0; y <= sheetY1; y++)
+	{
+		for(int32_t x = sheetX0; x <= sheetX1; x++)
+			((uint8_t*)t->sheet->buf)[y * t->sheet->bufXsize + x] = color;
+	}
+	return;
 }
 
 /**
