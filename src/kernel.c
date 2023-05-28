@@ -379,24 +379,20 @@ void console_main(SHEET *sheet)
 	int32_t *__fifobuf = kzalloc(sizeof(int32_t) * 512);
 	mpfifo32_init(mpfifo32Console, __fifobuf, 512, task);
 
+	TEXTBOX *t = sheet->textbox;
+
 	int32_t i;
+	int32_t cursorColor = COL8_FFFFFF;
 	/* Buf position */
-	int32_t cursorX = 8, cursorColor = COL8_FFFFFF;
-	/* Buf position */
-	int32_t cursorY = 28;
+	// int32_t cursorX = 8, cursorY = 28;
 
 	uint32_t timeoutBlink = 80;
 	TIMER *timer;
 	timer = timer_alloc_customfifo(mpfifo32Console);
 	timer_settimer(timer, timeoutBlink, 20);
 	char c2[10] = {0};
-	uint8_t consoleCharBgColor = COL8_000000;
-	uint8_t consoleCharColor = COL8_FFFFFF;
 
-	// int32_t posX = 8, posY = 28;
-	putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, ">");
-	/* If the end is overbound, it will be normalized */
-	sheet_update_sheet(sheet, 8, 28, cursorX + 9, cursorY + 30);
+	v_textbox_putfonts8_asc(t, t->charColor, ">");
 
 	for (;;)
 	{
@@ -419,27 +415,15 @@ void console_main(SHEET *sheet)
 				/* Enter */
 				if (kbdscancode == 0x1c)
 				{
-					int32_t prevX = cursorX;
-					int32_t prevY = cursorY;
-					for (int32_t x = cursorX; x < sheet->bufXsize - 8; x++)
+					// const int32_t prevX = cursorX;
+					const int32_t prevY = t->cursorY;
+					for (int32_t x = t->cursorX; x <= t->xE - (int32_t)t->incrementX; x++)
 					{
-						boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, x, cursorY, x + 7, cursorY + 15);
+						v_textbox_boxfill8(t, t->bgColor, x, prevY, x + t->incrementX, prevY + t->incrementY);
+						v_textbox_update_sheet(t->sheet, x, prevY, x + t->incrementX, prevY + t->incrementY);
 					}
-					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, "\n");
-					/* FIXME when out of bound */
-					// sheet_update_sheet(sheet, cursorBufPosX - 8, cursorBufPosY - 28, 250, cursorBufPosY + 28);
-					sheet_update_sheet(sheet, prevX, prevY, 250, prevY + 28);
-					prevX = cursorX;
-					prevY = cursorY;
-					/**
-					 * TODO rewrite this, so that another function take sheet as input, thus when finished writing call partial update
-					 *   - add text box struct in a sheet storing metadata margin etc.
-					 */
-					putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, ">");
-					/* If the end is overbound, it will be normalized */
-					// sheet_update_sheet(sheet, prevX, prevY, 250, prevY + 28);
-					sheet_update_sheet(sheet, prevX, prevY, prevX + 66, prevY + 15);
-					// sheet_update_sheet(sheet, 0, 0, INT32_MAX, INT32_MAX);
+					v_textbox_putfonts8_asc(t, t->charColor, "\n");
+					v_textbox_putfonts8_asc(t, t->charColor, ">");
 					continue;
 				}
 				/* LShift */
@@ -460,12 +444,11 @@ void console_main(SHEET *sheet)
 				if (!c)
 					continue;
 				c2[0] = c;
-				int32_t prevX = cursorX;
-				int32_t prevY = cursorY;
-				boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, consoleCharBgColor, cursorX, cursorY, cursorX + 7, cursorY + 15);
-				putfonts8_asc_buf((uintptr_t) sheet->buf, sheet->bufXsize, sheet->bufYsize, &cursorX, &cursorY, 28, 8, 8, 8, consoleCharColor, c2);
-				/* If the end is overbound, it will be normalized */
-				sheet_update_sheet(sheet, prevX, prevY, prevX + 9, prevY + 16);
+				const int32_t prevX = t->cursorX;
+				const int32_t prevY = t->cursorY;
+				v_textbox_boxfill8(t, t->bgColor, prevX, prevY, prevX + t->incrementX, prevY + t->incrementY);
+				v_textbox_update_sheet(t->sheet, prevX, prevY, prevX + t->incrementX, prevY + t->incrementY);
+				v_textbox_putfonts8_asc(t, t->charColor, c2);
 			}
 			if (i == 21) {
 				timer_settimer(timer, timeoutBlink, 20);
@@ -475,8 +458,8 @@ void console_main(SHEET *sheet)
 				timer_settimer(timer, timeoutBlink, 21);
 				cursorColor = COL8_000000;
 			}
-			boxfill8((uintptr_t)sheet->buf, sheet->bufXsize, cursorColor, cursorX, cursorY, cursorX + 7, cursorY + 15);
-			sheet_update_sheet(sheet, cursorX, cursorY, cursorX + 8, cursorY + 15);
+			v_textbox_boxfill8(t, cursorColor, t->cursorX, t->cursorY, t->cursorX + 7, t->cursorY + 15);
+			sheet_update_sheet(sheet, t->cursorX, t->cursorY, t->cursorX + 7, t->cursorY + 15);
 		}
 	}
 

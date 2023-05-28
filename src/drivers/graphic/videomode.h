@@ -134,4 +134,5 @@ void putfonts8_asc_buf(uintptr_t buf, int32_t bufWidth, int32_t bufHeight, int32
 static void __fill_until_eol(uintptr_t buf, const int32_t bufWidth, const int32_t posX, const int32_t posY, const int32_t lineHeight, const int32_t padding_r, const uint8_t fillColor);
 void v_textbox_boxfill8(TEXTBOX *t, uint8_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1);
 int32_t __v_textbox_xy_to_sheetxy(TEXTBOX *t, const int32_t textboxX, const int32_t textboxY, int32_t *sheetX, int32_t *sheetY);
+void v_textbox_putfonts8_asc(TEXTBOX *t, int32_t color, char *s);
 #endif

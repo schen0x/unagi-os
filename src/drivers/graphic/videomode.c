@@ -85,7 +85,8 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_setbuf(sheet_console, buf_console, 256, 165, -1);
 	make_window8((uintptr_t) buf_console, 256, 165, "console", true);
 	make_textbox8(sheet_console, 8, 28, 240, 128, COL8_000000);
-	sheet_textbox_alloc(sheet_console, 28, 8, 9, 8, COL8_000000, -1, COL8_FF0000);
+	/* Initialize the textbox according to the make_textbox8 parameters */
+	sheet_textbox_alloc(sheet_console, 8, 28, 240, 128, COL8_000000, -1, COL8_FF0000);
 
 	sheet_slide(sheet_console, 320, 40);
 
@@ -217,44 +218,39 @@ void v_textbox_putfonts8_asc(TEXTBOX *t, int32_t color, char *s)
 		color = t->charColor;
 	for(; *s != 0; s++)
 	{
-		int32_t sX = 0, sY = 0;
-		int32_t r = __v_textbox_xy_to_sheetxy(t, t->cursorX, t->cursorY, &sX, &sY);
-		/* ? throw */
-		if (r < 0)
-			continue;
-
 		/* Not necessarily the enter key */
 		if (*s == '\n')
 		{
 			/* Clear the current line afterwards */
-			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, INT32_MAX, t->cursorY + t->incrementY);
-			sheet_update_sheet(t->sheet, sX, sY, INT32_MAX, sY + t->incrementY);
+			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
+			v_textbox_update_sheet(t->sheet, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
 			t->cursorX = 0;
 			t->cursorY += t->incrementY;
-			if ((int32_t)(t->cursorY + t->incrementY) > t->yE)
-				t->cursorY = t->yS;
+			if ((int32_t)(t->cursorY + t->yS) > t->yE)
+				t->cursorY = 0;
 			/* Clear the new line too (we may write whatever into it later) */
-			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, INT32_MAX, t->cursorY + t->incrementY);
-		 	__v_textbox_xy_to_sheetxy(t, t->cursorX, t->cursorY, &sX, &sY);
-			sheet_update_sheet(t->sheet, sX, sY, INT32_MAX, sY + t->incrementY);
+			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
+			v_textbox_update_sheet(t->sheet, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
 			continue;
 		}
+		const int32_t bufX = t->cursorX + t->xS;
+		const int32_t bufY = t->cursorY + t->yS;
 		/* Normal */
-		putfont8((uintptr_t)t->sheet->buf, t->sheet->bufXsize, sX, sY, t->charColor, hankaku + *s * 16);
+		putfont8((uintptr_t)t->sheet->buf, t->sheet->bufXsize, bufX, bufY, t->charColor, hankaku + *s * 16);
+		v_textbox_update_sheet(t->sheet, t->cursorX, t->cursorY, INT32_MAX, t->cursorY + t->incrementY);
 		t->cursorX += t->incrementX;
-		if ((int32_t)(t->cursorX + t->incrementX) > t->xE)
-			t->cursorX = t->xS;
-		sheet_update_sheet(t->sheet, sX, sY, sX + t->incrementX, sY + t->incrementY);
+		if (t->cursorX + t->xS + (int32_t)t->incrementX > t->xE)
+		{
+			t->cursorX = 0;
+			t->cursorY += t->incrementY;
+		}
+		if (t->cursorY + t->yS > t->yE)
+		{
+			t->cursorY = 0;
+		}
 	}
 	return;
 }
-
-//static void increase_y(const int32_t bufWidth, const int32_t bufHeight, int32_t *posX, int32_t *posY, const int32_t lineHeight)
-//{
-//	if (!lineHeight)
-//		lineHeight = 24;
-//	*posY += lineHeight;
-//}
 
 /**
  * Fill a line till the end of line with @fillColor
@@ -487,13 +483,17 @@ int32_t __v_textbox_xy_to_sheetxy(TEXTBOX *t, const int32_t textboxX, const int3
 {
 	if (!t->sheet || !t->sheet->buf)
 		return -EIO;
-	*sheetX = textboxX + t->xS;
-	*sheetY = textboxY + t->yS;
+	int64_t sX = (int64_t) textboxX + (int64_t) t->xS;
+	int64_t sY = (int64_t) textboxY + (int64_t) t->yS;
 
-	if (*sheetX >= t->sheet->bufXsize)
-		*sheetX = t->sheet->bufXsize - 1;
-	if (*sheetY >= t->sheet->bufYsize)
-		*sheetY = t->sheet->bufYsize - 1;
+	if (sX >= t->xE)
+		*sheetX = t->xE;
+	else
+		*sheetX = sX;
+	if (sY >= t->yE)
+		*sheetY = t->yE;
+	else
+		*sheetY = sY;
 	return 0;
 }
 /**

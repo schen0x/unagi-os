@@ -60,7 +60,7 @@ SHEET* sheet_alloc(SHTCTL *ctl)
  * @charBgColor background color of the character
  * @charColor color of the character
  */
-SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml, int32_t bgColor, int32_t charBgColor, int32_t charColor)
+SHEET* sheet_textbox_alloc(SHEET *s, int32_t xS, int32_t yS, int32_t xE, int32_t yE, int32_t bgColor, int32_t charBgColor, int32_t charColor)
 {
 	s->textbox = kzalloc(sizeof(TEXTBOX));
 	s->textbox->lineBuf = kzalloc(OS_TEXTBOX_LINE_BUFFER_SIZE);
@@ -73,10 +73,10 @@ SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t
 		t->cursorY = 0;
 		t->lineCharPos = 0;
 		t->lineEolPos = 0;
-		t->xS = ml;
-		t->yS = mt;
-		t->xE = s->bufXsize - mr;
-		t->yE = s->bufYsize - mb;
+		t->xS = xS;
+		t->yS = yS;
+		t->xE = xE;
+		t->yE = yE;
 		t->incrementX = 8;
 		t->incrementY = 28;
 		if (bgColor > -1)
@@ -98,17 +98,6 @@ SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t
 	return s;
 }
 
-//int32_t sheet_textbox_set_bymargin(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml)
-//{
-//	if (!s || !s->textbox)
-//		return -EIO;
-//	TEXTBOX *t = s->textbox;
-//	t->xS = ml;
-//	t->yS = mt;
-//	t->xE = s->bufXsize - mr;
-//	t->yE = s->bufYsize - mb;
-//	return 0;
-//}
 
 void sheet_setbuf(SHEET *sheet, uint8_t *buf, int32_t xsize, int32_t ysize, int32_t color_invisible)
 {
@@ -315,6 +304,27 @@ void sheet_update_sheet(SHEET *s, int32_t xStartInBuf, int32_t yStartInBuf, int3
 	/* Assume the zMap is correct, only one (this) sheet needs redraw */
 	sheet_update_with_screenxy(s->ctl, s->xStart + xStartInBuf, s->yStart + yStartInBuf, s->xStart + xEndInBuf, s->yStart + yEndInBuf, s->z, s->z);
 	return;
+}
+
+void v_textbox_update_sheet(SHEET *s, int32_t xStartInTextbox, int32_t yStartInTextbox, int32_t xEndInTextbox, int32_t yEndInTextbox)
+{
+	if (!s || !s->textbox)
+		return;
+	TEXTBOX *t = s->textbox;
+	int64_t xStartInBuf = 0, yStartInBuf = 0, xEndInBuf = 0, yEndInBuf = 0;
+	xStartInBuf = (int64_t)xStartInTextbox + (int64_t)t->xS;
+	yStartInBuf = (int64_t)yStartInTextbox + (int64_t)t->yS;
+	xEndInBuf = (int64_t)xEndInTextbox + (int64_t)t->xS;
+	yEndInBuf = (int64_t)yEndInTextbox + (int64_t)t->yS;
+	if (xStartInBuf > t->xE)
+		xStartInBuf = t->xE;
+	if (yStartInBuf > t->yE)
+		yStartInBuf = t->yE;
+	if (xEndInBuf > t->xE)
+		xEndInBuf = t->xE;
+	if (yEndInBuf > t->yE)
+		yEndInBuf = t->yE;
+	sheet_update_sheet(s, xStartInBuf, yStartInBuf, xEndInBuf, yEndInBuf);
 }
 
 /**

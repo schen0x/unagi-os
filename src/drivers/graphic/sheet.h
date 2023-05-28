@@ -89,5 +89,6 @@ void sheet_slide(SHEET *sheet, int32_t xDst, int32_t yDst);
 static void sheet_textbox_free(SHEET *sheet);
 void sheet_free(SHEET *sheet);
 SHEET* sheet_textbox_alloc(SHEET *s, int32_t mt, int32_t mr, int32_t mb, int32_t ml, int32_t bgColor, int32_t charBgColor, int32_t charColor);
+void v_textbox_update_sheet(SHEET *s, int32_t xStartInTextbox, int32_t yStartInTextbox, int32_t xEndInTextbox, int32_t yEndInTextbox);
 
 #endif
