@@ -137,4 +137,5 @@ int32_t __v_textbox_xy_to_sheetxy(TEXTBOX *t, const int32_t textboxX, const int3
 void v_textbox_putfonts8_asc(TEXTBOX *t, int32_t color, char *s);
 int32_t v_textbox_linebuf_addchar(TEXTBOX *t, const uint8_t c);
 void v_textbox_linebuf_clear(TEXTBOX *t);
+void v_textbox_reset(TEXTBOX *t);
 #endif

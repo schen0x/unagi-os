@@ -524,6 +524,19 @@ void v_textbox_boxfill8(TEXTBOX *t, uint8_t color, int32_t x0, int32_t y0, int32
 	return;
 }
 
+void v_textbox_reset(TEXTBOX *t)
+{
+	if (!t || !t->lineBuf)
+		return;
+	v_textbox_boxfill8(t, t->bgColor, 0, 0, t->bufXE - t->bufXS, t->bufYE - t->bufYS);
+	v_textbox_update_sheet(t->sheet, 0, 0, t->bufXE - t->bufXS, t->bufYE - t->bufYS);
+	t->boxX = 0;
+	t->boxY = 0;
+	v_textbox_linebuf_clear(t);
+	return;
+}
+
+
 /**
  * TODO probably use DLIST to implement the linebuffer
  */

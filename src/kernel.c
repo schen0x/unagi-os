@@ -423,6 +423,18 @@ void console_main(SHEET *sheet)
 						v_textbox_update_sheet(t->sheet, x, prevY, x + t->incrementX, prevY + t->incrementY);
 					}
 					uint8_t *lb = t->lineBuf;
+					if (t->lineEolPos == 3)
+					{
+						if (lb[0] == 'c' &&
+								lb[1] == 'l' &&
+								lb[2] == 's')
+						{
+							v_textbox_reset(t);
+							v_textbox_putfonts8_asc(t, t->charColor, ">");
+							continue;
+						}
+
+					}
 					if (t->lineEolPos == 6)
 					{
 						if (lb[0] == 'w' &&
@@ -434,13 +446,17 @@ void console_main(SHEET *sheet)
 						{
 							v_textbox_putfonts8_asc(t, t->charColor, "\n");
 							v_textbox_putfonts8_asc(t, COL8_848484, OS_NAME);
+							v_textbox_putfonts8_asc(t, t->charColor, "\n");
+							v_textbox_putfonts8_asc(t, t->charColor, ">");
+							v_textbox_linebuf_clear(t);
+							continue;
 						}
 
 					}
+					/* Normal */
 					v_textbox_putfonts8_asc(t, t->charColor, "\n");
 					v_textbox_putfonts8_asc(t, t->charColor, ">");
-					for (int32_t i = 0; i < t->lineEolPos; i++)
-					{}
+					v_textbox_linebuf_clear(t);
 					continue;
 				}
 				/* LShift */
