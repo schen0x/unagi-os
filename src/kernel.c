@@ -230,7 +230,7 @@ fallback:
 					goto fallback;
 				mpfifo32_enqueue(mpfifo32Console, data_keymouse);
 			} else {
-				printf("d");
+				//printf("d");
 			}
 
 		} else if (data_keymouse >= DEV_FIFO_MOUSE_START && data_keymouse < DEV_FIFO_MOUSE_END)
@@ -416,8 +416,8 @@ void console_main(SHEET *sheet)
 				if (kbdscancode == 0x1c)
 				{
 					// const int32_t prevX = cursorX;
-					const int32_t prevY = t->cursorY;
-					for (int32_t x = t->cursorX; x <= t->xE - (int32_t)t->incrementX; x++)
+					const int32_t prevY = t->boxY;
+					for (int32_t x = t->boxX; x <= t->bufXE - (int32_t)t->incrementX; x++)
 					{
 						v_textbox_boxfill8(t, t->bgColor, x, prevY, x + t->incrementX, prevY + t->incrementY);
 						v_textbox_update_sheet(t->sheet, x, prevY, x + t->incrementX, prevY + t->incrementY);
@@ -444,8 +444,8 @@ void console_main(SHEET *sheet)
 				if (!c)
 					continue;
 				c2[0] = c;
-				const int32_t prevX = t->cursorX;
-				const int32_t prevY = t->cursorY;
+				const int32_t prevX = t->boxX;
+				const int32_t prevY = t->boxY;
 				v_textbox_boxfill8(t, t->bgColor, prevX, prevY, prevX + t->incrementX, prevY + t->incrementY);
 				v_textbox_update_sheet(t->sheet, prevX, prevY, prevX + t->incrementX, prevY + t->incrementY);
 				v_textbox_putfonts8_asc(t, t->charColor, c2);
@@ -458,8 +458,8 @@ void console_main(SHEET *sheet)
 				timer_settimer(timer, timeoutBlink, 21);
 				cursorColor = COL8_000000;
 			}
-			v_textbox_boxfill8(t, cursorColor, t->cursorX, t->cursorY, t->cursorX + 7, t->cursorY + 15);
-			sheet_update_sheet(sheet, t->cursorX, t->cursorY, t->cursorX + 7, t->cursorY + 15);
+			v_textbox_boxfill8(t, cursorColor, t->boxX, t->boxY, t->boxX + 7, t->boxY + 15);
+			sheet_update_sheet(sheet, t->boxX, t->boxY, t->boxX + 7, t->boxY + 15);
 		}
 	}
 

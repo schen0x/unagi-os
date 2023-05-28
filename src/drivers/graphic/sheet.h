@@ -46,18 +46,18 @@ typedef struct SHTCTL
 
 typedef struct TEXTBOX
 {
-	/* The x coordinate in the sheet where the textbox start */
-	int32_t xS;
-	/* The y coordinate in the sheet where the textbox start */
-	int32_t yS;
-	/* The x coordinate in the sheet where the textbox end */
-	int32_t xE;
-	/* The y coordinate in the sheet where the textbox end */
-	int32_t yE;
+	/* The x in the sheet buffer, where the textbox start */
+	int32_t bufXS;
+	/* The y in the sheet buffer, where the textbox start */
+	int32_t bufYS;
+	/* The x in the sheet buffer, where the textbox end */
+	int32_t bufXE;
+	/* The y in the sheet buffer, where the textbox end */
+	int32_t bufYE;
 	/* Line buffer, chars of the current line */
 	uint8_t *lineBuf;
 	/* xy relative coordinate of the current cursor in the TEXTBOX (not the SHEET), start at 0, 0 */
-	int32_t cursorX, cursorY;
+	int32_t boxX, boxY;
 	/* linebuf[lineEolPos] is the \0 after the last character in the line */
 	int32_t lineEolPos;
 	/* linebuf[lineCharPos] = "a" should write "a" to the correct position in the lineBuf */

@@ -81,12 +81,14 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 
 	/* Console */
 	sheet_console = sheet_alloc(ctl);
-	uint8_t *buf_console = kzalloc(256 * 165);
-	sheet_setbuf(sheet_console, buf_console, 256, 165, -1);
-	make_window8((uintptr_t) buf_console, 256, 165, "console", true);
-	make_textbox8(sheet_console, 8, 28, 240, 128, COL8_000000);
+	int32_t consoleWidth = 256; // 256
+	int32_t consoleHeight = 165; // 165
+	uint8_t *buf_console = kzalloc(consoleWidth * consoleHeight);
+	sheet_setbuf(sheet_console, buf_console, consoleWidth, consoleHeight, -1);
+	make_window8((uintptr_t) buf_console, consoleWidth, consoleHeight, "console", true);
+	make_textbox8(sheet_console, 8, 28, consoleWidth - 8*2, consoleHeight - 28 - 9, COL8_000000);
 	/* Initialize the textbox according to the make_textbox8 parameters */
-	sheet_textbox_alloc(sheet_console, 8, 28, 240, 128, COL8_000000, -1, COL8_FF0000);
+	sheet_textbox_alloc(sheet_console, 8, 28, consoleWidth - 8*2, consoleHeight - 28 - 9, COL8_000000, -1, COL8_FFFFFF);
 
 	sheet_slide(sheet_console, 320, 40);
 
@@ -98,8 +100,8 @@ SHTCTL* sheet_initialize(uintptr_t vram, int32_t scrnx, int32_t scrny)
 	sheet_slide(sheet_window, 120, 122);
 
 	sheet_updown(sheet_desktop, 0);
-	sheet_updown(sheet_console, 1);
-	sheet_updown(sheet_window, 2);
+	sheet_updown(sheet_window, 1);
+	sheet_updown(sheet_console, 2);
 	sheet_updown(sheet_mouse, 3);
 
 	sheet_update_zmap(ctl, 0, 0, scrnx, scrny, 0);
@@ -222,31 +224,31 @@ void v_textbox_putfonts8_asc(TEXTBOX *t, int32_t color, char *s)
 		if (*s == '\n')
 		{
 			/* Clear the current line afterwards */
-			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
-			v_textbox_update_sheet(t->sheet, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
-			t->cursorX = 0;
-			t->cursorY += t->incrementY;
-			if ((int32_t)(t->cursorY + t->yS) > t->yE)
-				t->cursorY = 0;
+			v_textbox_boxfill8(t, t->bgColor, t->boxX, t->boxY, t->bufXE, t->boxY + t->incrementY);
+			v_textbox_update_sheet(t->sheet, t->boxX, t->boxY, t->bufXE, t->boxY + t->incrementY);
+			t->boxX = 0;
+			t->boxY += t->incrementY;
+			if ((int32_t)(t->boxY + t->bufYS) > t->bufYE)
+				t->boxY = 0;
 			/* Clear the new line too (we may write whatever into it later) */
-			v_textbox_boxfill8(t, t->bgColor, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
-			v_textbox_update_sheet(t->sheet, t->cursorX, t->cursorY, t->xE, t->cursorY + t->incrementY);
+			v_textbox_boxfill8(t, t->bgColor, t->boxX, t->boxY, t->bufXE, t->boxY + t->incrementY);
+			v_textbox_update_sheet(t->sheet, t->boxX, t->boxY, t->bufXE, t->boxY + t->incrementY);
 			continue;
 		}
-		const int32_t bufX = t->cursorX + t->xS;
-		const int32_t bufY = t->cursorY + t->yS;
+		const int32_t bufX = t->boxX + t->bufXS;
+		const int32_t bufY = t->boxY + t->bufYS;
 		/* Normal */
 		putfont8((uintptr_t)t->sheet->buf, t->sheet->bufXsize, bufX, bufY, t->charColor, hankaku + *s * 16);
-		v_textbox_update_sheet(t->sheet, t->cursorX, t->cursorY, INT32_MAX, t->cursorY + t->incrementY);
-		t->cursorX += t->incrementX;
-		if (t->cursorX + t->xS + (int32_t)t->incrementX > t->xE)
+		v_textbox_update_sheet(t->sheet, t->boxX, t->boxY, INT32_MAX, t->boxY + t->incrementY);
+		t->boxX += t->incrementX;
+		if (t->boxX + t->bufXS + (int32_t)t->incrementX > t->bufXE)
 		{
-			t->cursorX = 0;
-			t->cursorY += t->incrementY;
+			t->boxX = 0;
+			t->boxY += t->incrementY;
 		}
-		if (t->cursorY + t->yS > t->yE)
+		if (t->boxY + t->bufYS > t->bufYE)
 		{
-			t->cursorY = 0;
+			t->boxY = 0;
 		}
 	}
 	return;
@@ -483,15 +485,15 @@ int32_t __v_textbox_xy_to_sheetxy(TEXTBOX *t, const int32_t textboxX, const int3
 {
 	if (!t->sheet || !t->sheet->buf)
 		return -EIO;
-	int64_t sX = (int64_t) textboxX + (int64_t) t->xS;
-	int64_t sY = (int64_t) textboxY + (int64_t) t->yS;
+	int64_t sX = (int64_t) textboxX + (int64_t) t->bufXS;
+	int64_t sY = (int64_t) textboxY + (int64_t) t->bufYS;
 
-	if (sX >= t->xE)
-		*sheetX = t->xE;
+	if (sX >= t->bufXE)
+		*sheetX = t->bufXE;
 	else
 		*sheetX = sX;
-	if (sY >= t->yE)
-		*sheetY = t->yE;
+	if (sY >= t->bufYE)
+		*sheetY = t->bufYE;
 	else
 		*sheetY = sY;
 	return 0;

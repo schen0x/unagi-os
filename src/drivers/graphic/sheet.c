@@ -69,14 +69,14 @@ SHEET* sheet_textbox_alloc(SHEET *s, int32_t xS, int32_t yS, int32_t xE, int32_t
 	{
 		TEXTBOX *t = s->textbox;
 		t->sheet = s;
-		t->cursorX = 0;
-		t->cursorY = 0;
+		t->boxX = 0;
+		t->boxY = 0;
 		t->lineCharPos = 0;
 		t->lineEolPos = 0;
-		t->xS = xS;
-		t->yS = yS;
-		t->xE = xE;
-		t->yE = yE;
+		t->bufXS = xS;
+		t->bufYS = yS;
+		t->bufXE = xE;
+		t->bufYE = yE;
 		t->incrementX = 8;
 		t->incrementY = 28;
 		if (bgColor > -1)
@@ -312,18 +312,18 @@ void v_textbox_update_sheet(SHEET *s, int32_t xStartInTextbox, int32_t yStartInT
 		return;
 	TEXTBOX *t = s->textbox;
 	int64_t xStartInBuf = 0, yStartInBuf = 0, xEndInBuf = 0, yEndInBuf = 0;
-	xStartInBuf = (int64_t)xStartInTextbox + (int64_t)t->xS;
-	yStartInBuf = (int64_t)yStartInTextbox + (int64_t)t->yS;
-	xEndInBuf = (int64_t)xEndInTextbox + (int64_t)t->xS;
-	yEndInBuf = (int64_t)yEndInTextbox + (int64_t)t->yS;
-	if (xStartInBuf > t->xE)
-		xStartInBuf = t->xE;
-	if (yStartInBuf > t->yE)
-		yStartInBuf = t->yE;
-	if (xEndInBuf > t->xE)
-		xEndInBuf = t->xE;
-	if (yEndInBuf > t->yE)
-		yEndInBuf = t->yE;
+	xStartInBuf = (int64_t)xStartInTextbox + (int64_t)t->bufXS;
+	yStartInBuf = (int64_t)yStartInTextbox + (int64_t)t->bufYS;
+	xEndInBuf = (int64_t)xEndInTextbox + (int64_t)t->bufXS;
+	yEndInBuf = (int64_t)yEndInTextbox + (int64_t)t->bufYS;
+	if (xStartInBuf > t->bufXE)
+		xStartInBuf = t->bufXE;
+	if (yStartInBuf > t->bufYE)
+		yStartInBuf = t->bufYE;
+	if (xEndInBuf > t->bufXE)
+		xEndInBuf = t->bufXE;
+	if (yEndInBuf > t->bufYE)
+		yEndInBuf = t->bufYE;
 	sheet_update_sheet(s, xStartInBuf, yStartInBuf, xEndInBuf, yEndInBuf);
 }
 
