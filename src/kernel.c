@@ -422,8 +422,25 @@ void console_main(SHEET *sheet)
 						v_textbox_boxfill8(t, t->bgColor, x, prevY, x + t->incrementX, prevY + t->incrementY);
 						v_textbox_update_sheet(t->sheet, x, prevY, x + t->incrementX, prevY + t->incrementY);
 					}
+					uint8_t *lb = t->lineBuf;
+					if (t->lineEolPos == 6)
+					{
+						if (lb[0] == 'w' &&
+								lb[1] == 'h' &&
+								lb[2] == 'o' &&
+								lb[3] == 'a' &&
+								lb[4] == 'm' &&
+								lb[5] == 'i')
+						{
+							v_textbox_putfonts8_asc(t, t->charColor, "\n");
+							v_textbox_putfonts8_asc(t, COL8_848484, OS_NAME);
+						}
+
+					}
 					v_textbox_putfonts8_asc(t, t->charColor, "\n");
 					v_textbox_putfonts8_asc(t, t->charColor, ">");
+					for (int32_t i = 0; i < t->lineEolPos; i++)
+					{}
 					continue;
 				}
 				/* LShift */
@@ -446,6 +463,7 @@ void console_main(SHEET *sheet)
 				c2[0] = c;
 				const int32_t prevX = t->boxX;
 				const int32_t prevY = t->boxY;
+				v_textbox_linebuf_addchar(t, c);
 				v_textbox_boxfill8(t, t->bgColor, prevX, prevY, prevX + t->incrementX, prevY + t->incrementY);
 				v_textbox_update_sheet(t->sheet, prevX, prevY, prevX + t->incrementX, prevY + t->incrementY);
 				v_textbox_putfonts8_asc(t, t->charColor, c2);

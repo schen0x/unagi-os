@@ -525,6 +525,40 @@ void v_textbox_boxfill8(TEXTBOX *t, uint8_t color, int32_t x0, int32_t y0, int32
 }
 
 /**
+ * TODO probably use DLIST to implement the linebuffer
+ */
+int32_t v_textbox_linebuf_addchar(TEXTBOX *t, const uint8_t c)
+{
+	if (!t || !t->lineBuf)
+		return -EIO;
+	if (t->lineEolPos >= OS_TEXTBOX_LINE_BUFFER_SIZE - 1)
+		return -EIO;
+	if (t->lineCharPos < t->lineEolPos)
+	{
+		for (int32_t i = t->lineEolPos; i >= t->lineCharPos; i--)
+		{
+			t->lineBuf[i+1] = t->lineBuf[i];
+		}
+	}
+	t->lineBuf[t->lineCharPos++] = c;
+	t->lineEolPos++;
+	return 0;
+}
+
+void v_textbox_linebuf_clear(TEXTBOX *t)
+{
+	if (!t || !t->lineBuf)
+		return;
+	for (int32_t i = 0; i < t->lineEolPos; i++)
+	{
+		t->lineBuf[i] = 0;
+	}
+	t->lineCharPos = 0;
+	t->lineEolPos = 0;
+	return;
+}
+
+/**
  * Fill the buffer
  * @xsize buffer width
  * @x0 startting coordinate (buffer)

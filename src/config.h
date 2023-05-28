@@ -1,6 +1,7 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
+#define OS_NAME "placeholder"
 /* **GDTR0 */
 #define OS_BOOT_GDTR0 0x0fe8
 #define OS_BOOT_BOOTINFO_ADDRESS 0x0ff0
