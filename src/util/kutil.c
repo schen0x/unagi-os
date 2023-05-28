@@ -15,6 +15,23 @@ void* kstrcpy(char* dest, const char* src)
 	return dest;
 }
 
+/**
+ * Compare S1 and S2, returning less than, equal to or greater than zero if S1
+ * is lexicographically less than, equal to or greater than S2.
+ */
+int32_t kstrcmp(const unsigned char* p1, const unsigned char* p2)
+{
+	const unsigned char *s1 = (const unsigned char *) p1;
+	const unsigned char *s2 = (const unsigned char *) p2;
+	while(*s1 && (*s1 == *s2))
+   	{
+   		s1++;
+   		s2++;
+   	}
+   	/* if *s1 == NULL, return (0 - *s2) */
+   	return *(const uint8_t*)s1 - *(const uint8_t*)s2;
+}
+
 size_t kstrlen(const char *str)
 {
 	size_t len = 0;
