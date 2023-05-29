@@ -2,6 +2,8 @@
 *.bin
 build/**/*
 bin/**/*
+mnt/**/*
+disk.img
 
 *.json
 Session.vim
