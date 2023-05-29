@@ -626,6 +626,15 @@ struct firmware_map_entry {
 The LGDT and LIDT instructions are used only in operating-system software; they are not used in application programs. They are the only instructions that directly load a linear address (that is, not a segment-relative address) and a limit in protected mode. They are commonly executed in real-address mode to allow processor initialization prior to switching to protected mode.
 ```
 
+## UEFI BOOT SEQUENCE
+
+- UEFI firmware read (GUID Partition Table) GPT header, then found the EFI System Partition (ESP) (GUID C12A7328-F81F-11D2-BA4B-00A0C93EC93B)
+- UEFI firmware read the ESP, which uses FAT32 filesystem that the firmware can read.
+- the ESP should contains a directory named `EFI`, which contains one or more subdirectories, each can contains a bootloader
+- The bootloader to use can be selected in the UEFI Boot Manager
+- the "bootloader application", is a PE32 or PE32+ executable, e.g. `BOOTX64.EFI`, `bootmgfw.efi`, etc.
+
+
 ## ASSEMBLY
 
 - [NASM doc](https://www.nasm.us/xdoc/2.11.08/html/nasmdoc7.html)
