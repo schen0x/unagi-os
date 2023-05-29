@@ -1,3 +1,4 @@
+##ref: https://tianocore-docs.github.io/edk2-ModuleWriteGuide/draft/3_module_development/37_building_the_module.html
 #@range_begin(defines)
 [Defines]
   PLATFORM_NAME                  = UnagiLoaderPkg
@@ -5,6 +6,7 @@
   PLATFORM_VERSION               = 0.1
   DSC_SPECIFICATION              = 0x00010005
   OUTPUT_DIRECTORY               = Build/UnagiLoader$(ARCH)
+  #SUPPORTED_ARCHITECTURES        = IA32|X64
   SUPPORTED_ARCHITECTURES        = X64
   BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
 #@range_end(defines)
