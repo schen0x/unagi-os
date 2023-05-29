@@ -1,0 +1,3 @@
+[submodule "modules/unagios-build"]
+	path = modules/unagios-build
+	url = git@github.com:schen0x/unagios-build.git
