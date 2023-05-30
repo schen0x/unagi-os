@@ -6,7 +6,7 @@ SHELL := /bin/bash
 DISK_IMG = $(PJHOME)/build/disk.img
 MNT_POINT = $(PJHOME)/mnt
 
-all: clean builddir compile makeimg run
+all: clean builddir compile compilekernel makeimg run
 allcompile: clean builddir compile
 allgdb: clean builddir compile makeimg gdb
 
@@ -47,8 +47,13 @@ makeimg:
 	sudo mount -o loop $(DISK_IMG) $(MNT_POINT) && sudo mkdir -p $(MNT_POINT)/EFI/BOOT && \
 	sudo cp $(EDK2PATH)/Build/UnagiLoaderX64/DEBUG_CLANGPDB/X64/Loader.efi $(MNT_POINT)/EFI/BOOT/BOOTX64.EFI
 	sudo cp $(EDK2PATH)/Build/UnagiLoaderX64/DEBUG_CLANGPDB/X64/Loader.efi $(PJHOME)/build/
+	sudo cp $(PJHOME)/build/kernel.elf $(MNT_POINT)/kernel.elf
 	sleep 0.5
 	sudo umount $(DISK_IMG)
+
+compilekernel:
+	clang++ -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $(PJHOME)/src/main.cpp -o $(PJHOME)/build/main.o
+	ld.lld --entry KernelMain -z norelro --image-base 0x100000 --static -o $(PJHOME)/build/kernel.elf $(PJHOME)/build/main.o
 
 clean:
 	rm -rf $(PJHOME)/build/*
