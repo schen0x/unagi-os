@@ -24,6 +24,8 @@ run:
     	-drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) \
     	-device nec-usb-xhci,id=xhci \
     	-device usb-mouse -device usb-kbd \
+		-monitor stdio
+		-D /run/shm/log.txt
 
 	# $(QEMUPATH)/qemu-system-i386 -hda ./bin/os.bin -vga std -curses
 

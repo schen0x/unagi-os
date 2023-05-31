@@ -17,6 +17,7 @@
 [LibraryClasses]
   UefiLib
   UefiApplicationEntryPoint
+  BasePeCoffGetEntryPointLib
 
 [Guids]
   gEfiFileInfoGuid
@@ -24,3 +25,4 @@
 
 [Protocols]
   gEfiLoadedImageProtocolGuid
+

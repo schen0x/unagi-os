@@ -1,4 +1,5 @@
 #include <Guid/FileInfo.h>
+#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PrintLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
@@ -146,7 +147,15 @@ EFI_STATUS GetMemoryMap(struct MemoryMap *map) {
 /**
  * The signature of the Entry point is as per the UEFI specification
  *   - Name defined in the ".INF" file
+ *
+ * The second argument, the EFI_SYSTEM_TABLE contains the standard output and
+ * input handles, plus pointers to the EFI_BOOT_SERVICES and
+ * EFI_RUNTIME_SERVICES tables
+ *
+ * gBS == system_table->BootServices
+ *
  * ref:
+ * https://uefi.org/specs/UEFI/2.10/04_EFI_System_Table.html?highlight=boot_service
  * https://tianocore-docs.github.io/edk2-ModuleWriteGuide/draft/4_uefi_applications/42_write_uefi_application_entry_point.html
  */
 EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
@@ -196,8 +205,65 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
                      (kernel_file_size + 0xfff) / 0x1000, &kernel_base_addr);
   kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)kernel_base_addr);
   Print(L"Kernel: 0x%0lx (%lu bytes)\n", kernel_base_addr, kernel_file_size);
+
+  // UINT64 entry_addr = 0;
+  UINT64 entry_addr = *(UINT64 *)(kernel_base_addr + 24);
+  // PeCoffLoaderGetEntryPoint((void *)kernel_base_addr, (void **)&entry_addr);
+  Print(L"Entry Point:%0lx \n", entry_addr);
+
   // #@@range_end(read_kernel)
 
+  /**
+   * A UEFI OS loader must ensure that it has the system’s current memory map
+   * at the time it calls ExitBootServices(). This is done by passing in the
+   * current memory map’s MapKey value as returned by
+   * EFI_BOOT_SERVICES.GetMemoryMap() . Care must be taken to ensure that the
+   * memory map does not change between these two calls. It is suggested that
+   * GetMemoryMap() be called immediately before calling ExitBootServices(). If
+   * MapKey value is incorrect, ExitBootServices() returns
+   * EFI_INVALID_PARAMETER and GetMemoryMap() with ExitBootServices() must be
+   * called again. Firmware implementation may choose to do a partial shutdown
+   * of the boot services during the first call to ExitBootServices(). A UEFI
+   * OS loader should not make calls to any boot service function other than
+   * Memory Allocation Services after the first call to ExitBootServices().
+   *
+   * On success, the UEFI OS loader owns all available memory in the system. In
+   * addition, the UEFI OS loader can treat all memory in the map marked as
+   * EfiBootServicesCode and EfiBootServicesData as available free memory. No
+   * further calls to boot service functions or EFI device-handle-based
+   * protocols may be used, and the boot services watchdog timer is disabled.
+   *
+   * ref:
+   * https://uefi.org/specs/UEFI/2.10/07_Services_Boot_Services.html#efi-boot-services-exitbootservices
+   *
+   * Try exit, if not success, GetMemoryMap then try again, if not, fatal
+   */
+  // #@@range_begin(exit_bs)
+  EFI_STATUS status;
+  status = gBS->ExitBootServices(image_handle, memmap.map_key);
+  if (EFI_ERROR(status)) {
+    status = GetMemoryMap(&memmap);
+    if (EFI_ERROR(status)) {
+      Print(L"failed to get memory map: %r\n", status);
+      while (1)
+        ;
+    }
+    status = gBS->ExitBootServices(image_handle, memmap.map_key);
+    if (EFI_ERROR(status)) {
+      Print(L"Could not exit boot service: %r\n", status);
+      while (1)
+        ;
+    }
+  }
+  // #@@range_end(exit_bs)
+
+  // #@@range_begin(call_kernel)
+  // UINT64 entry_addr = *(UINT64 *)(kernel_base_addr + 24);
+  // UINT64 entry_addr = *(UINT64 *)(0x101120);
+  typedef void EntryPointType(void);
+  EntryPointType *entry_point = (EntryPointType *)entry_addr;
+  entry_point();
+  // #@@range_end(call_kernel)
   Print(L"All done\n");
   while (1)
     ;
