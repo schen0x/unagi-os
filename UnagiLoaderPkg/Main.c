@@ -1,5 +1,4 @@
 #include <Guid/FileInfo.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PrintLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
@@ -206,10 +205,11 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)kernel_base_addr);
   Print(L"Kernel: 0x%0lx (%lu bytes)\n", kernel_base_addr, kernel_file_size);
 
-  // UINT64 entry_addr = 0;
-  UINT64 entry_addr = *(UINT64 *)(kernel_base_addr + 24);
-  // PeCoffLoaderGetEntryPoint((void *)kernel_base_addr, (void **)&entry_addr);
-  Print(L"Entry Point:%0lx \n", entry_addr);
+  /**
+   * Get the e_entry field in the elf header
+   */
+  UINTN entry_addr = *(UINT64 *)(kernel_base_addr + 0x18);
+  Print(L"Entry Point:0x%0lx \n", entry_addr);
 
   // #@@range_end(read_kernel)
 
@@ -259,7 +259,6 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
 
   // #@@range_begin(call_kernel)
   // UINT64 entry_addr = *(UINT64 *)(kernel_base_addr + 24);
-  // UINT64 entry_addr = *(UINT64 *)(0x101120);
   typedef void EntryPointType(void);
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
   entry_point();

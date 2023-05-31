@@ -17,7 +17,6 @@
 [LibraryClasses]
   UefiLib
   UefiApplicationEntryPoint
-  BasePeCoffGetEntryPointLib
 
 [Guids]
   gEfiFileInfoGuid
