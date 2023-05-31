@@ -766,3 +766,48 @@ Your first structure has a single memory location, your second has three. You ca
 Having a non-bit-field (or a zero-length bit-field) right after a bit-field member "closes" it in a sense, what follows will be a different/independent memory location/object. The compiler cannot "pack" your b member inside the bit-field like it does in the first struct.
 ```
 
+### TYPEDEF
+
+- TL;DR: typedef is a **language construct** that associates a name to a type.
+You use it the same way you would use the original type, for instance
+- [typedef-function-pointer, stackoverflow](https://stackoverflow.com/questions/4295432/typedef-function-pointer)
+
+```c
+typedef int myinteger;
+typedef char *mystring;
+typedef void (*myfunc)();
+
+myinteger i;   // is equivalent to    int i;
+mystring s;    // is the same as      char *s;
+myfunc f;      // compile equally as  void (*f)();
+
+/**
+ * Define a Function or *Function
+ */
+typedef int (*F1)(int*)
+typedef int F2(int*)
+int _f(int *x) { return *x + 1; }
+int main()
+{
+    int i = 4;
+    F1 f1 = &_f; // legal
+    F2* f2 = &_f; // legal; Note the asterisk
+    f1(&i);    // 5
+    f2(&i);    // 5
+}
+
+/**
+ * Define a Function or *Function that returns an (*int)
+ */
+typedef int *(*F3)(int*);
+typedef int *F4(int*);
+int main2()
+{
+    int i = 4;
+    F3 f3 = &_f;
+    F4* f4 = &_f;
+    *(f3(&i)); // 5
+    *(f4(&i)); // 5
+}
+```
+
