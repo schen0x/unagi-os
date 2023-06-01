@@ -365,11 +365,11 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   /**
    * Get the e_entry field in the elf header
    */
-  // UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
+  UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
   typedef UINT64 EntryPointType(void);
-  // EntryPointType *entry_point = (EntryPointType *)entry_addr;
-  EntryPointType *entry_point = (EntryPointType *)0x101120;
-  asm ("hlt");
+  EntryPointType *entry_point = (EntryPointType *)entry_addr;
+  // EntryPointType *entry_point = (EntryPointType *)0x101120;
+  // asm("hlt");
   entry_point();
   // #@@range_end(call_kernel)
   Print(L"All done\n");
