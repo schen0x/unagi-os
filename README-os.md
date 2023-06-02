@@ -634,6 +634,11 @@ The LGDT and LIDT instructions are used only in operating-system software; they 
 - The bootloader to use can be selected in the UEFI Boot Manager
 - the "bootloader application", is a PE32 or PE32+ executable, e.g. `BOOTX64.EFI`, `bootmgfw.efi`, etc.
 
+## UEFI LIBS
+
+- [EDK2](https://github.com/tianocore/edk2)
+- [gnu efi](https://wiki.osdev.org/GNU-EFI)
+
 
 ## ASSEMBLY
 
