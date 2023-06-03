@@ -25,6 +25,10 @@ clang++ --version
 ## Thread model: posix
 ## InstalledDir: /usr/bin
 
+# LLD (64-bit OS Linker)
+ld.lld --version
+## Ubuntu LLD 14.0.0 (compatible with GNU linkers)
+
 # GCC (crosscompiler for 32-bit OS)
 $HOME/opt/cross/bin/i686-elf-gcc --version
 ## i686-elf-gcc (GCC) 12.2.0
@@ -66,4 +70,9 @@ TOOL_CHAIN_TAG        = CLANGPDB
 # ...
 BUILD_RULE_CONF = Conf/build_rule.txt
 ```
+
+- [libcxx, llvm](https://github.com/llvm/llvm-project/tree/llvmorg-8.0.1)
+
+- [newlib-cygwin, libcxx, freetype](./modules/unagios-build/devenv_src/stdlib/build-stdlib.sh)
+
 
