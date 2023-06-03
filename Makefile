@@ -3,6 +3,25 @@ GCC_KERNEL_INCLUDES = -I./src -I$(HOME)/src/edk2/MdePkg/Include
 GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -fvar-tracking -Iinc -O0
 TOOLPATH = $(HOME)/opt/cross/bin
 QEMUPATH = /usr/local/bin
+SHELL := /bin/bash
+# 64 bit
+PJHOME = .
+EDK2PATH = $(HOME)/src/edk2
+TOOLPATH64 = $(PJHOME)/modules/unagios-build/devenv
+DISK_IMG = $(PJHOME)/build/disk.img
+MNT_POINT = $(PJHOME)/mnt
+
+all64: clean builddir compile64 compilekernel64 makeimg64 run64
+allcompile64: clean builddir compile
+allgdb64: clean builddir compile makeimg gdb
+
+# llvm libc++
+LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
+
+CLANG_CPPFLAGS = -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
+LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib
+
+# 32 bit
 
 all: clean builddir compile run
 allcompile: clean builddir compile
@@ -135,3 +154,47 @@ clean:
 	rm -rf $(FILES)
 	rm -rf ./build/*
 	rm -rf ./bin/*
+
+compile64: $(PJHOME)/UnagiLoaderPkg/Main.c
+	cd $(EDK2PATH); source $(EDK2PATH)/edksetup.sh && build
+
+run64:
+	$(QEMUPATH)/qemu-system-x86_64 \
+	-m 1G \
+	-drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd \
+	-drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd \
+	-drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) \
+	-device nec-usb-xhci,id=xhci \
+	-device usb-mouse -device usb-kbd \
+	-monitor stdio \
+	-D /run/shm/log.txt
+
+
+rungui64:
+	$(QEMUPATH)/qemu-system-i386 -hda ./bin/os.bin -vga std -usbdevice tablet
+
+gdb64:
+	$(QEMUPATH)/qemu-system-x86_64 \
+	-m 1G \
+	-drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd \
+	-drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd \
+	-drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) \
+	-device nec-usb-xhci,id=xhci \
+	-device usb-mouse -device usb-kbd \
+	-S -gdb tcp:127.0.0.1:1234
+
+makeimg64:
+	$(QEMUPATH)/qemu-img create -f raw $(DISK_IMG) 200M
+	mkfs.fat -n 'Unagi OS' -s 2 -f 2 -R 32 -F 32 $(DISK_IMG)
+	mkdir -p $(MNT_POINT)
+	sudo mount -o loop $(DISK_IMG) $(MNT_POINT) && sudo mkdir -p $(MNT_POINT)/EFI/BOOT && \
+	sudo cp $(EDK2PATH)/Build/UnagiLoaderX64/DEBUG_CLANGPDB/X64/Loader.efi $(MNT_POINT)/EFI/BOOT/BOOTX64.EFI
+	sudo cp $(EDK2PATH)/Build/UnagiLoaderX64/DEBUG_CLANGPDB/X64/Loader.efi $(PJHOME)/build/
+	sudo cp $(PJHOME)/build/kernel.elf $(MNT_POINT)/kernel.elf
+	sleep 0.5
+	sudo umount $(DISK_IMG)
+
+compilekernel64:
+	clang++ $(CLANG_CPPFLAGS) -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $(PJHOME)/src/main.cpp -o $(PJHOME)/build/main.o
+	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(PJHOME)/build/kernel.elf $(PJHOME)/build/main.o
+

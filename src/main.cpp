@@ -1,8 +1,11 @@
-extern "C" int KernelMain() {
-  volatile int i = 10;
-  for (; i < 100000; i++) {
-    asm("pause");
+#include <cstdint>
+extern "C" void KernelMain(uint64_t frame_buffer_base,
+                           uint64_t frame_buffer_size) {
+  uint8_t *frame_buffer = reinterpret_cast<uint8_t *>(frame_buffer_base);
+  for (uint64_t i = 0; i < frame_buffer_size; i++) {
+    frame_buffer[i] = i % 256;
   }
+
   asm("hlt");
-  return 42;
+  return;
 }
