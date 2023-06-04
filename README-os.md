@@ -827,4 +827,7 @@ __attribute__((ms_abi)) // rcx, rdx, r8, r9, stack
 __attribute__((sysv_abi)) // System V ELF ABI; rdi, rsi, rdx, rcx, r8, r9 => (rdx << 64) & rax
 ```
 
+### MAKEFILE PATTERN RULES
+
+- [pattern rules, makefile doc, GNU](https://www.gnu.org/software/make/manual/make.html#Pattern-Rules)
 
