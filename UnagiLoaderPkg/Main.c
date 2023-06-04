@@ -404,8 +404,8 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   load_elf_image(kernel_base_addr, raw_elf_addr);
 
   gopQueryAndSet(gop);
-  const UINT64 fb = gop->Mode->FrameBufferBase;
-  const UINT64 fbs = gop->Mode->FrameBufferSize;
+  volatile UINT64 fb = gop->Mode->FrameBufferBase;
+  volatile UINT64 fbs = gop->Mode->FrameBufferSize;
   // const int w = gop->Mode->Info->HorizontalResolution;
   // const int h = gop->Mode->Info->VerticalResolution;
 
@@ -462,20 +462,15 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   //}
   // #@@range_end(exit_bs)
   //// const int ppl = gop->Mode->Info->PixelsPerScanLine;
-  // for (int y = 0; y < h; y++) {
-  //  if (y % h > (h / 2))
-  //    continue;
-  //  for (int x = 0; x < w; x++) {
-  //    PlotPixel_32bpp(gop, x, y, 12800);
-  //  }
-  //}
 
   // #@@range_begin(call_kernel)
+  const UINT64 p1 = fb;
+  (void)p1;
   /**
    * Get the e_entry field in the elf header
    */
   UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
-  typedef UINT64 EntryPointType(UINT64, UINT64);
+  typedef UINT64 __attribute__((ms_abi)) EntryPointType(UINT64, UINT64);
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
   entry_point(fb, fbs);
   // #@@range_end(call_kernel)
