@@ -816,3 +816,15 @@ int main2()
 }
 ```
 
+### CALLING CONVENTION
+
+-  [x86 Function Attributes, gcc](https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html)
+-  [x86 Function Attributes, clang](https://clang.llvm.org/docs/AttributeReference.html#ms-abi)
+- [ms_abi, x64 calling convention, MSDN](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170)
+
+```c
+__attribute__((ms_abi)) // rcx, rdx, r8, r9, stack
+__attribute__((sysv_abi)) // System V ELF ABI; rdi, rsi, rdx, rcx, r8, r9 => (rdx << 64) & rax
+```
+
+
