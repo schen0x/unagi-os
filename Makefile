@@ -72,10 +72,10 @@ TOOLPATH = $(HOME)/opt/cross/bin
 # All .c and .asm files;
 #! SRC_C := $(wildcard $(PJHOME)/src/*.c) $(wildcard $(PJHOME)/src/**/*.c)
 #! SRC_ASM := $(filter-out %boot.asm %boot_next.asm, $(wildcard $(PJHOME)/src/**/*.asm)) $(wildcard $(PJHOME)/src/*.asm)
-#SRC_C := $(shell find $(SRC32) -name '*.c')
-SRC_C := $(wildcard *.c)
-#SRC_ASM := $(filter-out %boot.asm %boot_next.asm, $(shell find $(SRC32) -name '*.asm'))
-SRC_ASM := $(filter-out %boot.asm %boot_next.asm, $(wildcard *.asm))
+SRC_C := $(shell find $(SRC32) -name '*.c')
+#! SRC_C := $(wildcard *.c)
+SRC_ASM := $(filter-out %boot.asm %boot_next.asm, $(shell find $(SRC32) -name '*.asm'))
+#! SRC_ASM := $(filter-out %boot.asm %boot_next.asm, $(wildcard *.asm))
 
 #OBJ_C = $(patsubst %.c,%.o,$(SRC_C))
 OBJ_C := $(patsubst $(PJHOME)/src/%.c, $(PJHOME)/build/%.o, $(SRC_C))
@@ -118,8 +118,9 @@ debugmakefile32: $(OBJ_ASM) $(OBJ_C) $(SRC_C) $(SRC_ASM)
 ./bin/boot_next.bin: ./src/boot/boot_next.asm
 	nasm -f bin ./src/boot/boot_next.asm -o ./bin/boot_next.bin
 # The 32 bits kernel, depends on two parts, written in asm and C
-#./bin/kernel.bin: $(OBJ_C) $(OBJ_ASM)
 ./bin/kernel.bin: $(FILES)
+	echo $^
+#./bin/kernel.bin: $(OBJ_C) $(OBJ_ASM)
 	$(TOOLPATH)/i686-elf-ld -g -relocatable $^ -o ./build/kernelfull.o
 	# $(TOOLPATH)/i686-elf-gcc -T ./src/linker.ld -o ./bin/kernel.bin -ffreestanding -O0 -nostdlib ./build/kernelfull.o
 	$(TOOLPATH)/i686-elf-ld -T ./src/linker.ld -o ./bin/kernel.bin -O0 ./build/kernelfull.o
