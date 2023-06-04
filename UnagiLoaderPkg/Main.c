@@ -128,6 +128,15 @@ EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL **root) {
   return EFI_SUCCESS;
 }
 
+/**
+ * Graphics Output Protocol
+ * It has basically the same functions as VESA, you can query the modes, set the
+ * modes. It also provides an efficient BitBlitter function, which you can't use
+ * from your OS unfortunately. GOP is an EFI Boot Time Service, meaning you
+ * can't access it after you call ExitBootServices(). However, the framebuffer
+ * provided by GOP persists, so you can continue to use it for graphics output
+ * in your OS.
+ */
 EFI_STATUS OpenGOP(EFI_HANDLE image_handle,
                    EFI_GRAPHICS_OUTPUT_PROTOCOL **gop) {
   UINTN num_gop_handles = 0;
@@ -141,6 +150,33 @@ EFI_STATUS OpenGOP(EFI_HANDLE image_handle,
 
   FreePool(gop_handles);
 
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS gopQueryAndSet(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop) {
+
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *gopModeInfo = NULL;
+  gBS->AllocatePages(AllocateAnyPages, EfiConventionalMemory,
+                     (sizeof(EFI_GRAPHICS_OUTPUT_MODE_INFORMATION) + 0xfff) /
+                         0x1000,
+                     (EFI_PHYSICAL_ADDRESS *)gopModeInfo);
+  gBS->SetMem(
+      (void *)gopModeInfo,
+      ((sizeof(EFI_GRAPHICS_OUTPUT_MODE_INFORMATION) + 0xfff) / 0x1000) *
+          0x1000,
+      0);
+
+  for (UINT32 modeNum = 0; modeNum < gop->Mode->MaxMode; modeNum++) {
+    /* OUT SizeOfInfo; A pointer to the size, in bytes, of the Info */
+    UINTN sizeOfInfo = 0;
+    gop->QueryMode(gop, modeNum, &sizeOfInfo, &gopModeInfo);
+    Print(L"ModeNum: %ld, XY: %ld x %ld, ppl: %ld, pxFmt: %ld", modeNum,
+          gopModeInfo->HorizontalResolution, gopModeInfo->VerticalResolution,
+          gopModeInfo->PixelsPerScanLine, gopModeInfo->PixelFormat);
+  }
+  /* 1366x768, ppl 1366, pxFmt 1 */
+  EFI_STATUS status0;
+  status0 = gop->SetMode(gop, 16);
   return EFI_SUCCESS;
 }
 
@@ -303,10 +339,14 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
 
   /**
    * Graphics Output Protocol
+   * 	- Get gop handle
    */
   // #@@range_begin(gop)
   EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
   OpenGOP(image_handle, &gop);
+
+  // if (EFI_ERROR(status0))
+  //  Print(L"cannot set mode");
   Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
         gop->Mode->Info->HorizontalResolution,
         gop->Mode->Info->VerticalResolution,
@@ -317,10 +357,6 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
         gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
         gop->Mode->FrameBufferSize);
 
-  UINT8 *frame_buffer = (UINT8 *)gop->Mode->FrameBufferBase;
-  for (UINTN i = 0; i < gop->Mode->FrameBufferSize; ++i) {
-    frame_buffer[i] = 255;
-  }
   // #@@range_end(gop)
 
   // #@@range_begin(read_kernel)
@@ -366,6 +402,12 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   Print(L"Kernel: 0x%0lx (%lu bytes)\n", raw_elf_addr, kernel_file_size);
 
   load_elf_image(kernel_base_addr, raw_elf_addr);
+
+  gopQueryAndSet(gop);
+  const UINT64 fb = gop->Mode->FrameBufferBase;
+  const UINT64 fbs = gop->Mode->FrameBufferSize;
+  // const int w = gop->Mode->Info->HorizontalResolution;
+  // const int h = gop->Mode->Info->VerticalResolution;
 
   // #@@range_end(read_kernel)
 
@@ -419,19 +461,25 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   //  }
   //}
   // #@@range_end(exit_bs)
+  //// const int ppl = gop->Mode->Info->PixelsPerScanLine;
+  // for (int y = 0; y < h; y++) {
+  //  if (y % h > (h / 2))
+  //    continue;
+  //  for (int x = 0; x < w; x++) {
+  //    PlotPixel_32bpp(gop, x, y, 12800);
+  //  }
+  //}
 
   // #@@range_begin(call_kernel)
   /**
    * Get the e_entry field in the elf header
    */
   UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
-  typedef UINT64 EntryPointType(void);
+  typedef UINT64 EntryPointType(UINT64, UINT64);
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
-  // EntryPointType *entry_point = (EntryPointType *)0x101120;
-  // asm("hlt");
-  entry_point();
+  entry_point(fb, fbs);
   // #@@range_end(call_kernel)
-  Print(L"All done\n");
+  // Print(L"All done\n");
   while (1)
     ;
   return EFI_SUCCESS;

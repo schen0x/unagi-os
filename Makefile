@@ -194,7 +194,7 @@ makeimg64:
 	sleep 0.5
 	sudo umount $(DISK_IMG)
 
-compilekernel64:
+compilekernel64: $(PJHOME)/src/main.cpp
 	clang++ $(CLANG_CPPFLAGS) -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $(PJHOME)/src/main.cpp -o $(PJHOME)/build/main.o
 	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(PJHOME)/build/kernel.elf $(PJHOME)/build/main.o
 
