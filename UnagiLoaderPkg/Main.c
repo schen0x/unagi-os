@@ -1,3 +1,4 @@
+#include "../src/frame_buffer_config.hpp"
 #include <Guid/FileInfo.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -127,18 +128,19 @@ EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL **root) {
 
   return EFI_SUCCESS;
 }
+struct FrameBufferConfig frameBufferConfig = {0};
 
 /**
  * Graphics Output Protocol
- * It has basically the same functions as VESA, you can query the modes, set the
- * modes. It also provides an efficient BitBlitter function, which you can't use
- * from your OS unfortunately. GOP is an EFI Boot Time Service, meaning you
- * can't access it after you call ExitBootServices(). However, the framebuffer
- * provided by GOP persists, so you can continue to use it for graphics output
- * in your OS.
+ * It has basically the same functions as VESA, you can query the modes, set
+ * the modes. It also provides an efficient BitBlitter function, which you
+ * can't use from your OS unfortunately. GOP is an EFI Boot Time Service,
+ * meaning you can't access it after you call ExitBootServices(). However,
+ * the framebuffer provided by GOP persists, so you can continue to use it
+ * for graphics output in your OS.
  */
-EFI_STATUS OpenGOP(EFI_HANDLE image_handle,
-                   EFI_GRAPHICS_OUTPUT_PROTOCOL **gop) {
+EFI_STATUS
+OpenGOP(EFI_HANDLE image_handle, EFI_GRAPHICS_OUTPUT_PROTOCOL **gop) {
   UINTN num_gop_handles = 0;
   EFI_HANDLE *gop_handles = NULL;
   gBS->LocateHandleBuffer(ByProtocol, &gEfiGraphicsOutputProtocolGuid, NULL,
@@ -177,6 +179,7 @@ EFI_STATUS gopQueryAndSet(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop) {
   /* 1366x768, ppl 1366, pxFmt 1 */
   EFI_STATUS status0;
   status0 = gop->SetMode(gop, 16);
+
   return EFI_SUCCESS;
 }
 
@@ -194,6 +197,16 @@ const CHAR16 *GetPixelFormatUnicode(EFI_GRAPHICS_PIXEL_FORMAT fmt) {
     return L"PixelFormatMax";
   default:
     return L"InvalidPixelFormat";
+  }
+}
+enum PixelFormat GetMyPixelFormat(EFI_GRAPHICS_PIXEL_FORMAT fmt) {
+  switch (fmt) {
+  case PixelRedGreenBlueReserved8BitPerColor:
+    return kPixelRGBResv8BitPerColor;
+  case PixelBlueGreenRedReserved8BitPerColor:
+    return kPixelBGRResv8BitPerColor;
+  default:
+    return kNotImplemented;
   }
 }
 
@@ -404,10 +417,26 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   load_elf_image(kernel_base_addr, raw_elf_addr);
 
   gopQueryAndSet(gop);
-  volatile UINT64 fb = gop->Mode->FrameBufferBase;
-  volatile UINT64 fbs = gop->Mode->FrameBufferSize;
-  // const int w = gop->Mode->Info->HorizontalResolution;
-  // const int h = gop->Mode->Info->VerticalResolution;
+  frameBufferConfig.frame_buffer_base = (UINT8 *)gop->Mode->FrameBufferBase;
+  frameBufferConfig.horizontal_resolution =
+      gop->Mode->Info->HorizontalResolution;
+  frameBufferConfig.vertical_resolution = gop->Mode->Info->VerticalResolution;
+  frameBufferConfig.pixels_per_scan_line = gop->Mode->Info->PixelsPerScanLine;
+  frameBufferConfig.pixel_format =
+      GetMyPixelFormat(gop->Mode->Info->PixelFormat);
+  if (frameBufferConfig.pixel_format == kNotImplemented) {
+    Print(L"Unimplemented pixel format: %d, fallback to mode 0\n",
+          gop->Mode->Info->PixelFormat);
+    gop->SetMode(gop, 0);
+  }
+
+  Print(L"ppl:%lx", frameBufferConfig.pixels_per_scan_line);
+
+  // struct FrameBufferConfig __conf = {(UINT8 *)gop->Mode->FrameBufferBase,
+  //                                   gop->Mode->Info->PixelsPerScanLine,
+  //                                   gop->Mode->Info->HorizontalResolution,
+  //                                   gop->Mode->Info->VerticalResolution, 0};
+  // frameBufferConfig = __conf;
 
   // #@@range_end(read_kernel)
 
@@ -461,18 +490,18 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   //  }
   //}
   // #@@range_end(exit_bs)
-  //// const int ppl = gop->Mode->Info->PixelsPerScanLine;
 
   // #@@range_begin(call_kernel)
-  const UINT64 p1 = fb;
-  (void)p1;
   /**
    * Get the e_entry field in the elf header
    */
   UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
-  typedef UINT64 __attribute__((ms_abi)) EntryPointType(UINT64, UINT64);
+
+  typedef UINT64 __attribute__((sysv_abi))
+  EntryPointType(struct FrameBufferConfig *);
+
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
-  entry_point(fb, fbs);
+  entry_point(&frameBufferConfig);
   // #@@range_end(call_kernel)
   // Print(L"All done\n");
   while (1)
