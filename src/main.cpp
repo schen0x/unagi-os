@@ -1,8 +1,8 @@
 #include "frame_buffer_config.hpp"
 #include <cstdint>
 
-void PlotPixel_32bpp(int x, int y, uint32_t pixel,
-                     volatile uintptr_t frame_buffer_base, uint64_t ppl) {
+void PlotPixel_32bpp(int x, int y, uint32_t pixel, uintptr_t frame_buffer_base,
+                     uint64_t ppl) {
   uint32_t *fb = reinterpret_cast<uint32_t *>(frame_buffer_base);
   *(fb + ppl * y + x) = pixel;
 }
@@ -13,7 +13,7 @@ void PlotPixel_32bpp(int x, int y, uint32_t pixel,
  * (https://clang.llvm.org/docs/AttributeReference.html#ms-abi)
  */
 extern "C" void __attribute__((sysv_abi))
-KernelMain(const FrameBufferConfig *frameBufferConfig) {
+KernelMain(volatile FrameBufferConfig *frameBufferConfig) {
   /* 1366x768, ppl 1366, pxFmt 1 */
   int ppl = frameBufferConfig->pixels_per_scan_line;
   int h = frameBufferConfig->vertical_resolution;
