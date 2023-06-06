@@ -172,9 +172,9 @@ EFI_STATUS gopQueryAndSet(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop) {
     /* OUT SizeOfInfo; A pointer to the size, in bytes, of the Info */
     UINTN sizeOfInfo = 0;
     gop->QueryMode(gop, modeNum, &sizeOfInfo, &gopModeInfo);
-    Print(L"ModeNum: %ld, XY: %ld x %ld, ppl: %ld, pxFmt: %ld", modeNum,
-          gopModeInfo->HorizontalResolution, gopModeInfo->VerticalResolution,
-          gopModeInfo->PixelsPerScanLine, gopModeInfo->PixelFormat);
+    Print(L"%ld:%ldx%ld,%ld,%ld;", modeNum, gopModeInfo->HorizontalResolution,
+          gopModeInfo->VerticalResolution, gopModeInfo->PixelsPerScanLine,
+          gopModeInfo->PixelFormat);
   }
   /* 1366x768, ppl 1366, pxFmt 1 */
   EFI_STATUS status0;
@@ -360,6 +360,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
 
   // if (EFI_ERROR(status0))
   //  Print(L"cannot set mode");
+  // Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
   Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
         gop->Mode->Info->HorizontalResolution,
         gop->Mode->Info->VerticalResolution,
@@ -417,7 +418,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   load_elf_image(kernel_base_addr, raw_elf_addr);
 
   gopQueryAndSet(gop);
-  frameBufferConfig.frame_buffer_base = (UINT8 *)gop->Mode->FrameBufferBase;
+  frameBufferConfig.frame_buffer_base = gop->Mode->FrameBufferBase;
   frameBufferConfig.horizontal_resolution =
       gop->Mode->Info->HorizontalResolution;
   frameBufferConfig.vertical_resolution = gop->Mode->Info->VerticalResolution;
@@ -425,12 +426,12 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   frameBufferConfig.pixel_format =
       GetMyPixelFormat(gop->Mode->Info->PixelFormat);
   if (frameBufferConfig.pixel_format == kNotImplemented) {
-    Print(L"Unimplemented pixel format: %d, fallback to mode 0\n",
+    Print(L"Unimplemented pixel format: %d, fallback to mode 1\n",
           gop->Mode->Info->PixelFormat);
-    gop->SetMode(gop, 0);
+    gop->SetMode(gop, 1);
   }
 
-  Print(L"ppl:%lx", frameBufferConfig.pixels_per_scan_line);
+  Print(L"ppl:%ld", frameBufferConfig.pixels_per_scan_line);
 
   // struct FrameBufferConfig __conf = {(UINT8 *)gop->Mode->FrameBufferBase,
   //                                   gop->Mode->Info->PixelsPerScanLine,
@@ -469,11 +470,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
    */
   // #@@range_begin(exit_bs)
   EFI_STATUS status;
-  status = GetMemoryMap(&memmap);
-  Print(L"GetMemoryMap Status: 0x%lx\n", status);
-  Print(L"memmap:0x%0lx \n", memmap.map_key);
-  // DebugPrint(DEBUG_INFO, "ABC");
-  status = GetMemoryMap(&memmap);
+  GetMemoryMap(&memmap);
   status = gBS->ExitBootServices(image_handle, memmap.map_key);
   // if (EFI_ERROR(status)) {
   //  status = GetMemoryMap(&memmap);
@@ -498,7 +495,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
 
   typedef UINT64 __attribute__((sysv_abi))
-  EntryPointType(struct FrameBufferConfig *);
+  EntryPointType(const struct FrameBufferConfig *);
 
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
   entry_point(&frameBufferConfig);
