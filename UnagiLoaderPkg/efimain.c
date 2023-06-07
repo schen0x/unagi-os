@@ -128,7 +128,7 @@ EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL **root) {
 
   return EFI_SUCCESS;
 }
-struct FrameBufferConfig frameBufferConfig = {0};
+// struct FrameBufferConfig frameBufferConfig = {0};
 
 /**
  * Graphics Output Protocol
@@ -418,20 +418,26 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   load_elf_image(kernel_base_addr, raw_elf_addr);
 
   gopQueryAndSet(gop);
-  frameBufferConfig.frame_buffer_base = gop->Mode->FrameBufferBase;
-  frameBufferConfig.horizontal_resolution =
+  struct FrameBufferConfig *frameBufferConfig = NULL;
+  gBS->AllocatePages(AllocateAnyPages, EfiRuntimeServicesData,
+                     (sizeof(FrameBufferConfig) + 0xfff) / 0x1000,
+                     (EFI_PHYSICAL_ADDRESS *)frameBufferConfig);
+  gBS->SetMem((void *)frameBufferConfig,
+              ((kernel_file_size + 0xfff) / 0x1000) * 0x1000, 0);
+  frameBufferConfig->frame_buffer_base = gop->Mode->FrameBufferBase;
+  frameBufferConfig->horizontal_resolution =
       gop->Mode->Info->HorizontalResolution;
-  frameBufferConfig.vertical_resolution = gop->Mode->Info->VerticalResolution;
-  frameBufferConfig.pixels_per_scan_line = gop->Mode->Info->PixelsPerScanLine;
-  frameBufferConfig.pixel_format =
+  frameBufferConfig->vertical_resolution = gop->Mode->Info->VerticalResolution;
+  frameBufferConfig->pixels_per_scan_line = gop->Mode->Info->PixelsPerScanLine;
+  frameBufferConfig->pixel_format =
       GetMyPixelFormat(gop->Mode->Info->PixelFormat);
-  if (frameBufferConfig.pixel_format == kNotImplemented) {
-    Print(L"Unimplemented pixel format: %d, fallback to mode 1\n",
+  if (frameBufferConfig->pixel_format == kNotImplemented) {
+    Print(L"Unimplement->d pixel format: %d, fallback to mode 1\n",
           gop->Mode->Info->PixelFormat);
     gop->SetMode(gop, 1);
   }
 
-  Print(L"ppl:%ld", frameBufferConfig.pixels_per_scan_line);
+  Print(L"ppl:%ld", frameBufferConfig->pixels_per_scan_line);
 
   // struct FrameBufferConfig __conf = {(UINT8 *)gop->Mode->FrameBufferBase,
   //                                   gop->Mode->Info->PixelsPerScanLine,
@@ -498,7 +504,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   EntryPointType(const struct FrameBufferConfig *);
 
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
-  entry_point(&frameBufferConfig);
+  entry_point(frameBufferConfig);
   // #@@range_end(call_kernel)
   // Print(L"All done\n");
   while (1)
