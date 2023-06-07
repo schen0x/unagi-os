@@ -92,8 +92,8 @@ EFI_STATUS SaveMemoryMap(struct MemoryMap *map, EFI_FILE_PROTOCOL *file) {
   len = AsciiStrLen(header);
   file->Write(file, &len, header);
 
-  Print(L"map->buffer = %08lx, map->map_size = %08lx\n", map->buffer,
-        map->map_size);
+  // Print(L"map->buffer = %08lx, map->map_size = %08lx\n", map->buffer,
+  // map->map_size);
 
   EFI_PHYSICAL_ADDRESS iter;
   int i;
@@ -172,15 +172,16 @@ EFI_STATUS gopQueryAndSet(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop) {
     /* OUT SizeOfInfo; A pointer to the size, in bytes, of the Info */
     UINTN sizeOfInfo = 0;
     gop->QueryMode(gop, modeNum, &sizeOfInfo, &gopModeInfo);
-    Print(L"%ld:%ldx%ld,%ld,%ld;", modeNum, gopModeInfo->HorizontalResolution,
-          gopModeInfo->VerticalResolution, gopModeInfo->PixelsPerScanLine,
-          gopModeInfo->PixelFormat);
+    // Print(L"%ld:%ldx%ld,%ld,%ld;", modeNum,
+    // gopModeInfo->HorizontalResolution,
+    //      gopModeInfo->VerticalResolution, gopModeInfo->PixelsPerScanLine,
+    //      gopModeInfo->PixelFormat);
   }
   /* 1366x768, ppl 1366, pxFmt 1 */
   EFI_STATUS status0;
   status0 = gop->SetMode(gop, 16);
 
-  return EFI_SUCCESS;
+  return status0;
 }
 
 const CHAR16 *GetPixelFormatUnicode(EFI_GRAPHICS_PIXEL_FORMAT fmt) {
@@ -279,27 +280,27 @@ typedef struct ELF64_PGN_HEADER {
  */
 static EFI_STATUS load_elf_image(EFI_PHYSICAL_ADDRESS kernel_base_addr,
                                  EFI_PHYSICAL_ADDRESS raw_elf_addr) {
-  CHAR16 start_msg[] = L"Loading ELF image...\r\n";
-  CHAR16 finish_msg[] = L"Loaded ELF image\r\n";
+  // CHAR16 start_msg[] = L"Loading ELF image...\r\n";
+  // CHAR16 finish_msg[] = L"Loaded ELF image\r\n";
 
-  Print(L"%S", start_msg);
+  // Print(L"%S", start_msg);
 
   ELF64_HEADER eh = {0};
   eh.e_entry = *(UINTN *)(raw_elf_addr + 0x18);      // e.g. 0x101120
   eh.e_phentsize = *(UINT16 *)(raw_elf_addr + 0x36); //
   eh.e_phnum = *(UINT16 *)(raw_elf_addr + 0x38);     // e.g., 0x4
   eh.e_phoff = *(UINTN *)(raw_elf_addr + 0x20);      // e.g., 0x40
-  Print(L"e_phnum: %x ", eh.e_phnum);
-  Print(L"e_phoff: %lx", eh.e_phoff);
-  Print(L"e_entry: %lx", eh.e_entry);
+  // Print(L"e_phnum: %x ", eh.e_phnum);
+  // Print(L"e_phoff: %lx", eh.e_phoff);
+  // Print(L"e_entry: %lx", eh.e_entry);
   // Go over all program headers and load their content in memory
   for (UINTN i = 0; i < eh.e_phnum; i++) {
     ELF64_PGN_HEADER eph = {0};
     eph = *((ELF64_PGN_HEADER *)(eh.e_phoff + raw_elf_addr) + i);
     UINT32 PT_LOAD = 1;
-    Print(L"p_type: %x ", eph.p_type);      // e.g., 1
-    Print(L"p_vaddr: %lx ", eph.p_vaddr);   // e.g., 0x101120
-    Print(L"p_offset: %lx ", eph.p_offset); // e.g., 0x120
+    //  Print(L"p_type: %x ", eph.p_type);      // e.g., 1
+    //  Print(L"p_vaddr: %lx ", eph.p_vaddr);   // e.g., 0x101120
+    //  Print(L"p_offset: %lx ", eph.p_offset); // e.g., 0x120
     if (eph.p_type != PT_LOAD)
       continue;
 
@@ -309,8 +310,9 @@ static EFI_STATUS load_elf_image(EFI_PHYSICAL_ADDRESS kernel_base_addr,
     gBS->CopyMem((void *)(eph.p_vaddr), (void *)(raw_elf_addr + eph.p_offset),
                  eph.p_filesz);
   }
-
-  return Print(L"%S", finish_msg);
+  Print(L"k:%lx", (UINT8 *)kernel_base_addr);
+  // return Print(L"%S", finish_msg);
+  return EFI_SUCCESS;
 }
 
 /**
@@ -329,7 +331,10 @@ static EFI_STATUS load_elf_image(EFI_PHYSICAL_ADDRESS kernel_base_addr,
  */
 EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
                            EFI_SYSTEM_TABLE *system_table) {
-  Print(L"Hello, Unagi!\n");
+  // Print(L"Hello, Unagi!\n");
+  DEBUG((EFI_D_INFO, "UefiMain Entry: 0x%08x\r\n",
+         (CHAR16 *)UefiMain));
+
   /**
    * Get memory map, write to a file in the image
    */
@@ -361,22 +366,21 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   // if (EFI_ERROR(status0))
   //  Print(L"cannot set mode");
   // Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
-  Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
-        gop->Mode->Info->HorizontalResolution,
-        gop->Mode->Info->VerticalResolution,
-        GetPixelFormatUnicode(gop->Mode->Info->PixelFormat),
-        gop->Mode->Info->PixelsPerScanLine);
-  Print(L"Frame Buffer: 0x%0lx - 0x%0lx, Size: %lu bytes\n",
-        gop->Mode->FrameBufferBase,
-        gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
-        gop->Mode->FrameBufferSize);
+  // Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
+  //      gop->Mode->Info->HorizontalResolution,
+  //      gop->Mode->Info->VerticalResolution,
+  //      GetPixelFormatUnicode(gop->Mode->Info->PixelFormat),
+  //      gop->Mode->Info->PixelsPerScanLine);
+  // Print(L"Frame Buffer: 0x%0lx - 0x%0lx, Size: %lu bytes\n",
+  //      gop->Mode->FrameBufferBase,
+  //      gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
+  //      gop->Mode->FrameBufferSize);
 
   // #@@range_end(gop)
 
   // #@@range_begin(read_kernel)
   EFI_FILE_PROTOCOL *kernel_file;
-  root_dir->Open(root_dir, &kernel_file, L"\\kernel.elf", EFI_FILE_MODE_READ,
-                 0);
+  root_dir->Open(root_dir, &kernel_file, L"kernel.elf", EFI_FILE_MODE_READ, 0);
 
   /**
    * 12 CHAR16 for the filename, which is counted as 0 or 1 (NULL) byte in
@@ -413,7 +417,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
               ((kernel_file_size + 0xfff) / 0x1000) * 0x1000, 0);
 
   kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)raw_elf_addr);
-  Print(L"Kernel: 0x%0lx (%lu bytes)\n", raw_elf_addr, kernel_file_size);
+  // Print(L"Kernel: 0x%0lx (%lu bytes)\n", raw_elf_addr, kernel_file_size);
 
   load_elf_image(kernel_base_addr, raw_elf_addr);
 
@@ -472,30 +476,32 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   EFI_STATUS status;
   GetMemoryMap(&memmap);
   status = gBS->ExitBootServices(image_handle, memmap.map_key);
-  // if (EFI_ERROR(status)) {
-  //  status = GetMemoryMap(&memmap);
-  //  if (EFI_ERROR(status)) {
-  //    Print(L"failed to get memory map: %r\n", status);
-  //    while (1)
-  //      ;
-  //  }
-  //  status = gBS->ExitBootServices(image_handle, memmap.map_key);
-  //  if (EFI_ERROR(status)) {
-  //    Print(L"Could not exit boot service: %r\n", status);
-  //    while (1)
-  //      ;
-  //  }
-  //}
-  // #@@range_end(exit_bs)
+  if (EFI_ERROR(status)) {
+    status = GetMemoryMap(&memmap);
+    if (EFI_ERROR(status)) {
+      Print(L"failed to get memory map: %r\n", status);
+      while (1)
+        ;
+    }
+    status = gBS->ExitBootServices(image_handle, memmap.map_key);
+    if (EFI_ERROR(status)) {
+      Print(L"Could not exit boot service: %r\n", status);
+      while (1)
+        ;
+    }
+  }
+  //#@ @range_end(exit_bs)
 
   // #@@range_begin(call_kernel)
   /**
    * Get the e_entry field in the elf header
+   * During linking, offset of KernelMain() is written to the entry_addr
    */
   UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
+  // asm("int3");
 
   typedef UINT64 __attribute__((sysv_abi))
-  EntryPointType(const struct FrameBufferConfig *);
+  EntryPointType(volatile struct FrameBufferConfig *);
 
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
   entry_point(&frameBufferConfig);
