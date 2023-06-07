@@ -1,8 +1,8 @@
 #include "frame_buffer_config.hpp"
 #include <cstdint>
 
-static void PlotPixel_32bpp(int x, int y, uint32_t pixel, uintptr_t frame_buffer_base,
-                     uint64_t ppl) {
+static void PlotPixel_32bpp(int x, int y, uint32_t pixel,
+                            uintptr_t frame_buffer_base, uint64_t ppl) {
   uint32_t *fb = reinterpret_cast<uint32_t *>(frame_buffer_base);
   *(fb + ppl * y + x) = pixel;
 }

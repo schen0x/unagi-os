@@ -14,13 +14,16 @@ LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib
 
 RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -monitor stdio -D /run/shm/log.txt
 
-all64: clean builddir compileuefi64 compilekernel64 makeimg64 run64
-allcompile64: clean builddir compile
-allgdb64: clean builddir compileuefi64 compilekernel64 makeimg64 gdb64
+all64: clean compileuefi64 compilekernel64 makeimg64 run64
+allcompile64: clean compileuefi64 compilekernel64 makeimg64
+allgdb64: clean compileuefi64 compilekernel64 makeimg64 gdb64
 
-compilekernel64: $(PJHOME)/src/main.cpp Makefile
-	clang++ $(CLANG_CPPFLAGS) -O0 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $(PJHOME)/src/main.cpp -o $(PJHOME)/build/main.op
-	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(PJHOME)/build/kernel.elf $(PJHOME)/build/main.op
+# .op64 for cpp 64-bit object, .o64 for C 64-bit object, .asmo64 for asm 64-bit object
+OBJ64 = main.op64
+BUILD_DIR=$(PJHOME)/build
+
+compilekernel64: $(OBJ64) Makefile
+	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(BUILD_DIR)/kernel.elf $(patsubst %, $(BUILD_DIR)/%, $(OBJ64))
 
 compileuefi64: $(PJHOME)/UnagiLoaderPkg/efimain.c Makefile
 	cd $(EDK2PATH); source $(EDK2PATH)/edksetup.sh && build
@@ -38,6 +41,14 @@ makeimg64:
 	sudo cp $(PJHOME)/build/kernel.elf $(MNT_POINT)/kernel.elf
 	sleep 0.5
 	sudo umount $(DISK_IMG)
+
+%.op64: $(PJHOME)/src/%.cpp Makefile
+	mkdir -p $(BUILD_DIR)/$(dir $@)
+	clang++ $(CLANG_CPPFLAGS) -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
+
+%.asmo64: $(PJHOME)/src/%.asm Makefile
+	mkdir -p $(BUILD_DIR)/$(dir $@)
+	nasm -f elf -g $(PJHOME)/$< -o $(BUILD_DIR)/$@
 
 #====================[32bit]====================
 SRC32=$(PJHOME)/src
