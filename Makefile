@@ -9,12 +9,16 @@ EDK2UEFIIMGPATH = $(EDK2PATH)/Build/UnagiLoaderX64/DEBUG_GCC5/X64/
 TOOLPATH64 = $(PJHOME)/modules/unagios-build/devenv
 DISK_IMG = $(PJHOME)/build/disk.img
 MNT_POINT = $(PJHOME)/mnt
+
 # llvm libc++
 LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
 CLANG_CPPFLAGS = -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
 LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib
 
-RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -serial stdio -debugcon file:/run/shm/debug.log -global isa-debugcon.iobase=0x402
+OVMF_LOG=/run/shm/debug.log
+GDB_IN=$(OVMF_LOG)gdb
+
+RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -serial stdio -debugcon file:$(OVMF_LOG) -global isa-debugcon.iobase=0x402
 
 all64: clean compileuefi64 compilekernel64 makeimg64 run64
 allcompile64: clean compileuefi64 compilekernel64 makeimg64
@@ -29,18 +33,19 @@ compilekernel64: $(OBJ64) Makefile
 
 compileuefi64: $(PJHOME)/UnagiLoaderPkg/efimain.c Makefile
 	cd $(EDK2PATH); source $(EDK2PATH)/edksetup.sh && build
+	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(EDK2UEFIIMGPATH)/Loader.debug $(EDK2UEFIIMGPATH)/TOOLS_DEF.X64 $(BUILD_DIR)/
 run64:
 	$(RUNQEMU64)
 gdb64:
+	sz=$$(wc -c < $(OVMF_LOG)) && [[ $$sz -ge 5000 ]] && cp $(OVMF_LOG) $(GDB_IN)
 	$(RUNQEMU64) -S -gdb tcp:127.0.0.1:1234
 makeimg64:
 	$(QEMUPATH)/qemu-img create -f raw $(DISK_IMG) 200M
 	mkfs.fat -n 'Unagi OS' -s 2 -f 2 -R 32 -F 32 $(DISK_IMG)
 	mkdir -p $(MNT_POINT)
 	sudo mount -o loop $(DISK_IMG) $(MNT_POINT) && sudo mkdir -p $(MNT_POINT)/EFI/BOOT && \
-	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(MNT_POINT)/EFI/BOOT/BOOTX64.EFI
-	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(EDK2UEFIIMGPATH)/Loader.debug $(EDK2UEFIIMGPATH)/TOOLS_DEF.X64 $(PJHOME)/build/
-	sudo cp $(PJHOME)/build/kernel.elf $(MNT_POINT)/kernel.elf
+	sudo cp $(BUILD_DIR)/Loader.efi $(MNT_POINT)/EFI/BOOT/BOOTX64.EFI
+	sudo cp $(BUILD_DIR)/kernel.elf $(MNT_POINT)/kernel.elf
 	sleep 0.5
 	sudo umount $(DISK_IMG)
 
@@ -126,5 +131,6 @@ $(PJHOME)/build/%.asmo: $(PJHOME)/src/%.asm
 
 
 clean:
+	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"src/edk2/Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)
 	rm -rf $(PJHOME)/build/*
 	rm -rf $(PJHOME)/bin/*
