@@ -253,7 +253,10 @@ typedef struct ELF64_HEADER {
 typedef struct ELF64_PGN_HEADER {
   /* 0x00000001	PT_LOAD	Loadable segment. */
   UINT32 p_type;
-  /* Segment-dependent flags (position for 64-bit structure). */
+  /**
+   * Segment-dependent flags (position for 64-bit structure).
+   * PF_X 1, PF_W 2, PF_R 4 => .text R E == 0x5
+   */
   UINT32 p_flags;
   /* Offset of the segment in the file image. */
   UINTN p_offset;
@@ -274,44 +277,42 @@ typedef struct ELF64_PGN_HEADER {
 /**
  * Load raw elf in the raw_elf_addr, into kernel_base_addr
  *
+ * When loading an elf, even when the elf is stripped, the eh.e_entry is always
+ * available
+ * TODO how do actual loader works?
+ * For now check p_flags, find the R E segment and treat as .text
+ *
  * https://krinkinmu.github.io/2020/11/15/loading-elf-image.html
  * [load_elf_binary,
  * Linux](https://elixir.bootlin.com/linux/v3.18/source/fs/binfmt_elf.c#L571)
  */
 static EFI_STATUS load_elf_image(EFI_PHYSICAL_ADDRESS kernel_base_addr,
                                  EFI_PHYSICAL_ADDRESS raw_elf_addr) {
-  // CHAR16 start_msg[] = L"Loading ELF image...\r\n";
-  // CHAR16 finish_msg[] = L"Loaded ELF image\r\n";
-
-  // Print(L"%S", start_msg);
-
   ELF64_HEADER eh = {0};
   eh.e_entry = *(UINTN *)(raw_elf_addr + 0x18);      // e.g. 0x101120
   eh.e_phentsize = *(UINT16 *)(raw_elf_addr + 0x36); //
   eh.e_phnum = *(UINT16 *)(raw_elf_addr + 0x38);     // e.g., 0x4
   eh.e_phoff = *(UINTN *)(raw_elf_addr + 0x20);      // e.g., 0x40
-  // Print(L"e_phnum: %x ", eh.e_phnum);
-  // Print(L"e_phoff: %lx", eh.e_phoff);
-  // Print(L"e_entry: %lx", eh.e_entry);
-  // Go over all program headers and load their content in memory
+                                                     //
+  /* Go through all program headers and load their content into memory */
   for (UINTN i = 0; i < eh.e_phnum; i++) {
     ELF64_PGN_HEADER eph = {0};
     eph = *((ELF64_PGN_HEADER *)(eh.e_phoff + raw_elf_addr) + i);
     UINT32 PT_LOAD = 1;
-    //  Print(L"p_type: %x ", eph.p_type);      // e.g., 1
-    //  Print(L"p_vaddr: %lx ", eph.p_vaddr);   // e.g., 0x101120
-    //  Print(L"p_offset: %lx ", eph.p_offset); // e.g., 0x120
     if (eph.p_type != PT_LOAD)
       continue;
 
-    if (eph.p_vaddr != eh.e_entry)
+    if (eph.p_flags != 0x5) {
+      Print(L"PT_LOAD skipped, p_vaddr0x%lx, reason-p_flags:0x%lx", eph.p_vaddr,
+            eh.e_entry, eph.p_flags);
       continue;
+    }
+    Print(L"FoundPT_LOAD,dst:0x%lx, %ldbytes ", eph.p_vaddr, eph.p_filesz);
     /* dst, src, bytes */
     gBS->CopyMem((void *)(eph.p_vaddr), (void *)(raw_elf_addr + eph.p_offset),
                  eph.p_filesz);
+    Print(L"dst->0x%lx", *(UINT64 *)eph.p_vaddr);
   }
-  Print(L"k:%lx", (UINT8 *)kernel_base_addr);
-  // return Print(L"%S", finish_msg);
   return EFI_SUCCESS;
 }
 
@@ -332,8 +333,7 @@ static EFI_STATUS load_elf_image(EFI_PHYSICAL_ADDRESS kernel_base_addr,
 EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
                            EFI_SYSTEM_TABLE *system_table) {
   // Print(L"Hello, Unagi!\n");
-  DEBUG((EFI_D_INFO, "UefiMain Entry: 0x%08x\r\n",
-         (CHAR16 *)UefiMain));
+  DEBUG((EFI_D_INFO, "UefiMain Entry: 0x%08x\r\n", (CHAR16 *)UefiMain));
 
   /**
    * Get memory map, write to a file in the image
@@ -362,25 +362,15 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   // #@@range_begin(gop)
   EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
   OpenGOP(image_handle, &gop);
-
-  // if (EFI_ERROR(status0))
-  //  Print(L"cannot set mode");
-  // Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
-  // Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
-  //      gop->Mode->Info->HorizontalResolution,
-  //      gop->Mode->Info->VerticalResolution,
-  //      GetPixelFormatUnicode(gop->Mode->Info->PixelFormat),
-  //      gop->Mode->Info->PixelsPerScanLine);
-  // Print(L"Frame Buffer: 0x%0lx - 0x%0lx, Size: %lu bytes\n",
-  //      gop->Mode->FrameBufferBase,
-  //      gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
-  //      gop->Mode->FrameBufferSize);
-
   // #@@range_end(gop)
 
   // #@@range_begin(read_kernel)
   EFI_FILE_PROTOCOL *kernel_file;
-  root_dir->Open(root_dir, &kernel_file, L"kernel.elf", EFI_FILE_MODE_READ, 0);
+
+  /* If the filename starts with a “\” the relative location is the root
+   * directory that This resides on; */
+  root_dir->Open(root_dir, &kernel_file, L"\\kernel.elf", EFI_FILE_MODE_READ,
+                 0);
 
   /**
    * 12 CHAR16 for the filename, which is counted as 0 or 1 (NULL) byte in
@@ -393,16 +383,24 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
 
   EFI_FILE_INFO *file_info = (EFI_FILE_INFO *)file_info_buffer;
   UINTN kernel_file_size = file_info->FileSize;
+  Print(L"Kernel_file_size: 0x%lx;", kernel_file_size);
 
   /**
-   * Large enough spaces to load the OS elf?
+   * TODO the correct things to do is to read the kernel.elf segment headers,
+   * and alloc based on the segment size.
+   * But now just get large enough spaces to hold the segments.
+   *
+   * There still seems to be wired things going on regarding the page types
+   * So make sure the address is indeed allocated.
+   *
+   * At 1M there are 0x700 free pages == 7MB according to the ./misc/memmap
+   * We take 4MB == 0x400
    *
    * Find a large enough EfiConventionalMemory region in the MemoryMap to use as
    * kernel_base_addr
    */
   EFI_PHYSICAL_ADDRESS kernel_base_addr = 0x100000;
-  gBS->AllocatePages(AllocateAddress, EfiLoaderCode,
-                     (kernel_file_size + 0xfff) / 0x1000 + 20,
+  gBS->AllocatePages(AllocateAddress, EfiConventionalMemory, 0x400,
                      &kernel_base_addr);
   gBS->SetMem((void *)kernel_base_addr,
               ((kernel_file_size + 0xfff) / 0x1000 + 20) * 0x1000, 0);
@@ -417,9 +415,13 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
               ((kernel_file_size + 0xfff) / 0x1000) * 0x1000, 0);
 
   kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)raw_elf_addr);
-  // Print(L"Kernel: 0x%0lx (%lu bytes)\n", raw_elf_addr, kernel_file_size);
+  /* Observed that *raw_elf_addr == start of the raw file */
+  Print(L"Kernel: 0x%0lx (%lu bytes) -> Base:0x%lx->0x%lx\n", raw_elf_addr,
+        kernel_file_size, kernel_base_addr, *(UINT64 *)kernel_base_addr);
 
   load_elf_image(kernel_base_addr, raw_elf_addr);
+  /* TODO Check if the elf is loaded correctly in a consistant way */
+  // asm("int3");
 
   gopQueryAndSet(gop);
   frameBufferConfig.frame_buffer_base = gop->Mode->FrameBufferBase;
@@ -501,7 +503,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,
   // asm("int3");
 
   typedef UINT64 __attribute__((sysv_abi))
-  EntryPointType(volatile struct FrameBufferConfig *);
+  EntryPointType(const struct FrameBufferConfig *);
 
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
   entry_point(&frameBufferConfig);

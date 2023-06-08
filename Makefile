@@ -20,9 +20,9 @@ GDB_IN=$(OVMF_LOG)gdb
 
 RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -serial stdio -debugcon file:$(OVMF_LOG) -global isa-debugcon.iobase=0x402
 
-all64: clean compileuefi64 compilekernel64 makeimg64 run64
-allcompile64: clean compileuefi64 compilekernel64 makeimg64
-allgdb64: clean compileuefi64 compilekernel64 makeimg64 gdb64
+all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
+allgdb64: clean64 compileuefi64 compilekernel64 makeimg64 gdb64
+bear: clean64lib all64
 
 # .op64 for cpp 64-bit object, .o64 for C 64-bit object, .asmo64 for asm 64-bit object
 OBJ64 = main.op64
@@ -51,7 +51,7 @@ makeimg64:
 
 %.op64: $(PJHOME)/src/%.cpp Makefile
 	mkdir -p $(BUILD_DIR)/$(dir $@)
-	clang++ $(CLANG_CPPFLAGS) -O0 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
+	clang++ $(CLANG_CPPFLAGS) -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
 
 %.asmo64: $(PJHOME)/src/%.asm Makefile
 	mkdir -p $(BUILD_DIR)/$(dir $@)
@@ -76,9 +76,9 @@ OBJ_C := $(patsubst $(PJHOME)/src/%.c, $(PJHOME)/build/%.o, $(SRC_C))
 # OBJ_ASM = $(patsubst %.asm,%.asmo,$(SRC_ASM))
 OBJ_ASM := $(patsubst $(PJHOME)/src/%.asm, $(PJHOME)/build/%.asmo, $(SRC_ASM))
 
-all: clean builddir compile32 run32
-allcompile: clean builddir compile32
-allgdb: clean builddir compile32 gdb32
+all: clean32 builddir compile32 run32
+allcompile: clean32 builddir compile32
+allgdb: clean32 builddir compile32 gdb32
 
 builddir:
 	mkdir -p build/gdt build/idt build/memory build/memory/paging build/util build/io build/pic build/drivers build/disk build/fs ./build/include/uapi ./build/drivers/graphic build/font build/kernel
@@ -130,7 +130,14 @@ $(PJHOME)/build/%.asmo: $(PJHOME)/src/%.asm
 	nasm -f elf -g $(PJHOME)/$< -o $(PJHOME)/$@
 
 
-clean:
-	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"src/edk2/Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)
+clean32:
 	rm -rf $(PJHOME)/build/*
 	rm -rf $(PJHOME)/bin/*
+
+clean64:
+	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"src/edk2/Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)/UnagiLoaderPkg/ && rm -rf $(EDK2UEFIIMGPATH)/Loader.*
+	rm -rf $(PJHOME)/build/*
+	rm -rf $(PJHOME)/bin/*
+clean64lib:
+	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"src/edk2/Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)
+
