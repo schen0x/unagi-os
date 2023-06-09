@@ -302,11 +302,8 @@ static EFI_STATUS load_elf_image(EFI_PHYSICAL_ADDRESS kernel_base_addr,
     if (eph.p_type != PT_LOAD)
       continue;
 
-    if (eph.p_flags != 0x5) {
-      Print(L"PT_LOAD skipped, p_vaddr0x%lx, reason-p_flags:0x%lx", eph.p_vaddr,
-            eh.e_entry, eph.p_flags);
-      continue;
-    }
+    gBS->CopyMem((void *)(eph.p_vaddr), (void *)(raw_elf_addr + eph.p_offset),
+                 eph.p_filesz);
     Print(L"FoundPT_LOAD,dst:0x%lx, %ldbytes ", eph.p_vaddr, eph.p_filesz);
     /* dst, src, bytes */
     gBS->CopyMem((void *)(eph.p_vaddr), (void *)(raw_elf_addr + eph.p_offset),

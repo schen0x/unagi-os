@@ -56,7 +56,6 @@ KernelMain(const FrameBufferConfig &frameBufferConfig) {
   uint32_t pixel = 0x00003200;
   for (int y = 0; y < h; y++) {
     for (int x = 0; x < ppl; x++) {
-      // asm("nop");
       PlotPixel_32bpp(x, y, pixel, frameBufferConfig.frame_buffer_base, ppl);
       // WritePixel(frameBufferConfig, x, y, {255, 255, 255});
     }
