@@ -12,16 +12,16 @@ int WritePixel(const FrameBufferConfig &config, int x, int y,
  * @retval 0		success
  * @retval non 0 	fail
  */
-int WritePixel(volatile FrameBufferConfig &config, int x, int y,
+int WritePixel(const FrameBufferConfig &config, int x, int y,
                const PixelColor &c) {
   const int pixel_position = config.pixels_per_scan_line * y + x;
   if (config.pixel_format == kPixelRGBResv8BitPerColor) {
-    uint8_t *p = (uint8_t *)(&config.frame_buffer_base + 4 * pixel_position);
+    uint8_t *p = (uint8_t *)(config.frame_buffer_base + 4 * pixel_position);
     p[0] = c.r;
     p[1] = c.g;
     p[2] = c.b;
   } else if (config.pixel_format == kPixelBGRResv8BitPerColor) {
-    uint8_t *p = (uint8_t *)(&config.frame_buffer_base + 4 * pixel_position);
+    uint8_t *p = (uint8_t *)(config.frame_buffer_base + 4 * pixel_position);
     p[0] = c.b;
     p[1] = c.g;
     p[2] = c.r;
@@ -44,23 +44,20 @@ static void PlotPixel_32bpp(int x, int y, uint32_t pixel,
  * (https://clang.llvm.org/docs/AttributeReference.html#ms-abi)
  */
 extern "C" void __attribute__((sysv_abi))
-KernelMain(const volatile FrameBufferConfig &frameBufferConfig) {
-  const FrameBufferConfig fbc = {frameBufferConfig.frame_buffer_base,
-                                 frameBufferConfig.pixels_per_scan_line,
-                                 frameBufferConfig.horizontal_resolution,
-                                 frameBufferConfig.vertical_resolution,
-                                 frameBufferConfig.pixel_format};
-  // extern "C" void __attribute__((sysv_abi))
-  // KernelMain(const FrameBufferConfig &frameBufferConfig) {
+KernelMain(const FrameBufferConfig &frameBufferConfig) {
+  //  const FrameBufferConfig fbc = {frameBufferConfig.frame_buffer_base,
+  //                                 frameBufferConfig.pixels_per_scan_line,
+  //                                 frameBufferConfig.horizontal_resolution,
+  //                                 frameBufferConfig.vertical_resolution,
+  //                                 frameBufferConfig.pixel_format};
   /* 1366x768, ppl 1366, pxFmt 1 */
-  int ppl = fbc.pixels_per_scan_line;
-  int h = fbc.vertical_resolution;
+  int ppl = frameBufferConfig.pixels_per_scan_line;
+  int h = frameBufferConfig.vertical_resolution;
   uint32_t pixel = 0x00003200;
   for (int y = 0; y < h; y++) {
-    if (y % h > (h / 2))
-      continue;
     for (int x = 0; x < ppl; x++) {
-      PlotPixel_32bpp(x, y, pixel, fbc.frame_buffer_base, ppl);
+      // asm("nop");
+      PlotPixel_32bpp(x, y, pixel, frameBufferConfig.frame_buffer_base, ppl);
       // WritePixel(frameBufferConfig, x, y, {255, 255, 255});
     }
   }

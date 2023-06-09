@@ -15,7 +15,7 @@ LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
 CLANG_CPPFLAGS = -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
 LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib
 
-CLANG_OPTIMIZE_FLAGS=-O1 -vectorize-loops
+CLANG_OPTIMIZE_FLAGS=-O2
 
 OVMF_LOG=/run/shm/debug.log
 GDB_IN=$(OVMF_LOG)gdb
@@ -53,7 +53,7 @@ makeimg64:
 
 %.op64: $(PJHOME)/src/%.cpp Makefile
 	mkdir -p $(BUILD_DIR)/$(dir $@)
-	clang++ $(CLANG_CPPFLAGS) -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
+	clang++ $(CLANG_CPPFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
 
 %.asmo64: $(PJHOME)/src/%.asm Makefile
 	mkdir -p $(BUILD_DIR)/$(dir $@)
