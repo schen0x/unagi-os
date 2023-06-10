@@ -413,7 +413,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
   UINTN kElf64LoadEndAddr = 0;
   CalcLoadAddressRange((ELF64_HEADER *)raw_elf_addr, &kElf64LoadStartAddr, &kElf64LoadEndAddr);
 
-  kElf64LoadStartAddr = kElf64LoadStartAddr >> 12 << 12; // 4k aligned padding before the start
+  kElf64LoadStartAddr = kElf64LoadStartAddr >> 12 << 12; // 4k align the start
   UINTN num_pages = (kElf64LoadEndAddr - kElf64LoadStartAddr + 0xfff) / 0x1000;
   status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, num_pages, &kElf64LoadStartAddr);
   if (EFI_ERROR(status))

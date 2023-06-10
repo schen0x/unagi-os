@@ -27,7 +27,7 @@ allgdb64: clean64 compileuefi64 compilekernel64 makeimg64 gdb64
 bear: clean64lib all64
 
 # .op64 for cpp 64-bit object, .o64 for C 64-bit object, .asmo64 for asm 64-bit object
-OBJ64 = main.op64
+OBJ64 = main.op64 graphics.op64 font.op64
 BUILD_DIR=$(PJHOME)/build
 
 compilekernel64: $(OBJ64) Makefile
