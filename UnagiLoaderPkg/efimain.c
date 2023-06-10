@@ -1,3 +1,4 @@
+#include "../src/elf.hpp"
 #include "../src/frame_buffer_config.hpp"
 #include "Protocol/GraphicsOutput.h"
 #include "Uefi/UefiBaseType.h"
@@ -244,91 +245,46 @@ EFI_STATUS GetMemoryMap(struct MemoryMap *map)
 }
 // #@@range_end(get_memory_map)
 
-typedef struct ELF64_HEADER
+// #@@range_begin(calc_addr_func)
+void CalcLoadAddressRange(ELF64_HEADER *ehdr, UINT64 *first, UINT64 *last)
 {
-  unsigned char e_ident[16];
-  UINT16 e_type;
-  UINT16 e_machine;
-  UINT32 e_version;
-  UINTN e_entry;
-  UINTN e_phoff;
-  UINTN e_shoff;
-  UINT32 e_flags;
-  UINT16 e_ehsize;
-  UINT16 e_phentsize;
-  UINT16 e_phnum;
-  UINT16 e_shentsize;
-  UINT16 e_shnum;
-  UINT16 e_shstrndx;
-} ELF64_HEADER;
-
-/**
- * ELF Program Header
- * It is found at file offset e_phoff, and consists of e_phnum entries, each
- * with size e_phentsize.
- */
-typedef struct ELF64_PGN_HEADER
-{
-  /* 0x00000001	PT_LOAD	Loadable segment. */
-  UINT32 p_type;
-  /**
-   * Segment-dependent flags (position for 64-bit structure).
-   * PF_X 1, PF_W 2, PF_R 4 => .text R E == 0x5
-   */
-  UINT32 p_flags;
-  /* Offset of the segment in the file image. */
-  UINTN p_offset;
-  /* Virtual address of the segment in memory. */
-  UINTN p_vaddr;
-  /* On systems where physical address is relevant, reserved for segment's
-   * physical address. */
-  UINTN p_paddr;
-  /* Size in bytes of the segment in the file image. May be 0. */
-  UINTN p_filesz;
-  /* Size in bytes of the segment in memory. May be 0. */
-  UINTN p_memsz;
-  /* 0 and 1 specify no alignment. Otherwise should be a positive, integral
-   * power of 2, with p_vaddr equating p_offset modulus p_align. */
-  UINTN p_align;
-} ELF64_PGN_HEADER;
-
-/**
- * Load raw elf in the raw_elf_addr, into kernel_base_addr
- *
- * When loading an elf, even when the elf is stripped, the eh.e_entry is always
- * available
- * TODO how do actual loader works?
- * For now check p_flags, find the R E segment and treat as .text
- *
- * https://krinkinmu.github.io/2020/11/15/loading-elf-image.html
- * [load_elf_binary,
- * Linux](https://elixir.bootlin.com/linux/v3.18/source/fs/binfmt_elf.c#L571)
- */
-static EFI_STATUS load_elf_image(EFI_PHYSICAL_ADDRESS kernel_base_addr, EFI_PHYSICAL_ADDRESS raw_elf_addr)
-{
-  ELF64_HEADER eh = {0};
-  eh.e_entry = *(UINTN *)(raw_elf_addr + 0x18);      // e.g. 0x101120
-  eh.e_phentsize = *(UINT16 *)(raw_elf_addr + 0x36); //
-  eh.e_phnum = *(UINT16 *)(raw_elf_addr + 0x38);     // e.g., 0x4
-  eh.e_phoff = *(UINTN *)(raw_elf_addr + 0x20);      // e.g., 0x40
-                                                     //
-  /* Go through all program headers and load their content into memory */
-  for (UINTN i = 0; i < eh.e_phnum; i++)
+  ELF64_PGN_HEADER *phdr = (ELF64_PGN_HEADER *)((UINT64)ehdr + ehdr->e_phoff);
+  *first = MAX_UINT64;
+  *last = 0;
+  for (UINTN i = 0; i < ehdr->e_phnum; ++i)
   {
-    ELF64_PGN_HEADER eph = {0};
-    eph = *((ELF64_PGN_HEADER *)(eh.e_phoff + raw_elf_addr) + i);
-    UINT32 PT_LOAD = 1;
-    if (eph.p_type != PT_LOAD)
+    if (phdr[i].p_type != ELFFLAGS_PGN_PT_LOAD)
+      continue;
+    *first = MIN(*first, phdr[i].p_vaddr);
+    *last = MAX(*last, phdr[i].p_vaddr + phdr[i].p_memsz);
+  }
+}
+// #@@range_end(calc_addr_func)
+
+// #@@range_begin(copy_segm_func)
+/**
+ * Elf Loader
+ * Other ref:
+ * https://krinkinmu.github.io/2020/11/15/loading-elf-image.html
+ * [load_elf_binary, Linux](https://elixir.bootlin.com/linux/v3.18/source/fs/binfmt_elf.c#L571)
+ */
+void CopyLoadSegments(ELF64_HEADER *h)
+{
+  ELF64_PGN_HEADER *ph = (ELF64_PGN_HEADER *)((UINT64)h + h->e_phoff);
+  for (UINTN i = 0; i < h->e_phnum; ++i)
+  {
+    if (ph[i].p_type != ELFFLAGS_PGN_PT_LOAD)
       continue;
 
-    gBS->CopyMem((void *)(eph.p_vaddr), (void *)(raw_elf_addr + eph.p_offset), eph.p_filesz);
-    Print(L"FoundPT_LOAD,dst:0x%lx, %ldbytes ", eph.p_vaddr, eph.p_filesz);
+    UINT64 segm_in_file = (UINT64)h + ph[i].p_offset;
     /* dst, src, bytes */
-    gBS->CopyMem((void *)(eph.p_vaddr), (void *)(raw_elf_addr + eph.p_offset), eph.p_filesz);
-    Print(L"dst->0x%lx", *(UINT64 *)eph.p_vaddr);
+    gBS->CopyMem((void *)ph[i].p_vaddr, (VOID *)segm_in_file, ph[i].p_filesz);
+
+    UINTN remain_bytes = ph[i].p_memsz - ph[i].p_filesz;
+    gBS->SetMem((void *)(ph[i].p_vaddr + ph[i].p_filesz), remain_bytes, 0);
   }
-  return EFI_SUCCESS;
 }
+// #@@range_end(copy_segm_func)
 
 /**
  * The signature of the Entry point is as per the UEFI specification
@@ -348,6 +304,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
 {
   // Print(L"Hello, Unagi!\n");
   DEBUG((EFI_D_INFO, "UefiMain Entry: 0x%08x\r\n", (CHAR16 *)UefiMain));
+  EFI_STATUS status;
 
   /**
    * Get memory map, write to a file in the image
@@ -361,8 +318,23 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
   OpenRootDir(image_handle, &root_dir);
 
   EFI_FILE_PROTOCOL *memmap_file;
-  root_dir->Open(root_dir, &memmap_file, L"\\memmap", EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE,
-                 0);
+  /* @retval EFI_SUCCESS          Data was read.
+   * @retval EFI_NO_MEDIA         The device has no medium.
+   * @retval EFI_DEVICE_ERROR     The device reported an error.
+   * @retval EFI_DEVICE_ERROR     An attempt was made to read from a deleted file.
+   * @retval EFI_DEVICE_ERROR     On entry, the current file position is beyond the end of the file.
+   * @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
+   * @retval EFI_BUFFER_TOO_SMALL The BufferSize is too small to read the current directory
+   *                              entry. BufferSize has been updated with the size
+   *                              needed to complete the request.
+   */
+  status = root_dir->Open(root_dir, &memmap_file, L"\\memmap",
+                          EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0);
+  if (EFI_ERROR(status))
+  {
+    Print(L"Cannot open \\memmap: %r\n", status);
+    asm("hlt");
+  }
 
   SaveMemoryMap(&memmap, memmap_file);
   memmap_file->Close(memmap_file);
@@ -377,13 +349,20 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
   OpenGOP(image_handle, &gop);
   // #@@range_end(gop)
 
-  // #@@range_begin(read_kernel)
+  /**
+   * Open the raw kernel.elf file
+   */
   EFI_FILE_PROTOCOL *kernel_file;
 
   /* If the filename starts with a “\” the relative location is the root
    * directory that This resides on; */
   root_dir->Open(root_dir, &kernel_file, L"\\kernel.elf", EFI_FILE_MODE_READ, 0);
 
+  if (EFI_ERROR(status))
+  {
+    Print(L"Cannot open \\kernel.elf: %r\n", status);
+    asm("hlt");
+  }
   /**
    * 12 CHAR16 for the filename, which is counted as 0 or 1 (NULL) byte in
    * the EFI_FILE_INFO
@@ -394,46 +373,73 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
 
   EFI_FILE_INFO *file_info = (EFI_FILE_INFO *)file_info_buffer;
   UINTN kernel_file_size = file_info->FileSize;
-  Print(L"Kernel_file_size: 0x%lx;", kernel_file_size);
 
   /**
-   * TODO the correct things to do is to read the kernel.elf segment headers,
-   * and alloc based on the segment size.
-   * But now just get large enough spaces to hold the segments.
-   *
-   * There still seems to be wired things going on regarding the page types
-   * So make sure the address is indeed allocated.
-   *
-   * At 1M there are 0x700 free pages == 7MB according to the ./misc/memmap
-   * We take 4MB == 0x400
-   *
-   * Find a large enough EfiConventionalMemory region in the MemoryMap to use as
-   * kernel_base_addr
-   */
-  EFI_PHYSICAL_ADDRESS kernel_base_addr = 0x100000;
-  gBS->AllocatePages(AllocateAddress, EfiConventionalMemory, 0x400, &kernel_base_addr);
-  gBS->SetMem((void *)kernel_base_addr, ((kernel_file_size + 0xfff) / 0x1000 + 20) * 0x1000, 0);
-
-  /**
-   * The raw elf file
+   * Read the raw kernel.elf file into the memory
+   * If using Conventional memory (AllocatePool), it may take the 1M address? Anyway, use pages works
    */
   EFI_PHYSICAL_ADDRESS raw_elf_addr;
-  gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, (kernel_file_size + 0xfff) / 0x1000, &raw_elf_addr);
-  gBS->SetMem((void *)raw_elf_addr, ((kernel_file_size + 0xfff) / 0x1000) * 0x1000, 0);
+  UINTN raw_elf_page_num = (kernel_file_size + 0xfff) / 0x1000;
+  gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, raw_elf_page_num, &raw_elf_addr);
+  gBS->SetMem((void *)raw_elf_addr, raw_elf_page_num * 0x1000, 0);
 
-  kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)raw_elf_addr);
-  /* Observed that *raw_elf_addr == start of the raw file */
-  Print(L"Kernel: 0x%0lx (%lu bytes) -> Base:0x%lx->0x%lx\n", raw_elf_addr, kernel_file_size, kernel_base_addr,
-        *(UINT64 *)kernel_base_addr);
+  /**
+   * @retval EFI_SUCCESS          Data was read.
+   * @retval EFI_NO_MEDIA         The device has no medium.
+   * @retval EFI_DEVICE_ERROR     The device reported an error.
+   * @retval EFI_DEVICE_ERROR     An attempt was made to read from a deleted file.
+   * @retval EFI_DEVICE_ERROR     On entry, the current file position is beyond the end of the file.
+   * @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
+   * @retval EFI_BUFFER_TOO_SMALL The BufferSize is too small to read the current directory
+   *                              entry. BufferSize has been updated with the size
+   *                              needed to complete the request.
+   */
 
-  load_elf_image(kernel_base_addr, raw_elf_addr);
-  /* TODO Check if the elf is loaded correctly in a consistant way */
-  // asm("int3");
+  status = kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)raw_elf_addr);
+  if (EFI_ERROR(status))
+  {
+    Print(L"failed to Read kernel.elf: %r\n", status);
+    asm("hlt");
+  }
+  (void)kernel_file->Close(kernel_file);
+  Print(L"kernel.elf read OK: 0x%0lx (%lu bytes)", raw_elf_addr, kernel_file_size);
 
+  /**
+   * Load the kernel.elf segments into the memory
+   * TODO How do ensure the EFI segments are not overwritten?
+   */
+  UINTN kernel_elf_entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
+  UINTN kElf64LoadStartAddr = 0;
+  UINTN kElf64LoadEndAddr = 0;
+  CalcLoadAddressRange((ELF64_HEADER *)raw_elf_addr, &kElf64LoadStartAddr, &kElf64LoadEndAddr);
+
+  kElf64LoadStartAddr = kElf64LoadStartAddr >> 12 << 12; // 4k aligned padding before the start
+  UINTN num_pages = (kElf64LoadEndAddr - kElf64LoadStartAddr + 0xfff) / 0x1000;
+  status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, num_pages, &kElf64LoadStartAddr);
+  if (EFI_ERROR(status))
+  {
+    Print(L"failed to allocate pages: %r\n", status);
+    asm("hlt");
+  }
+
+  CopyLoadSegments((ELF64_HEADER *)raw_elf_addr);
+  Print(L"Kernel: 0x%0lx - 0x%0lx\n", kElf64LoadStartAddr, kElf64LoadEndAddr);
+
+  Print(L"imgaddr:0x%0lx*%ld", raw_elf_addr, raw_elf_page_num);
+
+  status = gBS->FreePages(raw_elf_addr, raw_elf_page_num);
+  if (EFI_ERROR(status))
+  {
+    Print(L"failed to free pool: %r\n", status);
+    asm("hlt");
+  }
+
+  /**
+   * Alter gop modes
+   */
   gopQueryAndSet(gop);
-  EFI_STATUS s_fbc;
-  s_fbc = SetKernelFrameBufferConfig(&frameBufferConfig, gop->Mode);
-  if (EFI_ERROR(s_fbc))
+  status = SetKernelFrameBufferConfig(&frameBufferConfig, gop->Mode);
+  if (EFI_ERROR(status))
   {
     Print(L"Cannot set mode: %d, fallback to mode 1\n, stop", gop->Mode->Info->PixelFormat);
     gop->SetMode(gop, 1);
@@ -442,14 +448,6 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
 
   Print(L"screen:%ldx%ld:%ld,%ld;", frameBufferConfig.horizontal_resolution, frameBufferConfig.vertical_resolution,
         frameBufferConfig.pixel_format, frameBufferConfig.pixels_per_scan_line);
-
-  // struct FrameBufferConfig __conf = {(UINT8 *)gop->Mode->FrameBufferBase,
-  //                                   gop->Mode->Info->PixelsPerScanLine,
-  //                                   gop->Mode->Info->HorizontalResolution,
-  //                                   gop->Mode->Info->VerticalResolution, 0};
-  // frameBufferConfig = __conf;
-
-  // #@@range_end(read_kernel)
 
   /**
    * A UEFI OS loader must ensure that it has the system’s current memory
@@ -479,8 +477,6 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
    * Try exit, if not success, GetMemoryMap then try again, if not, fatal
    */
   // #@@range_begin(exit_bs)
-  EFI_STATUS status;
-  GetMemoryMap(&memmap);
   status = gBS->ExitBootServices(image_handle, memmap.map_key);
   if (EFI_ERROR(status))
   {
@@ -506,12 +502,11 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
    * Get the e_entry field in the elf header
    * During linking, offset of KernelMain() is written to the entry_addr
    */
-  UINTN entry_addr = *(UINT64 *)(raw_elf_addr + 0x18);
   // asm("int3");
 
   typedef UINT64 __attribute__((sysv_abi)) EntryPointType(const struct FrameBufferConfig *);
 
-  EntryPointType *entry_point = (EntryPointType *)entry_addr;
+  EntryPointType *entry_point = (EntryPointType *)kernel_elf_entry_addr;
   entry_point(&frameBufferConfig);
   // #@@range_end(call_kernel)
   // Print(L"All done\n");
