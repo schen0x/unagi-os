@@ -53,7 +53,7 @@ makeimg64:
 
 %.op64: $(PJHOME)/src/%.cpp Makefile
 	mkdir -p $(BUILD_DIR)/$(dir $@)
-	clang++ $(CLANG_CPPFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
+	clang++ $(CLANG_CPPFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -Wpedantic -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
 
 %.asmo64: $(PJHOME)/src/%.asm Makefile
 	mkdir -p $(BUILD_DIR)/$(dir $@)
@@ -62,7 +62,7 @@ makeimg64:
 #====================[32bit]====================
 SRC32=$(PJHOME)/src
 GCC_KERNEL_INCLUDES = -I$(SRC32)
-GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -fvar-tracking -Iinc -O0
+GCC_KERNEL_FLAGS = -g -ffreestanding -falign-jumps -falign-functions -falign-labels -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -nostdlib -nostartfiles -nodefaultlibs -Wall -Wextra -Wpedantic -fvar-tracking -Iinc -O0
 TOOLPATH = $(HOME)/opt/cross/bin
 
 # All .c and .asm files;
