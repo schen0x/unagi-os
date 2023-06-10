@@ -12,7 +12,9 @@ MNT_POINT = $(PJHOME)/mnt
 
 # llvm libc++
 LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
-CLANG_CPPFLAGS = -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
+S64=$(PJHOME)/src
+B64=$(PJHOME)/build
+CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
 LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib
 
 CLANG_OPTIMIZE_FLAGS=-O2
@@ -26,16 +28,16 @@ all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
 allgdb64: clean64 compileuefi64 compilekernel64 makeimg64 gdb64
 bear: clean64lib all64
 
-# .op64 for cpp 64-bit object, .o64 for C 64-bit object, .asmo64 for asm 64-bit object
-OBJ64 = main.op64 graphics.op64 font.op64
-BUILD_DIR=$(PJHOME)/build
+# .op64 for cpp 64-bit object, .oc64 for C 64-bit object, .asmo64 for asm 64-bit object
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64
 
-compilekernel64: $(OBJ64) Makefile
-	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(BUILD_DIR)/kernel.elf $(patsubst %, $(BUILD_DIR)/%, $(OBJ64))
+__OBJ64_EXT := $(patsubst %, $(B64)/%, $(OBJ64))
+compilekernel64: $(__OBJ64_EXT) Makefile
+	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(B64)/kernel.elf $(__OBJ64_EXT)
 
 compileuefi64: $(PJHOME)/UnagiLoaderPkg/efimain.c Makefile
 	cd $(EDK2PATH); source $(EDK2PATH)/edksetup.sh && build
-	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(EDK2UEFIIMGPATH)/Loader.debug $(EDK2UEFIIMGPATH)/TOOLS_DEF.X64 $(BUILD_DIR)/
+	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(EDK2UEFIIMGPATH)/Loader.debug $(EDK2UEFIIMGPATH)/TOOLS_DEF.X64 $(B64)/
 run64:
 	$(RUNQEMU64)
 gdb64:
@@ -46,18 +48,22 @@ makeimg64:
 	mkfs.fat -n 'Unagi OS' -s 2 -f 2 -R 32 -F 32 $(DISK_IMG)
 	mkdir -p $(MNT_POINT)
 	sudo mount -o loop $(DISK_IMG) $(MNT_POINT) && sudo mkdir -p $(MNT_POINT)/EFI/BOOT && \
-	sudo cp $(BUILD_DIR)/Loader.efi $(MNT_POINT)/EFI/BOOT/BOOTX64.EFI
-	sudo cp $(BUILD_DIR)/kernel.elf $(MNT_POINT)/kernel.elf
+	sudo cp $(B64)/Loader.efi $(MNT_POINT)/EFI/BOOT/BOOTX64.EFI
+	sudo cp $(B64)/kernel.elf $(MNT_POINT)/kernel.elf
 	sleep 0.5
 	sudo umount $(DISK_IMG)
 
-%.op64: $(PJHOME)/src/%.cpp Makefile
-	mkdir -p $(BUILD_DIR)/$(dir $@)
-	clang++ $(CLANG_CPPFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -Wpedantic -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $(BUILD_DIR)/$@
+$(B64)/%.op64: $(PJHOME)/src/%.cpp Makefile
+	mkdir -p $(dir $@)
+	clang++ $(CLANG_CXXFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -Wpedantic -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $@
 
-%.asmo64: $(PJHOME)/src/%.asm Makefile
-	mkdir -p $(BUILD_DIR)/$(dir $@)
-	nasm -f elf -g $(PJHOME)/$< -o $(BUILD_DIR)/$@
+$(B64)/%.asmo64: $(PJHOME)/src/%.asm Makefile
+	mkdir -p $(dir $@)
+	nasm -f elf -g $(PJHOME)/$< -o $@
+
+$(B64)/%.oc64: $(PJHOME)/src/%.c Makefile
+	mkdir -p $(dir $@)
+	clang $(CLANG_CXXFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -Wpedantic -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c17 -c $< -o $@
 
 #====================[32bit]====================
 SRC32=$(PJHOME)/src

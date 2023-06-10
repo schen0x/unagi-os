@@ -54,7 +54,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     }
   }
   WriteAscii(*pixel_writer, 50, 50, 'A', {0, 0, 0});
-  WriteAscii(*pixel_writer, 58, 50, 'A', {0, 0, 0});
+  WriteAscii(*pixel_writer, 58, 50, '@', {0, 0, 0});
   asm("hlt");
   return;
 }

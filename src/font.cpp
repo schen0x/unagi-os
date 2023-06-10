@@ -5,40 +5,45 @@
  */
 
 #include "font.hpp"
+#include "./font/hankaku.h"
+#include <cstdint>
 
-const uint8_t kFontA[16] = {
-    0b00000000, //
-    0b00011000, //    **
-    0b00011000, //    **
-    0b00011000, //    **
-    0b00011000, //    **
-    0b00100100, //   *  *
-    0b00100100, //   *  *
-    0b00100100, //   *  *
-    0b00100100, //   *  *
-    0b01111110, //  ******
-    0b01000010, //  *    *
-    0b01000010, //  *    *
-    0b01000010, //  *    *
-    0b11100111, // ***  ***
-    0b00000000, //
-    0b00000000, //
-};
+/**
+ * For import from objcopy binary object
+ * extern const uint8_t _binary_hankaku_bin_start;
+ * extern const uint8_t _binary_hankaku_bin_end;
+ * extern const uint8_t _binary_hankaku_bin_size;
+ */
+
+/**
+ * Get the start pointer to the character in the font object/array
+ * The Hankaku font is 16 bytes per character
+ * (8pixel(1Byte) per row * 16 lines)
+ * 16 * 256(ASCII) == 4096 Bytes
+ */
+const uint8_t *GetFont(char c)
+{
+
+  auto offset = 16 * static_cast<unsigned int>(c);
+  if (offset >= reinterpret_cast<uintptr_t>(sizeof(hankaku)))
+  {
+    return nullptr;
+  }
+  return hankaku + offset;
+}
 
 void WriteAscii(PixelWriter &writer, int x, int y, char c, const PixelColor &color)
 {
-  if (c != 'A')
-  {
-    return;
-  }
+  const uint8_t *font = GetFont(c);
   for (int dy = 0; dy < 16; ++dy)
   {
     for (int dx = 0; dx < 8; ++dx)
     {
-      if ((kFontA[dy] << dx) & 0x80u)
+      if ((font[dy] << dx) & 0x80u)
       {
         writer.Write(x + dx, y + dy, color);
       }
     }
   }
 }
+
