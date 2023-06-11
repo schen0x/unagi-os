@@ -2,11 +2,14 @@
 #include <cstdint>
 #include <cstdio> // use the newlib
 
+#include "console.hpp"
 #include "font.hpp"
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
 
 FrameBufferConfig frameBufferConfig = {0}; // .bss RW
+char console_buf[sizeof(Console)];         // The buffer for placement new
+Console *console;
 
 void *operator new(size_t size, void *buf)
 {
@@ -19,6 +22,20 @@ void operator delete(void *obj) noexcept
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter *pixel_writer;
+
+int printk(const char *format, ...)
+{
+  va_list ap;
+  int result;
+  char s[1024];
+
+  va_start(ap, format);
+  result = vsprintf(s, format, ap);
+  va_end(ap);
+
+  console->PutString(s);
+  return result;
+}
 
 /**
  * sysv_abi, ms_abi or whatever calling convention,
@@ -47,22 +64,13 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
       pixel_writer->Write(x, y, {255, 255, 255});
     }
   }
-  for (int y = 0; y < 100; y++)
-  {
-    for (int x = 0; x < 200; x++)
-    {
-      pixel_writer->Write(x, y, {0, 255, 0});
-    }
-  }
+  console = new (console_buf) Console{*pixel_writer, {0, 0, 0}, {255, 255, 255}};
+
   int i = 0;
   for (char c = '!'; c <= '~'; ++c, ++i)
   {
-    WriteAscii(*pixel_writer, 8 * i, 50, c, {0, 0, 0});
+    printk("printk: %d\n", i);
   }
-  WriteString(*pixel_writer, 0, 66, "Hello, Unagi!", {0, 0, 255});
-  char buf[128];
-  sprintf(buf, "1 + 2 = %d", 1 + 2);
-  WriteString(*pixel_writer, 0, 82, buf, {0, 0, 0});
   asm("hlt");
   return;
 }
