@@ -23,7 +23,7 @@ LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc
 # .oc64: c 64-bit
 # .op64: cpp 64-bit
 # .asmo64: asm 64-bit
-OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 console.op64
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 console.op64 pci.op64 asmfunc.asmo64
 ##### CONFIG #####
 
 all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
@@ -56,7 +56,7 @@ $(B64)/%.op64: $(PJHOME)/src/%.cpp Makefile
 
 $(B64)/%.asmo64: $(PJHOME)/src/%.asm Makefile
 	mkdir -p $(dir $@)
-	nasm -f elf -g $(PJHOME)/$< -o $@
+	nasm -f elf64 -g $(PJHOME)/$< -o $@
 
 $(B64)/%.oc64: $(PJHOME)/src/%.c Makefile
 	mkdir -p $(dir $@)
