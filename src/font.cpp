@@ -6,6 +6,7 @@
 
 #include "font.hpp"
 #include "./font/hankaku.h"
+#include "config.hpp"
 #include <cstdint>
 
 /**
@@ -47,9 +48,14 @@ void WriteAscii(PixelWriter &writer, int x, int y, char c, const PixelColor &col
   }
 }
 
+/**
+ * Write the NULL ptr end string s with writer
+ * @x Starting coord of the pixel
+ * @y Starting coord of the pixel
+ */
 void WriteString(PixelWriter &writer, int x, int y, const char *s, const PixelColor &color)
 {
-  for (int i = 0; s[i] != '\0'; ++i)
+  for (int i = 0, __j = 0; s[i] != '\0' && ++__j < SYS_MAX_ITER; ++i)
   {
     WriteAscii(writer, x + 8 * i, y, s[i], color);
   }
