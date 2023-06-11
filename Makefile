@@ -9,32 +9,29 @@ EDK2UEFIIMGPATH = $(EDK2PATH)/Build/UnagiLoaderX64/DEBUG_GCC5/X64/
 TOOLPATH64 = $(PJHOME)/modules/unagios-build/devenv
 DISK_IMG = $(PJHOME)/build/disk.img
 MNT_POINT = $(PJHOME)/mnt
-
-# llvm libc++
-LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
 S64=$(PJHOME)/src
 B64=$(PJHOME)/build
-CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
-LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib
-
-CLANG_OPTIMIZE_FLAGS=-O2
-
 OVMF_LOG=/run/shm/debug.log
 GDB_IN=$(OVMF_LOG)gdb
-
 RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -serial stdio -debugcon file:$(OVMF_LOG) -global isa-debugcon.iobase=0x402
+# newlib
+LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
+CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
+CLANG_OPTIMIZE_FLAGS=-O2
+LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc
+
+# .oc64: c 64-bit
+# .op64: cpp 64-bit
+# .asmo64: asm 64-bit
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64
+##### CONFIG #####
 
 all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
 allgdb64: clean64 compileuefi64 compilekernel64 makeimg64 gdb64
 bear: clean64lib all64
-
-# .op64 for cpp 64-bit object, .oc64 for C 64-bit object, .asmo64 for asm 64-bit object
-OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64
-
 __OBJ64_EXT := $(patsubst %, $(B64)/%, $(OBJ64))
 compilekernel64: $(__OBJ64_EXT) Makefile
 	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(B64)/kernel.elf $(__OBJ64_EXT)
-
 compileuefi64: $(PJHOME)/UnagiLoaderPkg/efimain.c Makefile
 	cd $(EDK2PATH); source $(EDK2PATH)/edksetup.sh && build
 	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(EDK2UEFIIMGPATH)/Loader.debug $(EDK2UEFIIMGPATH)/TOOLS_DEF.X64 $(B64)/

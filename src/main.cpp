@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cstdint>
+#include <cstdio> // use the newlib
 
 #include "font.hpp"
 #include "frame_buffer_config.hpp"
@@ -53,8 +54,15 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
       pixel_writer->Write(x, y, {0, 255, 0});
     }
   }
-  WriteAscii(*pixel_writer, 50, 50, 'A', {0, 0, 0});
-  WriteAscii(*pixel_writer, 58, 50, '@', {0, 0, 0});
+  int i = 0;
+  for (char c = '!'; c <= '~'; ++c, ++i)
+  {
+    WriteAscii(*pixel_writer, 8 * i, 50, c, {0, 0, 0});
+  }
+  WriteString(*pixel_writer, 0, 66, "Hello, Unagi!", {0, 0, 255});
+  char buf[128];
+  sprintf(buf, "1 + 2 = %d", 1 + 2);
+  WriteString(*pixel_writer, 0, 82, buf, {0, 0, 0});
   asm("hlt");
   return;
 }
