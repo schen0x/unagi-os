@@ -69,6 +69,59 @@ int printk(const char *format, ...)
 }
 
 /**
+ * Intel 7 Series / C216 Chipset Family Platform Controller Hub (PCH) - Datasheet
+ * If Intel 7 Series USB chips
+ * - By default EHCI (USB2.0) is enabled
+ * - Switch to XHCI (USB3)
+ */
+void SwitchEhci2Xhci(const pci::Device &xhc_dev)
+{
+  bool intel_ehc_exist = false;
+  for (int i = 0; i < pci::num_device; ++i)
+  {
+    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x20u) /* EHCI */ &&
+        0x8086 == pci::ReadVendorId(pci::devices[i]))
+    {
+      intel_ehc_exist = true;
+      break;
+    }
+  }
+  if (!intel_ehc_exist)
+  {
+    return;
+  }
+
+  /**
+   * USB3PRM—USB 3.0 Port Routing Mask Register
+   * bit 3:0 is the USB 2.0 Host Controller Selector Mask (USB2HCSELM) — R/W.
+   * This bit field allows the BIOS to communicate to the OS which USB 3.0
+   * ports can have the SuperSpeed capabilities enabled.
+   */
+  uint32_t superspeed_ports = pci::ReadConfReg(xhc_dev, 0xdc);
+  /**
+   * USB3_PSSEN—USB 3.0 Port SuperSpeed Enable Register
+   * bit 3:0 is the USB 3.0 Port SuperSpeed Enable(USB3_PSSEN) — R/W.
+   * This field controls whether SuperSpeed capability is enabled for a given
+   * USB 3.0 port.
+   */
+  pci::WriteConfReg(xhc_dev, 0xd8, superspeed_ports);
+  /**
+   * XUSB2PRM—xHC USB 2.0 Port Routing Mask Register
+   * bit 3:0 is the USB 2.0 Host Controller Selector Mask (USB2HCSELM) — R/W.
+   * This bit field allows the BIOS to communicate to the OS which USB 2.0
+   * ports can be switched from the EHC controller to the xHC controller.
+   */
+  uint32_t ehci2xhci_ports = pci::ReadConfReg(xhc_dev, 0xd4);
+  /**
+   * XUSB2PR —xHC USB 2.0 Port Routing Register
+   * bit 3:0 is the USB 2.0 Host Controller Selector (USB2HCSEL) — R/W.
+   * Maps a USB 2.0 port to the xHC or EHC #1 host controller.
+   */
+  pci::WriteConfReg(xhc_dev, 0xd0, ehci2xhci_ports); // XUSB2PR
+  Log(kDebug, "SwitchEhci2Xhci: SS = %02x, xHCI = %02x\n", superspeed_ports, ehci2xhci_ports);
+}
+
+/**
  * sysv_abi, ms_abi or whatever calling convention,
  * the callee and the caller must use the same one.
  * (https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html)
@@ -156,7 +209,10 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   }
   const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
   Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
-  /* Mask the lower 4 flag bits of the bar */
+
+  SwitchEhci2Xhci(*xhc_dev);
+
+  /* Mask the lower 4 flag bits of the bar; Memory-mapped I/O (MMIO) address */
   const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
   Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
   asm("hlt");
