@@ -18,12 +18,16 @@ RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,reado
 LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
 CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
 CLANG_OPTIMIZE_FLAGS=-O2
-LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc
+LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc -lc++
 
 # .oc64: c 64-bit
 # .op64: cpp 64-bit
 # .asmo64: asm 64-bit
-OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 console.op64 pci.op64 asmfunc.asmo64 logger.op64
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 libcxx_support.op64 console.op64 pci.op64 asmfunc.asmo64 logger.op64 \
+	usb/memory.op64 usb/device.op64 usb/xhci/ring.op64 usb/xhci/trb.op64 usb/xhci/xhci.op64 \
+	usb/xhci/port.op64 usb/xhci/device.op64 usb/xhci/devmgr.op64 usb/xhci/registers.op64 \
+	usb/classdriver/base.op64 usb/classdriver/hid.op64 usb/classdriver/keyboard.op64 \
+	usb/classdriver/mouse.op64
 ##### CONFIG #####
 
 all64: clean64 compileuefi64 compilekernel64 makeimg64 run64

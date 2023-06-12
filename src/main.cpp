@@ -9,6 +9,7 @@
 #include "graphics.hpp"
 #include "logger.hpp"
 #include "pci.hpp"
+#include "usb/xhci/xhci.hpp"
 
 FrameBufferConfig frameBufferConfig = {0}; // .bss RW
 char console_buf[sizeof(Console)];         // The buffer for placement new
@@ -209,12 +210,24 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   }
   const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
   Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
-
-  SwitchEhci2Xhci(*xhc_dev);
-
   /* Mask the lower 4 flag bits of the bar; Memory-mapped I/O (MMIO) address */
   const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
   Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
+
+  usb::xhci::Controller xhc{xhc_mmio_base};
+
+//  if (0x8086 == pci::ReadVendorId(*xhc_dev))
+//  {
+//    SwitchEhci2Xhci(*xhc_dev);
+//  }
+//  {
+//    auto err = xhc.Initialize();
+//    Log(kDebug, "xhc.Initialize: %s\n", err.Name());
+//  }
+//
+//  Log(kInfo, "xHC starting\n");
+//  xhc.Run();
+
   asm("hlt");
   return;
 }
