@@ -94,6 +94,11 @@ inline int num_device;
  */
 Error ScanAllBus();
 
+/**
+ * Base Address Registers (BARs) address
+ * For HeaderType == 0x0, 5BARs, offset 0x10
+ * For HeaderType == 0x1, 2BARs, offset 0x10
+ */
 constexpr uint8_t CalcBarAddress(unsigned int bar_index)
 {
   return 0x10 + 4 * bar_index;

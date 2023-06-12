@@ -23,11 +23,11 @@ LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc
 # .oc64: c 64-bit
 # .op64: cpp 64-bit
 # .asmo64: asm 64-bit
-OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 console.op64 pci.op64 asmfunc.asmo64
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 console.op64 pci.op64 asmfunc.asmo64 logger.op64
 ##### CONFIG #####
 
 all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
-allgdb64: clean64 compileuefi64 compilekernel64 makeimg64 gdb64
+allgdb: clean64 compileuefi64 compilekernel64 makeimg64 gdb
 bear: clean64lib all64
 __OBJ64_EXT := $(patsubst %, $(B64)/%, $(OBJ64))
 compilekernel64: $(__OBJ64_EXT) Makefile
@@ -37,8 +37,8 @@ compileuefi64: $(PJHOME)/UnagiLoaderPkg/efimain.c Makefile
 	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(EDK2UEFIIMGPATH)/Loader.debug $(EDK2UEFIIMGPATH)/TOOLS_DEF.X64 $(B64)/
 run64:
 	$(RUNQEMU64)
-gdb64:
-	sz=$$(wc -c < $(OVMF_LOG)) && [[ $$sz -ge 5000 ]] && cp $(OVMF_LOG) $(GDB_IN)
+gdb:
+	sz=$$(wc -c < $(OVMF_LOG)); [[ $$sz -ge 5000 ]] && cp $(OVMF_LOG) $(GDB_IN)
 	$(RUNQEMU64) -S -gdb tcp:127.0.0.1:1234
 makeimg64:
 	$(QEMUPATH)/qemu-img create -f raw $(DISK_IMG) 200M

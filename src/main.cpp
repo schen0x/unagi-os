@@ -7,6 +7,7 @@
 #include "font.hpp"
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
+#include "logger.hpp"
 #include "pci.hpp"
 
 FrameBufferConfig frameBufferConfig = {0}; // .bss RW
@@ -97,7 +98,8 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   DrawRectangle(*pixel_writer, {10, kFrameHeight - 40}, {30, 30}, {160, 160, 160});
 
   console = new (console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
-  printk("Welcome to MikanOS!\n");
+  printk("Unagi!\n");
+  SetLogLevel(kDebug);
 
   /**
    * Draw the cursor at (200, 100)
@@ -117,16 +119,46 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     }
   }
   auto err = pci::ScanAllBus();
-  printk("ScanAllBus: %s\n", err.Name());
+  Log(kDebug, "ScanAllBus: %s\n", err.Name());
 
   for (int i = 0; i < pci::num_device; ++i)
   {
     const auto &dev = pci::devices[i];
     auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
     auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
-    printk("%d.%d.%d: vend %04x, class %08x, head %02x\n", dev.bus, dev.device, dev.function, vendor_id, class_code,
-           dev.header_type);
+    Log(kDebug, "%d.%d.%d: vend %04x, class %08x, head %02x\n", dev.bus, dev.device, dev.function, vendor_id,
+        class_code, dev.header_type);
   }
+
+  /* Find the first Intel USB3 Controller
+   * - 0xC - Serial Bus Controller
+   * - 0x3 - USB Controller
+   * - 0x30 - XHCI (USB3) Controller
+   * - VendorId 0x8086 Intel Corporation
+   */
+  pci::Device *xhc_dev = nullptr;
+  for (int i = 0; i < pci::num_device; ++i)
+  {
+    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x30u))
+    {
+      xhc_dev = &pci::devices[i];
+
+      if (0x8086 == pci::ReadVendorId(*xhc_dev))
+      {
+        break;
+      }
+    }
+  }
+
+  if (xhc_dev)
+  {
+    Log(kInfo, "xHC has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+  }
+  const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
+  Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
+  /* Mask the lower 4 flag bits of the bar */
+  const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
+  Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
   asm("hlt");
   return;
 }

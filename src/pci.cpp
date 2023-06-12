@@ -7,6 +7,7 @@
 #include "pci.hpp"
 
 #include "asmfunc.h"
+#include "sys/_stdint.h"
 
 namespace
 {
@@ -47,10 +48,9 @@ Error ScanBus(uint8_t bus);
 
 /** @brief
  * - Add the function to devices
- * - If the target is a PCI-to-PCI bridge (HeaderType 0x1),
- *   Read the secondary_bus from the device header (offset 0x18)
- *   There should be a value because otherwise the HeaderType should be 0x0
- * - Explore the secondary_bus first before exploring other functions (DFS)
+ * - If the target is a PCI-to-PCI bridge (HeaderType == 0x1) (QEMU seems to not emulate this by default),
+ *   find out the secondary_bus (device header offset 0x18)
+ *   then explore the secondary_bus first, before exploring other functions (DFS)
  */
 Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function)
 {
@@ -257,6 +257,13 @@ void WriteConfReg(const Device &dev, uint8_t reg_addr, uint32_t value)
   WriteData(value);
 }
 
+/**
+ * Base Address Registers
+ * - 16-Byte Aligned Base Address 31:4
+ * - Prefetchable 3
+ * - Type 2:1
+ * - Always 0 0
+ */
 WithError<uint64_t> ReadBar(Device &device, unsigned int bar_index)
 {
   if (bar_index >= 6)
@@ -264,22 +271,25 @@ WithError<uint64_t> ReadBar(Device &device, unsigned int bar_index)
     return {0, MAKE_ERROR(Error::kIndexOutOfRange)};
   }
 
-  const auto addr = CalcBarAddress(bar_index);
-  const auto bar = ReadConfReg(device, addr);
+  const uint8_t addr = CalcBarAddress(bar_index);
+  const uint32_t bar = ReadConfReg(device, addr);
 
-  // 32 bit address
+  /* 0b00 0: 32 bit address;
+   * 0b10 0: 64 bit address;
+   * 0b01 0: reserved for revision 3.0 of PCI Local Bus specification
+   */
   if ((bar & 4u) == 0)
   {
     return {bar, MAKE_ERROR(Error::kSuccess)};
   }
 
-  // 64 bit address
+  // 64 bit address, an address consumes 2 bar_indexes, so uplimit -= 1
   if (bar_index >= 5)
   {
     return {0, MAKE_ERROR(Error::kIndexOutOfRange)};
   }
 
-  const auto bar_upper = ReadConfReg(device, addr + 4);
+  const uint32_t bar_upper = ReadConfReg(device, addr + 4);
   return {bar | (static_cast<uint64_t>(bar_upper) << 32), MAKE_ERROR(Error::kSuccess)};
 }
 } // namespace pci
