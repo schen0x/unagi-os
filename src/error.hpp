@@ -28,6 +28,7 @@ public:
     kInvalidPhase,
     kUnknownXHCISpeedID,
     kNoWaiter,
+    kEndpointNotInCharge,
     kLastOfCode, // It should always be the last element of the "enum Code"
   };
 
@@ -53,6 +54,7 @@ private:
       "kInvalidPhase",
       "kUnknownXHCISpeedID",
       "kNoWaiter",
+      "kEndpointNotInCharge",
   };
   /* The numeric expression of the last enum elment should equal to the array size */
   static_assert(Error::Code::kLastOfCode == code_names_.size());

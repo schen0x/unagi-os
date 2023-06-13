@@ -196,7 +196,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
   Log(kInfo, "xHC starting\n");
   xhc.Run();
-  usb::HIDMouseDriver::default_observer = MouseObserver;
+  //usb::HIDMouseDriver::default_observer = MouseObserver;
 
   for (int i = 1; i <= xhc.MaxPorts(); ++i)
   {

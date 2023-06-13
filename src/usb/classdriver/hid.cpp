@@ -15,11 +15,13 @@ namespace usb {
     return MAKE_ERROR(Error::kNotImplemented);
   }
 
-  Error HIDBaseDriver::SetEndpoint(const EndpointConfig& config) {
-    if (config.ep_type == EndpointType::kInterrupt && config.ep_id.IsIn()) {
-      ep_interrupt_in_ = config.ep_id;
-    } else if (config.ep_type == EndpointType::kInterrupt && !config.ep_id.IsIn()) {
-      ep_interrupt_out_ = config.ep_id;
+  Error HIDBaseDriver::SetEndpoint(const std::vector<EndpointConfig>& configs) {
+    for (const auto& config : configs) {
+      if (config.ep_type == EndpointType::kInterrupt && config.ep_id.IsIn()) {
+        ep_interrupt_in_ = config.ep_id;
+      } else if (config.ep_type == EndpointType::kInterrupt && !config.ep_id.IsIn()) {
+        ep_interrupt_out_ = config.ep_id;
+      }
     }
     return MAKE_ERROR(Error::kSuccess);
   }
@@ -40,24 +42,24 @@ namespace usb {
 
   Error HIDBaseDriver::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
                                           const void* buf, int len) {
-    Log(kDebug, "HIDBaseDriver::OnControlCompleted: dev %08x, phase = %d, len = %d\n",
-        this, initialize_phase_, len);
+    Log(kDebug, "HIDBaseDriver::OnControlCompleted: dev %08lx, phase = %d, len = %d\n",
+        reinterpret_cast<uintptr_t>(this), initialize_phase_, len);
     if (initialize_phase_ == 1) {
       initialize_phase_ = 2;
-      return ParentDevice()->InterruptIn(ep_interrupt_in_, buf_.data(), in_packet_size_);
+      return ParentDevice()->NormalIn(ep_interrupt_in_, buf_.data(), in_packet_size_);
     }
 
     return MAKE_ERROR(Error::kNotImplemented);
   }
 
-  Error HIDBaseDriver::OnInterruptCompleted(EndpointID ep_id, const void* buf, int len) {
+  Error HIDBaseDriver::OnNormalCompleted(EndpointID ep_id, const void* buf, int len) {
     if (ep_id.IsIn()) {
       OnDataReceived();
       std::copy_n(buf_.begin(), len, previous_buf_.begin());
-      return ParentDevice()->InterruptIn(ep_interrupt_in_, buf_.data(), in_packet_size_);
+      return ParentDevice()->NormalIn(ep_interrupt_in_, buf_.data(), in_packet_size_);
     }
 
-    return MAKE_ERROR(Error::kNotImplemented);
+    return MAKE_ERROR(Error::kEndpointNotInCharge);
   }
 }
 

@@ -6,42 +6,54 @@
 
 #pragma once
 
+#include "sys/_stdint.h"
 #include <array>
 #include <optional>
+#include <stdint.h>
 
-namespace usb {
-  template <class K, class V, size_t N = 16>
-  class ArrayMap {
-   public:
-     std::optional<V> Get(const K& key) const {
-      for (int i = 0; i < table_.size(); ++i) {
-        if (auto opt_k = table_[i].first; opt_k && opt_k.value() == key) {
-          return table_[i].second;
-        }
-      }
-      return std::nullopt;
-    }
-
-    void Put(const K& key, const V& value) {
-      for (int i = 0; i < table_.size(); ++i) {
-        if (!table_[i].first) {
-          table_[i].first = key;
-          table_[i].second = value;
-          break;
-        }
+namespace usb
+{
+template <class K, class V, size_t N = 16> class ArrayMap
+{
+public:
+  std::optional<V> Get(const K &key) const
+  {
+    for (uint64_t i = 0; i < table_.size(); ++i)
+    {
+      if (auto opt_k = table_[i].first; opt_k && opt_k.value() == key)
+      {
+        return table_[i].second;
       }
     }
+    return std::nullopt;
+  }
 
-    void Delete(const K& key) {
-      for (int i = 0; i < table_.size(); ++i) {
-        if (auto opt_k = table_[i].first; opt_k && opt_k.value() == key) {
-          table_[i].first = std::nullopt;
-          break;
-        }
+  void Put(const K &key, const V &value)
+  {
+    for (uint64_t i = 0; i < table_.size(); ++i)
+    {
+      if (!table_[i].first)
+      {
+        table_[i].first = key;
+        table_[i].second = value;
+        break;
       }
     }
+  }
 
-   private:
-    std::array<std::pair<std::optional<K>, V>, N> table_{};
-  };
-}
+  void Delete(const K &key)
+  {
+    for (uint64_t i = 0; i < table_.size(); ++i)
+    {
+      if (auto opt_k = table_[i].first; opt_k && opt_k.value() == key)
+      {
+        table_[i].first = std::nullopt;
+        break;
+      }
+    }
+  }
+
+private:
+  std::array<std::pair<std::optional<K>, V>, N> table_{};
+};
+} // namespace usb
