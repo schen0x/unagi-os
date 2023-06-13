@@ -16,14 +16,20 @@ GDB_IN=$(OVMF_LOG)gdb
 RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -serial stdio -debugcon file:$(OVMF_LOG) -global isa-debugcon.iobase=0x402
 # newlib
 LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
-CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))'
+#### FLAGS ####
+CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include -I$(LIBCXX_DIR)/include/freetype2 \
+		 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 \
+		 --target=x86_64-elf -nostdlibinc -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti \
+		 -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))' \
+		 -Wall -Wextra -Wno-unused-function -Wpedantic -g
 CLANG_OPTIMIZE_FLAGS=-O2
-LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc -lc++
+LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc -lc++ \
+	      --entry KernelMain -z norelro --image-base 0x100000 --static
 
 # .oc64: c 64-bit
 # .op64: cpp 64-bit
 # .asmo64: asm 64-bit
-OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 libcxx_support.op64 console.op64 pci.op64 asmfunc.asmo64 logger.op64 \
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 libcxx_support.op64 console.op64 pci.op64 asmfunc.asmo64 logger.op64 mouse.op64 \
 	usb/memory.op64 usb/device.op64 usb/xhci/ring.op64 usb/xhci/trb.op64 usb/xhci/xhci.op64 \
 	usb/xhci/port.op64 usb/xhci/device.op64 usb/xhci/devmgr.op64 usb/xhci/registers.op64 \
 	usb/classdriver/base.op64 usb/classdriver/hid.op64 usb/classdriver/keyboard.op64 \
@@ -34,8 +40,10 @@ all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
 allgdb: clean64 compileuefi64 compilekernel64 makeimg64 gdb
 bear: clean64lib all64
 __OBJ64_EXT := $(patsubst %, $(B64)/%, $(OBJ64))
-compilekernel64: $(__OBJ64_EXT) Makefile
-	ld.lld $(LD_LLDFLAGS) --entry KernelMain -z norelro --image-base 0x100000 --static -o $(B64)/kernel.elf $(__OBJ64_EXT)
+compilekernel64:
+	make -j48 __compilekernel64
+__compilekernel64: $(__OBJ64_EXT) Makefile
+	ld.lld $(LD_LLDFLAGS) -o $(B64)/kernel.elf $(__OBJ64_EXT)
 compileuefi64: $(PJHOME)/UnagiLoaderPkg/efimain.c Makefile
 	cd $(EDK2PATH); source $(EDK2PATH)/edksetup.sh && build
 	sudo cp $(EDK2UEFIIMGPATH)/Loader.efi $(EDK2UEFIIMGPATH)/Loader.debug $(EDK2UEFIIMGPATH)/TOOLS_DEF.X64 $(B64)/
@@ -56,7 +64,7 @@ makeimg64:
 
 $(B64)/%.op64: $(PJHOME)/src/%.cpp Makefile
 	mkdir -p $(dir $@)
-	clang++ $(CLANG_CXXFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -Wpedantic -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c $< -o $@
+	clang++ $(CLANG_CXXFLAGS) $(CLANG_OPTIMIZE_FLAGS) -std=c++17 -c $< -o $@
 
 $(B64)/%.asmo64: $(PJHOME)/src/%.asm Makefile
 	mkdir -p $(dir $@)
@@ -64,7 +72,7 @@ $(B64)/%.asmo64: $(PJHOME)/src/%.asm Makefile
 
 $(B64)/%.oc64: $(PJHOME)/src/%.c Makefile
 	mkdir -p $(dir $@)
-	clang $(CLANG_CXXFLAGS) $(CLANG_OPTIMIZE_FLAGS) -Wall -Wno-unused-function -Wpedantic -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c17 -c $< -o $@
+	clang $(CLANG_CXXFLAGS) $(CLANG_OPTIMIZE_FLAGS) -std=c17 -c $< -o $@
 
 #====================[32bit]====================
 SRC32=$(PJHOME)/src

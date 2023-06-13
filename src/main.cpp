@@ -8,7 +8,12 @@
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
 #include "logger.hpp"
+#include "mouse.hpp"
 #include "pci.hpp"
+#include "usb/classdriver/mouse.hpp"
+#include "usb/device.hpp"
+#include "usb/memory.hpp"
+#include "usb/xhci/trb.hpp"
 #include "usb/xhci/xhci.hpp"
 
 FrameBufferConfig frameBufferConfig = {0}; // .bss RW
@@ -21,36 +26,13 @@ void operator delete(void *obj) noexcept
 {
 }
 
-const int kMouseCursorWidth = 15;
-const int kMouseCursorHeight = 24;
-// clang-format off
-const char mouse_cursor_shape[kMouseCursorHeight][kMouseCursorWidth + 1] = {
-    "@              ",
-    "@@             ",
-    "@.@            ",
-    "@..@           ",
-    "@...@          ",
-    "@....@         ",
-    "@.....@        ",
-    "@......@       ",
-    "@.......@      ",
-    "@........@     ",
-    "@.........@    ",
-    "@..........@   ",
-    "@...........@  ",
-    "@............@ ",
-    "@......@@@@@@@@",
-    "@......@       ",
-    "@....@@.@      ",
-    "@...@ @.@      ",
-    "@..@   @.@     ",
-    "@.@    @.@     ",
-    "@@      @.@    ",
-    "@       @.@    ",
-    "         @.@   ",
-    "         @@@   ",
-};
-// clang-format on
+char mouse_cursor_buf[sizeof(MouseCursor)];
+MouseCursor *mouse_cursor;
+
+void MouseObserver(int8_t displacement_x, int8_t displacement_y)
+{
+  mouse_cursor->MoveRelative({displacement_x, displacement_y});
+}
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter *pixel_writer;
@@ -156,22 +138,9 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   SetLogLevel(kDebug);
 
   /**
-   * Draw the cursor at (200, 100)
+   * Draw the cursor
    */
-  for (int dy = 0; dy < kMouseCursorHeight; ++dy)
-  {
-    for (int dx = 0; dx < kMouseCursorWidth; ++dx)
-    {
-      if (mouse_cursor_shape[dy][dx] == '@')
-      {
-        pixel_writer->Write(200 + dx, 100 + dy, {0, 0, 0});
-      }
-      else if (mouse_cursor_shape[dy][dx] == '.')
-      {
-        pixel_writer->Write(200 + dx, 100 + dy, {255, 255, 255});
-      }
-    }
-  }
+  mouse_cursor = new (mouse_cursor_buf) MouseCursor{pixel_writer, kDesktopBGColor, {300, 200}};
   auto err = pci::ScanAllBus();
   Log(kDebug, "ScanAllBus: %s\n", err.Name());
 
@@ -216,17 +185,33 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
   usb::xhci::Controller xhc{xhc_mmio_base};
 
-//  if (0x8086 == pci::ReadVendorId(*xhc_dev))
-//  {
-//    SwitchEhci2Xhci(*xhc_dev);
-//  }
-//  {
-//    auto err = xhc.Initialize();
-//    Log(kDebug, "xhc.Initialize: %s\n", err.Name());
-//  }
-//
-//  Log(kInfo, "xHC starting\n");
-//  xhc.Run();
+  if (0x8086 == pci::ReadVendorId(*xhc_dev))
+  {
+    SwitchEhci2Xhci(*xhc_dev);
+  }
+  {
+    auto err = xhc.Initialize();
+    Log(kDebug, "xhc.Initialize: %s\n", err.Name());
+  }
+
+  Log(kInfo, "xHC starting\n");
+  xhc.Run();
+  usb::HIDMouseDriver::default_observer = MouseObserver;
+
+  for (int i = 1; i <= xhc.MaxPorts(); ++i)
+  {
+    auto port = xhc.PortAt(i);
+    Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
+
+    if (port.IsConnected())
+    {
+      if (auto err = ConfigurePort(xhc, port))
+      {
+        Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+        continue;
+      }
+    }
+  }
 
   asm("hlt");
   return;
