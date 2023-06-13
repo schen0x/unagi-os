@@ -16,20 +16,21 @@
 #include "usb/xhci/trb.hpp"
 #include "usb/xhci/xhci.hpp"
 
-FrameBufferConfig frameBufferConfig = {0}; // .bss RW
-char console_buf[sizeof(Console)];         // The buffer for placement new
+FrameBufferConfig frameBufferConfig = {}; // .bss RW, {0} is C syntax, does not work in cpp
+char console_buf[sizeof(Console)];        // The buffer for placement new
 Console *console;
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
 
 void operator delete(void *obj) noexcept
 {
+  (void)obj;
 }
 
 char mouse_cursor_buf[sizeof(MouseCursor)];
 MouseCursor *mouse_cursor;
 
-void MouseObserver(int8_t displacement_x, int8_t displacement_y)
+void MouseObserver(uint8_t buttons, int8_t displacement_x, int8_t displacement_y)
 {
   mouse_cursor->MoveRelative({displacement_x, displacement_y});
 }
@@ -196,7 +197,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
   Log(kInfo, "xHC starting\n");
   xhc.Run();
-  //usb::HIDMouseDriver::default_observer = MouseObserver;
+  usb::HIDMouseDriver::default_observer = MouseObserver;
 
   for (int i = 1; i <= xhc.MaxPorts(); ++i)
   {

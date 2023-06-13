@@ -38,7 +38,9 @@ OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 
 
 all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
 allgdb: clean64 compileuefi64 compilekernel64 makeimg64 gdb
-bear: clean64lib all64
+bear:
+	bear -- make __bear
+__bear: clean64lib all64
 __OBJ64_EXT := $(patsubst %, $(B64)/%, $(OBJ64))
 compilekernel64:
 	make -j48 __compilekernel64
