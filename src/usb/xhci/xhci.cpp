@@ -400,7 +400,9 @@ void SwitchEhci2Xhci(const pci::Device &xhc_dev)
 namespace usb::xhci
 {
 
-/* Read the MMIO */
+/**
+ * MMIO base -> Capability Registers at offset 0 -> (CAPLENGTH + mmio_base) -> OperationalRegisters
+ */
 Controller::Controller(uintptr_t mmio_base)
     : mmio_base_{mmio_base}, cap_{reinterpret_cast<CapabilityRegisters *>(mmio_base)},
       op_{reinterpret_cast<OperationalRegisters *>(mmio_base + cap_->CAPLENGTH.Read())},

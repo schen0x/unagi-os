@@ -49,6 +49,11 @@ private:
 
   /* The order matters in initialization */
   const uintptr_t mmio_base_;
+  /**
+   * xHCI spec, 5.3 Host Controller Capability Registers
+   *   - Base Offset 00h:20h
+   *   - See CapabilityRegisters struct comment for more detail
+   */
   CapabilityRegisters *const cap_;
   OperationalRegisters *const op_;
   const uint8_t max_ports_;

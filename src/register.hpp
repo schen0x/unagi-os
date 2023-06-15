@@ -9,10 +9,16 @@
 #include <cstddef>
 #include <cstdint>
 
+/**
+ * Primary template (seems not necessary for now)
+ */
 template <typename T> struct ArrayLength
 {
 };
 
+/**
+ * Specialized to T[N]
+ */
 template <typename T, size_t N> struct ArrayLength<T[N]>
 {
   static const size_t value = N;
@@ -24,6 +30,18 @@ template <typename T, size_t N> struct ArrayLength<T[N]>
  * MemMapRegister forces user program to read/write the underlying register
  * with specific bit width. The bit width will be deduced from the type of
  * T::data. T is the template parameter. T::data should be an array.
+ *
+ * Usage:
+ * int main() {
+ *   MemMapRegister<PORTSC_Bitmap> portsc; // PORTSC_Bitmap is a union
+ *   PORTSC_Bitmap p = portsc.Read(); // p.data <-
+ *   p.bits.port_reset = true;
+ *   portsc.Write(p); // Write the data with a flipped bit
+ *   MemMapRegister<DefaultBitmap<uint8_t>> caplength;   // Capability Register Length
+ *   DefaultBitmap<uint8_t> c2 = caplength.Read();
+ *   c2 = 8;
+ *   caplength.Write(c2);
+ * }
  */
 template <typename T> class MemMapRegister
 {
@@ -49,12 +67,13 @@ public:
 
 private:
   volatile T value_;
+  /* decltype(T::data) is replaced into T[1] in compile time, so ArrayLength<T[N]> is used */
   static const size_t len_ = ArrayLength<decltype(T::data)>::value;
 };
 
 /**
- * DefaultBitmap<uint8_t> db;
- * db =
+ * sizeof(DefaultBitmap) == sizeof(T);
+ * Note this is a struct not a union
  */
 template <typename T> struct DefaultBitmap
 {

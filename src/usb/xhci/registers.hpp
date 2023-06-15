@@ -17,6 +17,14 @@ union HCSPARAMS1_Bitmap {
     uint32_t max_device_slots : 8;
     uint32_t max_interrupters : 11;
     uint32_t : 5;
+    /**
+     * Affect the Host Controller Operational Registers
+     *
+     * The MaxPorts value in the HCSPARAMS1 register defines the number of
+     * Port e.g. PORTSC, PORTPMSC, and PORTLI register sets). The PORTSC,
+     * PORTLI register sets are grouped (consecutive Dwords). Refer to their
+     * respective sections for their addressing.
+     */
     uint32_t max_ports : 8;
   } __attribute__((packed)) bits;
 } __attribute__((packed));
@@ -108,18 +116,45 @@ union HCCPARAMS2_Bitmap {
   } __attribute__((packed)) bits;
 } __attribute__((packed));
 
+/**
+ * xHCI spec; Section 5.3; Host Controller Capability Registers
+ * Base Offset 00h:20h
+ * The mimium field size is 1 byte, e.g.,:
+ *   - Base_Offset | Size(Bytes) | Mnemonic
+ *   - 00h    | 1 |    CAPLENGTH
+ *   - 01h    | 1 |    Rsvd
+ *   - 02h    | 2 |    HCIVERSION
+ *   - 04h    | 4 |    HCSPARAMS1
+ *   - ...
+ *   - 1Ch    | 4 |    HCCPARAMS2
+ *   - 20h    | CAPLENGTH-20h |    Rsvd
+ *
+ */
 struct CapabilityRegisters
 {
-  MemMapRegister<DefaultBitmap<uint8_t>> CAPLENGTH;
-  MemMapRegister<DefaultBitmap<uint8_t>> reserved1;
-  MemMapRegister<DefaultBitmap<uint16_t>> HCIVERSION;
-  MemMapRegister<HCSPARAMS1_Bitmap> HCSPARAMS1;
-  MemMapRegister<HCSPARAMS2_Bitmap> HCSPARAMS2;
-  MemMapRegister<HCSPARAMS3_Bitmap> HCSPARAMS3;
-  MemMapRegister<HCCPARAMS1_Bitmap> HCCPARAMS1;
-  MemMapRegister<DBOFF_Bitmap> DBOFF;
-  MemMapRegister<RTSOFF_Bitmap> RTSOFF;
-  MemMapRegister<HCCPARAMS2_Bitmap> HCCPARAMS2;
+  /**
+   * Capability Registers Length (CAPLENGTH)
+   *
+   * This register is used as an offset to add to register base to find the
+   * beginning of the Operational Register Space.
+   */
+  MemMapRegister<DefaultBitmap<uint8_t>> CAPLENGTH;   // Capability Register Length
+  MemMapRegister<DefaultBitmap<uint8_t>> reserved1;   //
+  MemMapRegister<DefaultBitmap<uint16_t>> HCIVERSION; // Interface Version Number
+  /**
+   * Structural Parameters 1 (HCSPARAMS1)
+   *
+   * This register defines basic structural parameters supported by this xHC
+   * implementation: Number of Device Slots support, Interrupters, Root Hub
+   * ports, etc.
+   */
+  MemMapRegister<HCSPARAMS1_Bitmap> HCSPARAMS1; // Structural Parameters 1
+  MemMapRegister<HCSPARAMS2_Bitmap> HCSPARAMS2; // Structural Parameters 2
+  MemMapRegister<HCSPARAMS3_Bitmap> HCSPARAMS3; // Structural Parameters 3
+  MemMapRegister<HCCPARAMS1_Bitmap> HCCPARAMS1; // Capability Parameters 1
+  MemMapRegister<DBOFF_Bitmap> DBOFF;           // Doorbell Offset
+  MemMapRegister<RTSOFF_Bitmap> RTSOFF;         // Runtime Register Space Offset
+  MemMapRegister<HCCPARAMS2_Bitmap> HCCPARAMS2; // Capability Parameters 2
 } __attribute__((packed));
 
 union USBCMD_Bitmap {
@@ -214,6 +249,19 @@ union CONFIG_Bitmap {
   } __attribute__((packed)) bits;
 } __attribute__((packed));
 
+/**
+ * xHCI spec; Section 5.4 Host Controller Operational Registers
+ *
+ * The base address of this register space is referred to as Operational Base.
+ * The Operational Base shall be Dword aligned and is calculated by adding the
+ * value of the Capability Registers Length (CAPLENGTH) register (refer to
+ * Section 5.3.1) to the Capability Base address. All registers are multiples
+ * of 32 bits in length.
+ * - ...
+ * - 38h CONFIG
+ * - 3C-3FFh RsvdZ
+ * - 400-13FFh        Port Register Set (1-MaxPorts)
+ */
 struct OperationalRegisters
 {
   MemMapRegister<USBCMD_Bitmap> USBCMD;
@@ -291,6 +339,11 @@ union PORTHLPMC_Bitmap {
   } __attribute__((packed)) bits_usb2;
 } __attribute__((packed));
 
+/**
+ * At the tail of Host Controller Operational Registers
+ *
+ * - 400-13FFh        Port Register Set (1-MaxPorts)
+ */
 struct PortRegisterSet
 {
   MemMapRegister<PORTSC_Bitmap> PORTSC;
