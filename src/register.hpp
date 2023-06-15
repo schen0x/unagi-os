@@ -52,14 +52,41 @@ private:
   static const size_t len_ = ArrayLength<decltype(T::data)>::value;
 };
 
+/**
+ * DefaultBitmap<uint8_t> db;
+ * db =
+ */
 template <typename T> struct DefaultBitmap
 {
   T data[1];
 
+  /**
+   * Overloadding the assignment operator
+   * C++11 Standard Sec. 5.17, the return type is described as "lvalue referring to left hand operand"
+   * Usage:
+   * int main() {
+   *   DefaultBitmap<uint8_t> db;
+   *   db=4;
+   *   std::cout << (int) db; // 4
+   * }
+   *
+   */
   DefaultBitmap &operator=(const T &value)
   {
     data[0] = value;
+    return *this;
   }
+  /**
+   * operator type; user-defined conversion function;
+   * implicit conversion (without "explicit" keyword)
+   * e.g.:
+   *   struct X { operator int() const { return 7; } }
+   *   int main() {
+   *     X x;
+   *     int n = static_cast<int>(x);   // OK: sets n to 7
+   *     int m = x;                     // OK: sets m to 7
+   *   }
+   */
   operator T() const
   {
     return data[0];

@@ -640,6 +640,14 @@ The LGDT and LIDT instructions are used only in operating-system software; they 
 - [gnu efi](https://wiki.osdev.org/GNU-EFI)
 
 
+## USB
+
+### USB3
+
+- [xHCI specification](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
+![usb-xhci_arch0](./img/usb-xhci_arch0.png)
+
+
 ## ASSEMBLY
 
 - [NASM doc](https://www.nasm.us/xdoc/2.11.08/html/nasmdoc7.html)

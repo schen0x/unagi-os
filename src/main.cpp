@@ -197,6 +197,19 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
       SwitchEhci2Xhci(*xhc_dev);
     }
 
+    /**
+     * xHCI initialize
+     *   - Reset a Root Hub Port
+     *   - Device Slot Assignment
+     *   - Device Slot Initialization
+     *   - Address Assignment
+     *   - Device Configuration
+     *   - Setting Alternative Interface
+     *   - Low-Speed/Full-Speed Device Support
+     *   - Bandwidth Management
+     * ref: section 4.3,
+     * (https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
+     */
     {
       auto err = xhc.Initialize();
       Log(kDebug, "xhc.Initialize: %s\n", err.Name());

@@ -410,6 +410,9 @@ Controller::Controller(uintptr_t mmio_base)
 
 Error Controller::Initialize()
 {
+  /**
+   * Allocating Memory for devmgr_ member variables
+   */
   if (auto err = devmgr_.Initialize(kDeviceSize))
   {
     return err;
