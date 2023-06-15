@@ -53,8 +53,8 @@ int printk(const char *format, ...)
 }
 
 /**
+ * Enable XHCI (USB3.0 controller) if device is Intel 7 Series PCH
  * Intel 7 Series / C216 Chipset Family Platform Controller Hub (PCH) - Datasheet
- * If Intel 7 Series USB chips
  * - By default EHCI (USB2.0) is enabled
  * - Switch to XHCI (USB3)
  */
@@ -101,7 +101,7 @@ void SwitchEhci2Xhci(const pci::Device &xhc_dev)
    * bit 3:0 is the USB 2.0 Host Controller Selector (USB2HCSEL) — R/W.
    * Maps a USB 2.0 port to the xHC or EHC #1 host controller.
    */
-  pci::WriteConfReg(xhc_dev, 0xd0, ehci2xhci_ports); // XUSB2PR
+  pci::WriteConfReg(xhc_dev, 0xd0, ehci2xhci_ports);
   Log(kDebug, "SwitchEhci2Xhci: SS = %02x, xHCI = %02x\n", superspeed_ports, ehci2xhci_ports);
 }
 
@@ -141,7 +141,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   /**
    * Draw the cursor
    */
-  mouse_cursor = new (mouse_cursor_buf) MouseCursor{pixel_writer, kDesktopBGColor, {300, 200}};
+  mouse_cursor = new (mouse_cursor_buf) MouseCursor{pixel_writer, kDesktopBGColor, {600, 800}};
   auto err = pci::ScanAllBus();
   Log(kDebug, "ScanAllBus: %s\n", err.Name());
 
@@ -154,7 +154,8 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
         class_code, dev.header_type);
   }
 
-  /* Find the first Intel USB3 Controller
+  /**
+   * Search through the pci devices, find the first (if Intel) or the last USB3 Controller
    * - 0xC - Serial Bus Controller
    * - 0x3 - USB Controller
    * - 0x30 - XHCI (USB3) Controller
@@ -174,42 +175,49 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     }
   }
 
+  /**
+   * Use the Intel (Extensible Host Controller) XHC
+   */
   if (xhc_dev)
   {
-    Log(kInfo, "xHC has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
-  }
-  const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
-  Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
-  /* Mask the lower 4 flag bits of the bar; Memory-mapped I/O (MMIO) address */
-  const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
-  Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
+    Log(kInfo, "xHC (Intel) has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
 
-  usb::xhci::Controller xhc{xhc_mmio_base};
+    /* Read BAR and find the Memory-mapped I/O (MMIO) address */
+    const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
+    Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
+    /* MMIO address = BAR with the lower 4 bits (flags) masked */
+    const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
+    Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
 
-  if (0x8086 == pci::ReadVendorId(*xhc_dev))
-  {
-    SwitchEhci2Xhci(*xhc_dev);
-  }
-  {
-    auto err = xhc.Initialize();
-    Log(kDebug, "xhc.Initialize: %s\n", err.Name());
-  }
+    /* Initialize the xhc, with the MMIO address */
+    usb::xhci::Controller xhc{xhc_mmio_base};
 
-  Log(kInfo, "xHC starting\n");
-  xhc.Run();
-  usb::HIDMouseDriver::default_observer = MouseObserver;
-
-  for (int i = 1; i <= xhc.MaxPorts(); ++i)
-  {
-    auto port = xhc.PortAt(i);
-    Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
-
-    if (port.IsConnected())
+    if (0x8086 == pci::ReadVendorId(*xhc_dev))
     {
-      if (auto err = ConfigurePort(xhc, port))
+      SwitchEhci2Xhci(*xhc_dev);
+    }
+
+    {
+      auto err = xhc.Initialize();
+      Log(kDebug, "xhc.Initialize: %s\n", err.Name());
+    }
+
+    Log(kInfo, "xHC starting\n");
+    xhc.Run();
+    usb::HIDMouseDriver::default_observer = MouseObserver;
+
+    for (int i = 1; i <= xhc.MaxPorts(); ++i)
+    {
+      auto port = xhc.PortAt(i);
+      Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
+
+      if (port.IsConnected())
       {
-        Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
-        continue;
+        if (auto err = ConfigurePort(xhc, port))
+        {
+          Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+          continue;
+        }
       }
     }
   }
