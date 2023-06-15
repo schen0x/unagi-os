@@ -1,7 +1,8 @@
 #include "usb/xhci/trb.hpp"
 
-namespace usb::xhci {
-  const std::array<const char*, 37> kTRBCompletionCodeToName{
+namespace usb::xhci
+{
+const std::array<const char *, 37> kTRBCompletionCodeToName{
     "Invalid",
     "Success",
     "Data Buffer Error",
@@ -39,10 +40,10 @@ namespace usb::xhci {
     "Invalid Stream ID Error",
     "Secondary Bandwidth Error",
     "Split Transaction Error",
-  };
+};
 
-  const std::array<const char*, 64> kTRBTypeToName{
-    "Reserved",                             // 0
+const std::array<const char *, 64> kTRBTypeToName{
+    "Reserved", // 0
     "Normal",
     "Setup Stage",
     "Data Stage",
@@ -50,7 +51,7 @@ namespace usb::xhci {
     "Isoch",
     "Link",
     "EventData",
-    "No-Op",                                // 8
+    "No-Op", // 8
     "Enable Slot Command",
     "Disable Slot Command",
     "Address Device Command",
@@ -58,7 +59,7 @@ namespace usb::xhci {
     "Evaluate Context Command",
     "Reset Endpoint Command",
     "Stop Endpoint Command",
-    "Set TR Dequeue Pointer Command",       // 16
+    "Set TR Dequeue Pointer Command", // 16
     "Reset Device Command",
     "Force Event Command",
     "Negotiate Bandwidth Command",
@@ -66,7 +67,7 @@ namespace usb::xhci {
     "Get Port Bandwidth Command",
     "Force Header Command",
     "No Op Command",
-    "Reserved",                             // 24
+    "Reserved", // 24
     "Reserved",
     "Reserved",
     "Reserved",
@@ -74,7 +75,7 @@ namespace usb::xhci {
     "Reserved",
     "Reserved",
     "Reserved",
-    "Transfer Event",                       // 32
+    "Transfer Event", // 32
     "Command Completion Event",
     "Port Status Change Event",
     "Bandwidth Request Event",
@@ -82,7 +83,7 @@ namespace usb::xhci {
     "Host Controller Event",
     "Device Notification Event",
     "MFINDEX Wrap Event",
-    "Reserved",                             // 40
+    "Reserved", // 40
     "Reserved",
     "Reserved",
     "Reserved",
@@ -90,7 +91,7 @@ namespace usb::xhci {
     "Reserved",
     "Reserved",
     "Reserved",
-    "Vendor Defined",                       // 48
+    "Vendor Defined", // 48
     "Vendor Defined",
     "Vendor Defined",
     "Vendor Defined",
@@ -98,7 +99,7 @@ namespace usb::xhci {
     "Vendor Defined",
     "Vendor Defined",
     "Vendor Defined",
-    "Vendor Defined",                       // 56
+    "Vendor Defined", // 56
     "Vendor Defined",
     "Vendor Defined",
     "Vendor Defined",
@@ -106,5 +107,5 @@ namespace usb::xhci {
     "Vendor Defined",
     "Vendor Defined",
     "Vendor Defined",
-  };
-}
+};
+} // namespace usb::xhci

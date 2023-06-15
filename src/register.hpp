@@ -28,6 +28,7 @@ template <typename T, size_t N> struct ArrayLength<T[N]>
 template <typename T> class MemMapRegister
 {
 public:
+  /* Read the data[] field, and no member data is changed */
   T Read() const
   {
     T tmp;
