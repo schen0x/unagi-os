@@ -63,6 +63,7 @@ TRB *Ring::Push(const std::array<uint32_t, 4> &data)
   return trb_ptr;
 }
 
+/* TODO */
 Error EventRing::Initialize(size_t buf_size, InterrupterRegisterSet *interrupter)
 {
   if (buf_ != nullptr)

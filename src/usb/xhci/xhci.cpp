@@ -342,12 +342,19 @@ Error OnEvent(Controller &xhc, CommandCompletionEventTRB &trb)
   return MAKE_ERROR(Error::kInvalidPhase);
 }
 
+/**
+ * xHCI Spec, 4.22.1 Pre-OS to OS Handoff Synchronization
+ */
 void RequestHCOwnership(uintptr_t mmio_base, HCCPARAMS1_Bitmap hccp)
 {
+  /**
+   * Add if hccp exists, or nullptr if not. _first is Iterator
+   */
   ExtendedRegisterList extregs{mmio_base, hccp};
 
-  auto ext_usblegsup =
-      std::find_if(extregs.begin(), extregs.end(), [](auto &reg) { return reg.Read().bits.capability_id == 1; });
+  auto ext_usblegsup = std::find_if(extregs.begin(), extregs.end(), [](MemMapRegister<ExtendedRegister_Bitmap> &reg) {
+    return reg.Read().bits.capability_id == 1;
+  });
 
   if (ext_usblegsup == extregs.end())
   {
@@ -510,10 +517,12 @@ Error Controller::Run()
 {
   // Run the controller
   auto usbcmd = op_->USBCMD.Read();
+  /* 0: stop; 1: run; default: 0 */
   usbcmd.bits.run_stop = true;
   op_->USBCMD.Write(usbcmd);
   op_->USBCMD.Read();
 
+  /* HCRST, 0: reset has completed; 1: do reset;  */
   while (op_->USBSTS.Read().bits.host_controller_halted)
     ;
 
@@ -658,8 +667,10 @@ void Initialize()
 
   const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
   /* TODO */
-  // pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
-  //                                  pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
+  //pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
+   //                                 pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
+  pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
+                                    pci::MSIDeliveryMode::kFixed, 0x40, 0);
 
   const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
   Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());

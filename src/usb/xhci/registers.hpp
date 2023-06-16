@@ -342,7 +342,7 @@ union PORTHLPMC_Bitmap {
 /**
  * At the tail of Host Controller Operational Registers
  *
- * - 400-13FFh        Port Register Set (1-MaxPorts)
+ * - 400-13FFh        Port Register Set (1-MaxPorts), 32 bytes per Set
  */
 struct PortRegisterSet
 {
@@ -529,6 +529,9 @@ private:
 };
 
 /**** 個別の拡張レジスタ定義 ****/
+/**
+ * xHCI spec, Section 7.1.1; USB Legacy Support Capability (USBLEGSUP)
+ */
 union USBLEGSUP_Bitmap {
   uint32_t data[1];
   struct

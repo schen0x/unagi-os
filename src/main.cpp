@@ -136,7 +136,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
   console = new (console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
   printk("Unagi!\n");
-  SetLogLevel(kDebug);
+  SetLogLevel(kInfo);
 
   /**
    * Draw the cursor
@@ -210,15 +210,24 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
      * ref: section 4.3,
      * (https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
      */
+    /**
+     * TODO
+     */
     {
       auto err = xhc.Initialize();
       Log(kDebug, "xhc.Initialize: %s\n", err.Name());
     }
 
     Log(kInfo, "xHC starting\n");
+    /* Start the xHC */
     xhc.Run();
+
     usb::HIDMouseDriver::default_observer = MouseObserver;
 
+    /**
+     * Loop through all USB ports,
+     * do configure if not yet configured
+     */
     for (int i = 1; i <= xhc.MaxPorts(); ++i)
     {
       auto port = xhc.PortAt(i);
@@ -226,6 +235,8 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
       if (port.IsConnected())
       {
+        /* Argument-dependent lookup (ADL) */
+        /* TODO when? */
         if (auto err = ConfigurePort(xhc, port))
         {
           Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
@@ -233,8 +244,27 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
         }
       }
     }
-  }
+
+    // while (1)
+    for (volatile int i = 0; i < 99999999; i++)
+    {
+      Log(kDebug, "1");
+      if (auto err = ProcessEvent(xhc))
+      {
+        Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+      }
+      asm("pause");
+    }
+
+  } // if (xhc_dev)
 
   asm("hlt");
   return;
+}
+
+// ?
+extern "C" void __cxa_pure_virtual()
+{
+  while (1)
+    __asm__("hlt");
 }
