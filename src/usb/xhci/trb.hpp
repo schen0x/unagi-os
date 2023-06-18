@@ -53,6 +53,93 @@ union TRB {
 };
 
 /**
+ * A Setup Stage TD generates a USB SETUP transaction, which is used to
+ * transmit information to the control endpoint of a USB device.
+ */
+union SetupStageTRB {
+  static const unsigned int Type = 2;
+  static const unsigned int kNoDataStage = 0;
+  static const unsigned int kOutDataStage = 2;
+  static const unsigned int kInDataStage = 3;
+
+  std::array<uint32_t, 4> data{};
+  struct
+  {
+    uint32_t request_type : 8;
+    uint32_t request : 8;
+    uint32_t value : 16;
+
+    uint32_t index : 16;
+    uint32_t length : 16;
+
+    uint32_t trb_transfer_length : 17;
+    uint32_t : 5;
+    uint32_t interrupter_target : 10;
+
+    uint32_t cycle_bit : 1;
+    uint32_t : 4;
+    uint32_t interrupt_on_completion : 1;
+    uint32_t immediate_data : 1;
+    uint32_t : 3;
+    uint32_t trb_type : 6;
+    uint32_t transfer_type : 2;
+    uint32_t : 14;
+  } __attribute__((packed)) bits;
+
+  SetupStageTRB()
+  {
+    bits.trb_type = Type;
+    bits.immediate_data = true;
+    bits.trb_transfer_length = 8;
+  }
+};
+
+/**
+ * A Data Stage TD consists of a Data Stage TRB followed by zero or more Normal
+ * TRBs. If the data is not physically contiguous, Normal TRBs may be chained
+ * to the Data Stage TRB.
+ */
+union DataStageTRB {
+  static const unsigned int Type = 3;
+  std::array<uint32_t, 4> data{};
+  struct
+  {
+    uint64_t data_buffer_pointer;
+
+    uint32_t trb_transfer_length : 17;
+    uint32_t td_size : 5;
+    uint32_t interrupter_target : 10;
+
+    uint32_t cycle_bit : 1;
+    uint32_t evaluate_next_trb : 1;
+    uint32_t interrupt_on_short_packet : 1;
+    uint32_t no_snoop : 1;
+    uint32_t chain_bit : 1;
+    uint32_t interrupt_on_completion : 1;
+    uint32_t immediate_data : 1;
+    uint32_t : 3;
+    uint32_t trb_type : 6;
+    uint32_t direction : 1;
+    uint32_t : 15;
+  } __attribute__((packed)) bits;
+
+  DataStageTRB()
+  {
+    bits.trb_type = Type;
+  }
+
+  void *Pointer() const
+  {
+    return reinterpret_cast<void *>(bits.data_buffer_pointer);
+  }
+
+  void SetPointer(const void *p)
+  {
+    bits.data_buffer_pointer = reinterpret_cast<uint64_t>(p);
+  }
+};
+
+/**
  * A Data Stage TD consists of a Data Stage TRB followed by zero or more Normal
  * TRBs. If the data is not physically contiguous, Normal TRBs may be chained
  * to the Data Stage TRB.
@@ -102,88 +189,6 @@ union NormalTRB {
 };
 
 /**
- * A Setup Stage TD generates a USB SETUP transaction, which is used to
- * transmit information to the control endpoint of a USB device.
- */
-union SetupStageTRB {
-  static const unsigned int Type = 2;
-  static const unsigned int kNoDataStage = 0;
-  static const unsigned int kOutDataStage = 2;
-  static const unsigned int kInDataStage = 3;
-
-  std::array<uint32_t, 4> data{};
-  struct
-  {
-    uint32_t request_type : 8;
-    uint32_t request : 8;
-    uint32_t value : 16;
-
-    uint32_t index : 16;
-    uint32_t length : 16;
-
-    uint32_t trb_transfer_length : 17;
-    uint32_t : 5;
-    uint32_t interrupter_target : 10;
-
-    uint32_t cycle_bit : 1;
-    uint32_t : 4;
-    uint32_t interrupt_on_completion : 1;
-    uint32_t immediate_data : 1;
-    uint32_t : 3;
-    uint32_t trb_type : 6;
-    uint32_t transfer_type : 2;
-    uint32_t : 14;
-  } __attribute__((packed)) bits;
-
-  SetupStageTRB()
-  {
-    bits.trb_type = Type;
-    bits.immediate_data = true;
-    bits.trb_transfer_length = 8;
-  }
-};
-
-union DataStageTRB {
-  static const unsigned int Type = 3;
-  std::array<uint32_t, 4> data{};
-  struct
-  {
-    uint64_t data_buffer_pointer;
-
-    uint32_t trb_transfer_length : 17;
-    uint32_t td_size : 5;
-    uint32_t interrupter_target : 10;
-
-    uint32_t cycle_bit : 1;
-    uint32_t evaluate_next_trb : 1;
-    uint32_t interrupt_on_short_packet : 1;
-    uint32_t no_snoop : 1;
-    uint32_t chain_bit : 1;
-    uint32_t interrupt_on_completion : 1;
-    uint32_t immediate_data : 1;
-    uint32_t : 3;
-    uint32_t trb_type : 6;
-    uint32_t direction : 1;
-    uint32_t : 15;
-  } __attribute__((packed)) bits;
-
-  DataStageTRB()
-  {
-    bits.trb_type = Type;
-  }
-
-  void *Pointer() const
-  {
-    return reinterpret_cast<void *>(bits.data_buffer_pointer);
-  }
-
-  void SetPointer(const void *p)
-  {
-    bits.data_buffer_pointer = reinterpret_cast<uint64_t>(p);
-  }
-};
-
-/**
  * A Status Stage TD is required to complete a control transfer by retrieving
  * the completion status of the USB SETUP transaction from the USB device. The
  * Status Stage TD is always the last TD in a control transfer sequence. A
@@ -191,6 +196,10 @@ union DataStageTRB {
  * an Event Data TRB. Refer to section 8.5.3.1 of the USB2 specification and
  * section 8.12.2.1 of the USB3 specification for more information on status
  * reporting.
+ *
+ * - The "direction" field value is the opposite to that in the SetupStageTRB
+ * - The "length" field is 0
+ *
  */
 union StatusStageTRB {
   static const unsigned int Type = 4;
