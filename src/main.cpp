@@ -32,6 +32,8 @@ MouseCursor *mouse_cursor;
 
 void MouseObserver(uint8_t buttons, int8_t displacement_x, int8_t displacement_y)
 {
+  Log(kDebug, "--**MouseObserver: %d, %d", displacement_x, displacement_y);
+  (void)buttons;
   mouse_cursor->MoveRelative({displacement_x, displacement_y});
 }
 
@@ -136,7 +138,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
   console = new (console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
   printk("Unagi!\n");
-  SetLogLevel(kInfo);
+  SetLogLevel(kDebug);
 
   /**
    * Draw the cursor
@@ -235,7 +237,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
       if (port.IsConnected())
       {
-        /* Argument-dependent lookup (ADL) */
+        /* Argument-dependent lookup (ADL), usb::xhci::ConfigurePort */
         /* TODO when? */
         if (auto err = ConfigurePort(xhc, port))
         {
@@ -245,11 +247,10 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
       }
     }
 
-    // while (1)
-    for (volatile int i = 0; i < 99999999; i++)
+    while (1)
     {
-      Log(kDebug, "1");
-      if (auto err = ProcessEvent(xhc))
+      Log(kDebug, "========>");
+      if (auto err = usb::xhci::ProcessEvent(xhc))
       {
         Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
       }

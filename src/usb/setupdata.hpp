@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 namespace usb
 {
 namespace request_type

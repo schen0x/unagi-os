@@ -35,3 +35,8 @@ int Log(LogLevel level, const char *format, ...)
   console->PutString(s);
   return result;
 }
+
+int debug_break()
+{
+  return 0;
+}

@@ -667,8 +667,8 @@ void Initialize()
 
   const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
   /* TODO */
-  //pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
-   //                                 pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
+  // pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
+  //                                  pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
   pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
                                     pci::MSIDeliveryMode::kFixed, 0x40, 0);
 
