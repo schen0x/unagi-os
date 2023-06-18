@@ -30,6 +30,7 @@ extern const std::array<const char *, 64> kTRBTypeToName;
 
 /**
  * Transfer Request Blocks (TRBs)
+ * ref:
  * - Figure 3-4: Transfer Ring
  * - 4.9.2 Enqueue and Dequeue Pointers
  *
@@ -51,6 +52,11 @@ union TRB {
   } __attribute__((packed)) bits;
 };
 
+/**
+ * A Data Stage TD consists of a Data Stage TRB followed by zero or more Normal
+ * TRBs. If the data is not physically contiguous, Normal TRBs may be chained
+ * to the Data Stage TRB.
+ */
 union NormalTRB {
   static const unsigned int Type = 1;
   std::array<uint32_t, 4> data{};
@@ -177,6 +183,15 @@ union DataStageTRB {
   }
 };
 
+/**
+ * A Status Stage TD is required to complete a control transfer by retrieving
+ * the completion status of the USB SETUP transaction from the USB device. The
+ * Status Stage TD is always the last TD in a control transfer sequence. A
+ * Status Stage TD always consists of a single Status Stage TRB and may include
+ * an Event Data TRB. Refer to section 8.5.3.1 of the USB2 specification and
+ * section 8.12.2.1 of the USB3 specification for more information on status
+ * reporting.
+ */
 union StatusStageTRB {
   static const unsigned int Type = 4;
   std::array<uint32_t, 4> data{};

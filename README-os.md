@@ -646,6 +646,7 @@ The LGDT and LIDT instructions are used only in operating-system software; they 
 
 - [xHCI specification](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
 ![usb-xhci_arch0](./img/usb-xhci_arch0.png)
+![usb-xhci_control_transfer_flow](./img/usb-xhci_control_transfer_flow.png)
 
 
 ## ASSEMBLY
