@@ -610,6 +610,14 @@ Error ConfigureEndpoints(Controller &xhc, Device &dev)
   return MAKE_ERROR(Error::kSuccess);
 }
 
+/**
+ * xHCI spec; 4.11.3; Event Transfer Request Blocks (TRBs)
+ *
+ * - Event TRBs shall be found on an Event Ring.
+ * - A Work Item on an Event Ring is called an Event Descriptor (ED).
+ *   An ED shall be comprised of only one Event TRB data structure. This section describes the operational
+ * characteristics of the event related TRBs.
+ */
 Error ProcessEvent(Controller &xhc)
 {
   if (!xhc.PrimaryEventRing()->HasFront())

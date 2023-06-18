@@ -229,6 +229,7 @@ Error Device::NormalOut(EndpointID ep_id, const void *buf, int len)
 
 Error Device::OnTransferEventReceived(const TransferEventTRB &trb)
 {
+  Log(kDebug, "trb: %x, %x, %x, %x", trb.data[0], trb.data[1], trb.data[2], trb.data[3]);
   const auto residual_length = trb.bits.trb_transfer_length;
 
   if (trb.bits.completion_code != 1 /* Success */ && trb.bits.completion_code != 13 /* Short Packet */)

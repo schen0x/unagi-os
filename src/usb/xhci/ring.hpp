@@ -1,7 +1,14 @@
 /**
  * @file usb/xhci/ring.hpp
  *
- * Event Ring, Command Ring, Transfer Ring のクラスや関連機能．
+ * A Ring is a circular queue of data structures. Three types of Rings are used by the xHC to communicate and execute
+ * USB operations:
+ *   - Command Ring: One for the xHC
+ *   - Event Ring: One for each Interrupter (refer to section 4.17)
+ *   - Transfer Ring: One for each Endpoint or Stream
+ *   The Command Ring is used by system software to issue commands to the xHC.
+ *   The Event Ring is used by the xHC to return status and results of commands and transfers to system software.
+ *   Transfer Rings are used to move data between system memory buffers and device endpoints.
  */
 
 #pragma once

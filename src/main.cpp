@@ -191,7 +191,87 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
     Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
 
-    /* Initialize the xhc, with the MMIO address */
+    /**
+     * xHCI spec 3.1: xHCI defines three interface spaces:
+     *   - Host Configuration Space (PCI Config Space)
+     *   - MMIO Space
+     *     - Capability Registers (specify read-only limits, restrictions and
+     *     capabilities of the host controller implementation. These values are
+     *     used as parameters to the host controller driver.)
+     *     - Operational Registers (Accessed during Init; `Cmd Ring` + `Device
+     *     Context Base Address Array` (DCBAA[slot_id].`Device Contexts`)->`Transfer
+     *     Ring`->`Data Buffer`)
+     *     - xHCI Extended Capabilities (specify optional features of an xHC
+     *     implementation, as well as providing the ability to add new
+     *     capabilities to implementations after the publication of this
+     *     specification.)
+     *     - Runtime Registers (Heavily accessed during Runtime; specify `Event
+     *     Ring Segment Table`->`Event Ring`)
+     *     - Doorbell(DB) Array (Support max 256 `Doorbell Registers`, which
+     *     supports up to 255 USB devices or hubs. System software can notify
+     *     the xHC if it has `Slot` or `Endpoint` related work to perform; A DB
+     *     Target field in the Doorbell Register is written with a value that
+     *     identifies the reason for “ringing” the doorbell. Doorbell Register
+     *     0 is allocated to the Host Controller for Command Ring management.)
+     *     - Host Memory
+     *
+     * TERMS:
+     *   - Device Slot: a generic reference to a set of xHCI data structures
+     *   associated with an individual USB device. Each device is represented
+     *   by an entry in the Device Context Base Address Array, a register in
+     *   the Doorbell Array register, and a device’s Device Context.
+     *   - Slot ID: the index used to identify a specific Device Slot. For
+     *   example the value of Slot ID will be used as an index to identify a
+     *   specific entry in the Device Context Base Address Array.
+     *   - Device Context Base Address Array (DCBAA): supports up to 255 USB devices or
+     *   hubs, where each element in the array is a pointer to a Device Context
+     *   data structure. The first entry DCBAA[0] is used by the `xHCI
+     *   Scratchpad mechanism`. Refer to section 4.20 for more information.
+     *   - Command Ring: used by software to pass device and host controller
+     *   related commands to the xHC. The Command Ring shall be treated as
+     *   read-only by the xHC. Refer to section 4.9.3 for a discussion of
+     *   Command Ring Management.
+     *   - The Event Ring is used by the xHC to pass command completion and
+     *   asynchronous events to software. The Event Ring shall be treated as
+     *   read -only by system software. Refer to section 4.9.4 for a discussion
+     *   of Event Ring Management.
+     *   - A Transfer Ring is used by software to schedule work items for a
+     *   single USB Endpoint. A Transfer Ring is organized as a circular queue
+     *   of Transfer Descriptor (TD) data structures, where each Transfer
+     *   Descriptor defines one or more Data Buffers that will be moved to or
+     *   from the USB. Transfer Rings are treated as read-only by the xHC.
+     *   Refer to section 4.9.2 for a discussion of Transfer Ring Management.
+     *   - All three types of rings support the ability for system software to
+     *   grow or shrink them while they are active. Special TDs written to the
+     *   Transfer and Command rings allow software to change their size,
+     *   however since the Event Ring is read - only to software, the *Event
+     *   Ring Segment Table* is provided so that software may modify its size.
+     *
+     *   - The Device Context data structure is managed by the xHC and used to
+     *   report device configuration and state information to system software.
+     *   The Device Context data structure consists of an array of 32 data
+     *   structures. The first context data structure (index = ‘0’) is a Slot
+     *   Context data structure (6.2.2). The remaining context data structures
+     *   (indices 1-31) are Endpoint Context data structures (6.2.3).
+     *   As part of the process of enumerating a USB device, system software
+     *   allocates a Device Context data structure for the device in host
+     *   memory and initializes it to ‘0’. Ownership of the data structure is
+     *   then passed to the xHC with an Address Device Command. The xHC
+     *   maintains ownership of the Device Context until the device slot is
+     *   disabled with a Disable Slot Command. The Device Context data
+     *   structure shall be treated as read-only by system software while it is
+     *   owned by the xHC.
+     *
+     *   - The Slot Context data structure contains information that relates to the device as a whole, or affects all
+     * endpoints of a USB device. This data structure is defined as a member of the Device Context and Input Context
+     * data structures. Refer to section 3.2.5 for information on the Input Context data structure.
+     *
+     * - Endpoint Context: The Endpoint Context data structure defines the configuration and state of a specific USB
+     * endpoint.
+     *
+     *
+     *
+     */
     usb::xhci::Controller xhc{xhc_mmio_base};
 
     if (0x8086 == pci::ReadVendorId(*xhc_dev))

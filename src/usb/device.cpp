@@ -223,7 +223,7 @@ Error Device::OnEndpointsConfigured()
 Error Device::OnControlCompleted(EndpointID ep_id, SetupData setup_data, const void *buf, int len)
 {
   if (!buf)
-	  debug_break();
+    debug_break();
   Log(kDebug, "Device::OnControlCompleted: buf 0x%08lx, len %d, dir %d\n", reinterpret_cast<uintptr_t>(buf), len,
       setup_data.request_type.bits.direction);
   if (is_initialized_)
@@ -298,7 +298,11 @@ Error Device::InitializePhase1(const uint8_t *buf, int len)
                        buf_.size(), true);
 }
 
-// TODO
+/**
+ * Called by Device::OnControlCompleted
+ * - Device::initialize_phase_ == 2
+ * - 
+ */
 Error Device::InitializePhase2(const uint8_t *buf, int len)
 {
   auto conf_desc = DescriptorDynamicCast<ConfigurationDescriptor>(buf);
@@ -361,10 +365,16 @@ Error Device::InitializePhase2(const uint8_t *buf, int len)
   return SetConfiguration(*this, kDefaultControlPipeID, conf_desc->configuration_value, true);
 }
 
+/**
+ * Called by Device::OnControlCompleted
+ * - Device::initialize_phase_ == 3
+ */
 Error Device::InitializePhase3(uint8_t config_value)
 {
+  /* FIXME class_drivers_ == 0 */
   for (auto class_driver : class_drivers_)
   {
+    debug_break();
     class_driver->SetEndpoint(ep_configs_);
   }
   initialize_phase_ = 4;

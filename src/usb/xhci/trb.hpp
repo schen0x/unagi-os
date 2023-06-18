@@ -1,7 +1,20 @@
 /**
  * @file usb/xhci/trb.hpp
  *
- * Transfer Request Block 関連．
+ * 3.2.9 Control Transfers
+ *
+ * USB Control transfers minimally require two transaction stages on the bus:
+ * Setup and Status. Optionally, contains a Data stage in between.
+ * Status stages
+ * The xHCI defines 3 types of TDs:
+ *   - Setup Stage
+ *   - Data Stage
+ *   - Status Stage
+ * Software "constructs" a control transfer by placing either 2 or 3 TDs on the Transfer Ring before ringing the
+ * doorbell
+ *
+ * A TD can contains multiple TRBs (Scatter/Gather Transfer), until the last TRB where the Chain (CH) flag is 0
+ *
  */
 
 #pragma once
@@ -15,6 +28,15 @@ namespace usb::xhci
 extern const std::array<const char *, 37> kTRBCompletionCodeToName;
 extern const std::array<const char *, 64> kTRBTypeToName;
 
+/**
+ * Transfer Request Blocks (TRBs)
+ * - Figure 3-4: Transfer Ring
+ * - 4.9.2 Enqueue and Dequeue Pointers
+ *
+ *   - Data Buffer Pointer (Address or data) (64)
+ *   - Status (32)
+ *   - Control (32)
+ */
 union TRB {
   std::array<uint32_t, 4> data{};
   struct
@@ -34,8 +56,9 @@ union NormalTRB {
   std::array<uint32_t, 4> data{};
   struct
   {
+    /* uintptr_t Base of data buffer */
     uint64_t data_buffer_pointer;
-
+    /* length of data */
     uint32_t trb_transfer_length : 17;
     uint32_t td_size : 5;
     uint32_t interrupter_target : 10;
@@ -44,6 +67,9 @@ union NormalTRB {
     uint32_t evaluate_next_trb : 1;
     uint32_t interrupt_on_short_packet : 1;
     uint32_t no_snoop : 1;
+    /* (CH) If set, is `Scatter/Gather Transfer`; send Multi-TRB Transfer
+     * Descriptors (TDs), the CH of the last TD is 0
+     */
     uint32_t chain_bit : 1;
     uint32_t interrupt_on_completion : 1;
     uint32_t immediate_data : 1;
@@ -69,6 +95,10 @@ union NormalTRB {
   }
 };
 
+/**
+ * A Setup Stage TD generates a USB SETUP transaction, which is used to
+ * transmit information to the control endpoint of a USB device.
+ */
 union SetupStageTRB {
   static const unsigned int Type = 2;
   static const unsigned int kNoDataStage = 0;
