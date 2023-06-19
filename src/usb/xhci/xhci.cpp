@@ -415,8 +415,16 @@ Controller::Controller(uintptr_t mmio_base)
       op_{reinterpret_cast<OperationalRegisters *>(mmio_base + cap_->CAPLENGTH.Read())},
       max_ports_{static_cast<uint8_t>(cap_->HCSPARAMS1.Read().bits.max_ports)}
 {
+  Log(kDebug, "xhci::Controller::ctor\n");
 }
 
+/**
+ * usb::xhci::Controller::Initialize
+ * The procedure is from
+ * 4.2 Host Controller Initialization
+ *
+ * TODO so why 2 initializer wtf?
+ */
 Error Controller::Initialize()
 {
   /**
@@ -449,7 +457,13 @@ Error Controller::Initialize()
   op_->USBCMD.Write(usbcmd);
 
   Log(kDebug, "xhci::Controller::Initialize: waiting 1ms...\n");
-  /* TODO */
+  /*
+   * TODO (loop or timer not necessary)
+   *
+   *   - After Chip Hardware Reset 6 wait until the Controller Not Ready (CNR) flag in the USBSTS is ‘0’ before writing
+   * any xHC Operational or Runtime registers.
+   *
+   * */
   for (volatile int i = 0; i < 100000; i++)
     asm("pause");
   // auto after_1ms = int(0.01 * kTimerFreq) + timer_manager->CurrentTick();
@@ -461,7 +475,13 @@ Error Controller::Initialize()
     ;
 
   Log(kDebug, "MaxSlots: %u\n", cap_->HCSPARAMS1.Read().bits.max_device_slots);
-  // Set "Max Slots Enabled" field in CONFIG.
+  /**
+   * ...these operations shall be completed before setting the USBCMD register Run/Stop (R/S) bit to ‘1’:
+   *
+   *   - Program the Max Device Slots Enabled (MaxSlotsEn) field in the CONFIG
+   *   register (5.4.7) to enable the device slots that system software is
+   *   going to use.
+   */
   auto config = op_->CONFIG.Read();
   config.bits.max_device_slots_enabled = kDeviceSize;
   op_->CONFIG.Write(config);
@@ -481,6 +501,12 @@ Error Controller::Initialize()
     Log(kInfo, "wrote scratchpad buffer array %p to dev ctx array 0\n", scratchpad_buf_arr);
   }
 
+  /**
+   *   - Program the Device Context Base Address Array Pointer (DCBAAP)
+   *   register (5.4.6) with a 64-bit address pointing to where the Device
+   *   Context Base Address Array is located.
+   *   - TODO (?) Define Command Ring Dequeue Pointer by programming the Command Ring Control Register...?
+   */
   DCBAAP_Bitmap dcbaap{};
   dcbaap.SetPointer(reinterpret_cast<uint64_t>(devmgr_.DeviceContexts()));
   op_->DCBAAP.Write(dcbaap);
@@ -646,6 +672,11 @@ Error ProcessEvent(Controller &xhc)
 
 Controller *controller;
 
+/**
+ * usb::xhci::Initialize
+ * TODO (?) Is this the host controller init?
+ * 4.2 Host Controller Initialization
+ */
 void Initialize()
 {
   // Intel 製を優先して xHC を探す
@@ -685,8 +716,12 @@ void Initialize()
   const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
   Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
 
-  usb::xhci::controller = new Controller{xhc_mmio_base};
-  Controller &xhc = *usb::xhci::controller;
+  /**
+   * Well...
+   */
+  // usb::xhci::controller = new Controller{xhc_mmio_base};
+  // Controller &xhc = *usb::xhci::controller;
+  usb::xhci::Controller xhc{xhc_mmio_base};
 
   if (0x8086 == pci::ReadVendorId(*xhc_dev))
   {

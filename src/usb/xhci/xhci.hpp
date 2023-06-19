@@ -1,7 +1,7 @@
 /**
  * @file usb/xhci/xhci.hpp
  *
- * xHCI ホストコントローラ制御用クラス．
+ * xHCI Host Controller
  */
 
 #pragma once

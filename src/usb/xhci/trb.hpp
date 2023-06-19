@@ -228,6 +228,12 @@ union StatusStageTRB {
   }
 };
 
+/**
+ * 3.3 Command Interface
+ * To manage the xHC and the devices attached to it, the xHC provides an independent Command Ring interface. A work item on a Command Ring is called a Command Descriptor (CD). Command Ring operation is very similar to that of Transfer Rings, software issues a command to the xHC by placing a CD on the Command Ring then rings the Host Controller doorbell. The size of the Command Ring can be modified using the same Link TRB mechanism that Transfer Rings use.
+ *
+ */
+
 union LinkTRB {
   static const unsigned int Type = 6;
   std::array<uint32_t, 4> data{};
