@@ -454,10 +454,13 @@ Error Controller::Initialize()
   return MAKE_ERROR(Error::kSuccess);
 }
 
+/**
+ * Set xHC to start executing commands or TDs
+ */
 Error Controller::Run()
 {
-  // Run the controller
   auto usbcmd = op_->USBCMD.Read();
+  /* 1 to start executing commands or TDs */
   usbcmd.bits.run_stop = true;
   op_->USBCMD.Write(usbcmd);
   op_->USBCMD.Read();

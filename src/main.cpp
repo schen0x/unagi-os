@@ -279,7 +279,25 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     }
 
     /**
-     * xHCI initialize
+     * 4.2 Host Controller Initialization
+     */
+    {
+      auto err = xhc.Initialize();
+      Log(kDebug, "xhc.Initialize: %s\n", err.Name());
+    }
+    /**
+     * Set xHC to start executing commands or TDs
+     */
+    {
+      auto err = xhc.Run();
+      Log(kInfo, "xhc.Run: %s\n", err.Name());
+    }
+
+    usb::HIDMouseDriver::default_observer = MouseObserver;
+
+    /**
+     * 4.3 USB Device Initialization
+     * the process of detecting and initializing a USB device attached to an xHC Root Hub port.
      *   - Reset a Root Hub Port
      *   - Device Slot Assignment
      *   - Device Slot Initialization
@@ -288,23 +306,8 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
      *   - Setting Alternative Interface
      *   - Low-Speed/Full-Speed Device Support
      *   - Bandwidth Management
-     * ref: section 4.3,
      * (https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
      */
-    /**
-     * TODO
-     */
-    {
-      auto err = xhc.Initialize();
-      Log(kDebug, "xhc.Initialize: %s\n", err.Name());
-    }
-
-    Log(kInfo, "xHC starting\n");
-    /* Start the xHC */
-    xhc.Run();
-
-    usb::HIDMouseDriver::default_observer = MouseObserver;
-
     /**
      * Loop through all USB ports,
      * do configure if not yet configured
@@ -316,8 +319,12 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
       if (port.IsConnected())
       {
-        /* Argument-dependent lookup (ADL), usb::xhci::ConfigurePort */
-        /* TODO when? */
+        /**
+         * TODO seems not conifg
+         * - Reset If not connected (?)
+         *
+         * Argument-dependent lookup (ADL), usb::xhci::ConfigurePort
+         */
         if (auto err = ConfigurePort(xhc, port))
         {
           Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
