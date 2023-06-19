@@ -12,7 +12,6 @@
 #include "usb/xhci/port.hpp"
 #include "usb/xhci/registers.hpp"
 #include "usb/xhci/ring.hpp"
-#include <memory>
 
 namespace usb::xhci
 {
@@ -47,7 +46,7 @@ public:
 private:
   static const size_t kDeviceSize = 8;
 
-  /* The order matters in initialization */
+  /* The declaration/initialization order matters in instantiation */
   const uintptr_t mmio_base_;
   /**
    * xHCI spec, 5.3 Host Controller Capability Registers
@@ -89,8 +88,4 @@ Error ConfigureEndpoints(Controller &xhc, Device &dev);
  * @return イベントを正常に処理できたら Error::kSuccess
  */
 Error ProcessEvent(Controller &xhc);
-
-extern Controller *controller;
-void Initialize();
-void ProcessEvents();
 } // namespace usb::xhci

@@ -342,7 +342,7 @@ union PORTHLPMC_Bitmap {
 /**
  * At the tail of Host Controller Operational Registers
  *
- * - 400-13FFh        Port Register Set (1-MaxPorts), 32 bytes per Set
+ * - 400-13FFh        Port Register Set (1-MaxPorts)
  */
 struct PortRegisterSet
 {

@@ -5,20 +5,18 @@
 namespace usb::xhci
 {
 /**
- * Assign enough memory (.bss) for Device *d and DeviceContext *dc
+ * Assign enough memory (.bss) for Device Context Base Address Array (DCBAA) and Device Contexts
  */
 Error DeviceManager::Initialize(size_t max_slots)
 {
   max_slots_ = max_slots;
 
-  /* Allocate enough memory to hold (max_slots + 1) &device */
   devices_ = AllocArray<Device *>(max_slots_ + 1, 0, 0);
   if (devices_ == nullptr)
   {
     return MAKE_ERROR(Error::kNoEnoughMemory);
   }
 
-  /* Allocate enough memory to hold (max_slots + 1) &DeviceContext */
   device_context_pointers_ = AllocArray<DeviceContext *>(max_slots_ + 1, 64, 4096);
   if (device_context_pointers_ == nullptr)
   {

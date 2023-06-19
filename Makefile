@@ -22,7 +22,7 @@ CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include
 		 --target=x86_64-elf -nostdlibinc -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti \
 		 -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))' \
 		 -Wall -Wextra -Wno-unused-function -Wpedantic -g
-CLANG_OPTIMIZE_FLAGS=-O0
+CLANG_OPTIMIZE_FLAGS=-O2
 LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc -lc++ -lc++abi \
 	      --entry KernelMain -z norelro --image-base 0x100000 --static
 
@@ -33,7 +33,7 @@ OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 
 	usb/memory.op64 usb/device.op64 usb/xhci/ring.op64 usb/xhci/trb.op64 usb/xhci/xhci.op64 \
 	usb/xhci/port.op64 usb/xhci/device.op64 usb/xhci/devmgr.op64 usb/xhci/registers.op64 \
 	usb/classdriver/base.op64 usb/classdriver/hid.op64 usb/classdriver/keyboard.op64 \
-	usb/classdriver/mouse.op64 usb/classdriver/cdc.op64
+	usb/classdriver/mouse.op64
 ##### CONFIG #####
 
 all64: clean64 compileuefi64 compilekernel64 makeimg64 run64

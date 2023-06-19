@@ -30,10 +30,9 @@ void operator delete(void *obj) noexcept
 char mouse_cursor_buf[sizeof(MouseCursor)];
 MouseCursor *mouse_cursor;
 
-void MouseObserver(uint8_t buttons, int8_t displacement_x, int8_t displacement_y)
+void MouseObserver(int8_t displacement_x, int8_t displacement_y)
 {
   Log(kDebug, "--**MouseObserver: %d, %d", displacement_x, displacement_y);
-  (void)buttons;
   mouse_cursor->MoveRelative({displacement_x, displacement_y});
 }
 
@@ -329,7 +328,6 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
     while (1)
     {
-      Log(kDebug, "========>");
       if (auto err = usb::xhci::ProcessEvent(xhc))
       {
         Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
@@ -343,7 +341,11 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   return;
 }
 
-// ?
+/**
+ * Define `__cxa_pure_virtual` to resolve "error: undefined symbol: __cxa_pure_virtual"
+ * The function is also defined in libarary `c++abi`, so either add the library during linking,
+ * or write it
+ */
 extern "C" void __cxa_pure_virtual()
 {
   while (1)

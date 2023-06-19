@@ -10,9 +10,8 @@
 
 namespace usb
 {
-/** @brief Static Memory Size (in .bss) for USB Controller
- * 動的メモリ確保のためのメモリプールの最大容量（バイト） */
-static const size_t kMemoryPoolSize = 4096 * 256;
+/** @brief 動的メモリ確保のためのメモリプールの最大容量（バイト） */
+static const size_t kMemoryPoolSize = 4096 * 32;
 
 /** @brief 指定されたバイト数のメモリ領域を確保して先頭ポインタを返す．
  *
@@ -32,8 +31,7 @@ template <class T> T *AllocArray(size_t num_obj, unsigned int alignment, unsigne
   return reinterpret_cast<T *>(AllocMem(sizeof(T) * num_obj, alignment, boundary));
 }
 
-/** @brief TODO implementation (May be hard to manage unless boundary == alignment in AllocMem)
- * 指定されたメモリ領域を解放する．本当に解放することは保証されない． */
+/** @brief 指定されたメモリ領域を解放する．本当に解放することは保証されない． */
 void FreeMem(void *p);
 
 /** @brief 標準コンテナ用のメモリアロケータ */

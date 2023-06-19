@@ -45,6 +45,9 @@ void *AllocMem(size_t size, unsigned int alignment, unsigned int boundary)
   return reinterpret_cast<void *>(p);
 }
 
+/**
+ * TODO implementation (May be hard to manage unless boundary == alignment in AllocMem)
+ */
 void FreeMem(void *p)
 {
 }

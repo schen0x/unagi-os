@@ -1,20 +1,24 @@
 /**
  * @file usb/xhci/trb.hpp
  *
- * 3.2.9 Control Transfers
+ * Transfer Request Blocks (TRBs), ref:
+ *
+ *   - 3.2.9 Control Transfers
+ *   - Figure 3-4: Transfer Ring
+ *   - 4.9.2 Enqueue and Dequeue Pointers
  *
  * USB Control transfers minimally require two transaction stages on the bus:
  * Setup and Status. Optionally, contains a Data stage in between.
- * Status stages
+ *
  * The xHCI defines 3 types of TDs:
  *   - Setup Stage
  *   - Data Stage
  *   - Status Stage
- * Software "constructs" a control transfer by placing either 2 or 3 TDs on the Transfer Ring before ringing the
- * doorbell
+ * Software "constructs" a control transfer by placing either 2 or 3 TDs on the
+ * Transfer Ring before ringing the doorbell
  *
- * A TD can contains multiple TRBs (Scatter/Gather Transfer), until the last TRB where the Chain (CH) flag is 0
- *
+ * A TD can contains multiple TRBs (Scatter/Gather Transfer), until the last
+ * TRB where the Chain (CH) flag is 0
  */
 
 #pragma once
@@ -28,16 +32,6 @@ namespace usb::xhci
 extern const std::array<const char *, 37> kTRBCompletionCodeToName;
 extern const std::array<const char *, 64> kTRBTypeToName;
 
-/**
- * Transfer Request Blocks (TRBs)
- * ref:
- * - Figure 3-4: Transfer Ring
- * - 4.9.2 Enqueue and Dequeue Pointers
- *
- *   - Data Buffer Pointer (Address or data) (64)
- *   - Status (32)
- *   - Control (32)
- */
 union TRB {
   std::array<uint32_t, 4> data{};
   struct
@@ -53,8 +47,13 @@ union TRB {
 };
 
 /**
- * A Setup Stage TD generates a USB SETUP transaction, which is used to
- * transmit information to the control endpoint of a USB device.
+ * A Status Stage TD is required to complete a control transfer by retrieving
+ * the completion status of the USB SETUP transaction from the USB device. The
+ * Status Stage TD is always the last TD in a control transfer sequence. A
+ * Status Stage TD always consists of a single Status Stage TRB and may include
+ * an Event Data TRB. Refer to section 8.5.3.1 of the USB2 specification and
+ * section 8.12.2.1 of the USB3 specification for more information on status
+ * reporting.
  */
 union SetupStageTRB {
   static const unsigned int Type = 2;
@@ -230,10 +229,11 @@ union StatusStageTRB {
 
 /**
  * 3.3 Command Interface
- * To manage the xHC and the devices attached to it, the xHC provides an independent Command Ring interface. A work item on a Command Ring is called a Command Descriptor (CD). Command Ring operation is very similar to that of Transfer Rings, software issues a command to the xHC by placing a CD on the Command Ring then rings the Host Controller doorbell. The size of the Command Ring can be modified using the same Link TRB mechanism that Transfer Rings use.
- *
+ * To manage the xHC and the devices attached to it, the xHC provides an independent Command Ring interface. A work item
+ * on a Command Ring is called a Command Descriptor (CD). Command Ring operation is very similar to that of Transfer
+ * Rings, software issues a command to the xHC by placing a CD on the Command Ring then rings the Host Controller
+ * doorbell. The size of the Command Ring can be modified using the same Link TRB mechanism that Transfer Rings use.
  */
-
 union LinkTRB {
   static const unsigned int Type = 6;
   std::array<uint32_t, 4> data{};

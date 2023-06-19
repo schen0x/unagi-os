@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "sys/_stdint.h"
 #include <array>
 #include <optional>
 #include <stdint.h>

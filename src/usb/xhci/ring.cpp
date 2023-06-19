@@ -1,7 +1,6 @@
 #include "usb/xhci/ring.hpp"
 
 #include "usb/memory.hpp"
-#include <cstring>
 
 namespace usb::xhci
 {
@@ -63,7 +62,6 @@ TRB *Ring::Push(const std::array<uint32_t, 4> &data)
   return trb_ptr;
 }
 
-/* TODO */
 Error EventRing::Initialize(size_t buf_size, InterrupterRegisterSet *interrupter)
 {
   if (buf_ != nullptr)

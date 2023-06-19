@@ -110,8 +110,7 @@ Error Device::ControlIn(EndpointID ep_id, SetupData setup_data, void *buf, int l
     return err;
   }
 
-  Log(kDebug, "Device::ControlIn: ep addr %d, buf 0x%08lx, len %d\n", ep_id.Address(), reinterpret_cast<uintptr_t>(buf),
-      len);
+  Log(kDebug, "Device::ControlIn: ep addr %d, buf 0x%08x, len %d\n", ep_id.Address(), buf, len);
   if (ep_id.Number() < 0 || 15 < ep_id.Number())
   {
     return MAKE_ERROR(Error::kInvalidEndpointNumber);
@@ -163,8 +162,7 @@ Error Device::ControlOut(EndpointID ep_id, SetupData setup_data, const void *buf
     return err;
   }
 
-  Log(kDebug, "Device::ControlOut: ep addr %d, buf 0x%08lx, len %d\n", ep_id.Address(),
-      reinterpret_cast<uintptr_t>(buf), len);
+  Log(kDebug, "Device::ControlOut: ep addr %d, buf 0x%08x, len %d\n", ep_id.Address(), buf, len);
   if (ep_id.Number() < 0 || 15 < ep_id.Number())
   {
     return MAKE_ERROR(Error::kInvalidEndpointNumber);
@@ -209,27 +207,46 @@ Error Device::ControlOut(EndpointID ep_id, SetupData setup_data, const void *buf
   return MAKE_ERROR(Error::kSuccess);
 }
 
-Error Device::NormalIn(EndpointID ep_id, void *buf, int len)
+Error Device::InterruptIn(EndpointID ep_id, void *buf, int len)
 {
-  if (auto err = usb::Device::NormalIn(ep_id, buf, len))
+  if (auto err = usb::Device::InterruptIn(ep_id, buf, len))
   {
     return err;
   }
-  return PushOneTransaction(ep_id, buf, len);
+
+  const DeviceContextIndex dci{ep_id};
+
+  Ring *tr = transfer_rings_[dci.value - 1];
+
+  if (tr == nullptr)
+  {
+    return MAKE_ERROR(Error::kTransferRingNotSet);
+  }
+
+  NormalTRB normal{};
+  normal.SetPointer(buf);
+  normal.bits.trb_transfer_length = len;
+  normal.bits.interrupt_on_short_packet = true;
+  normal.bits.interrupt_on_completion = true;
+
+  tr->Push(normal);
+  dbreg_->Ring(dci.value);
+  return MAKE_ERROR(Error::kSuccess);
 }
 
-Error Device::NormalOut(EndpointID ep_id, const void *buf, int len)
+Error Device::InterruptOut(EndpointID ep_id, void *buf, int len)
 {
-  if (auto err = usb::Device::NormalOut(ep_id, buf, len))
+  if (auto err = usb::Device::InterruptOut(ep_id, buf, len))
   {
     return err;
   }
-  return PushOneTransaction(ep_id, buf, len);
+
+  Log(kDebug, "Device::InterrutpOut: ep addr %d, buf %08lx, len %d, dev %08lx\n", ep_id.Address(), buf, len, this);
+  return MAKE_ERROR(Error::kNotImplemented);
 }
 
 Error Device::OnTransferEventReceived(const TransferEventTRB &trb)
 {
-  Log(kDebug, "trb: %x, %x, %x, %x", trb.data[0], trb.data[1], trb.data[2], trb.data[3]);
   const auto residual_length = trb.bits.trb_transfer_length;
 
   if (trb.bits.completion_code != 1 /* Success */ && trb.bits.completion_code != 13 /* Short Packet */)
@@ -243,7 +260,7 @@ Error Device::OnTransferEventReceived(const TransferEventTRB &trb)
   if (auto normal_trb = TRBDynamicCast<NormalTRB>(issuer_trb))
   {
     const auto transfer_length = normal_trb->bits.trb_transfer_length - residual_length;
-    return this->OnNormalCompleted(trb.EndpointID(), normal_trb->Pointer(), transfer_length);
+    return this->OnInterruptCompleted(trb.EndpointID(), normal_trb->Pointer(), transfer_length);
   }
 
   auto opt_setup_stage_trb = setup_stage_map_.Get(issuer_trb);
@@ -282,25 +299,5 @@ Error Device::OnTransferEventReceived(const TransferEventTRB &trb)
     return MAKE_ERROR(Error::kNotImplemented);
   }
   return this->OnControlCompleted(trb.EndpointID(), setup_data, data_stage_buffer, transfer_length);
-}
-
-Error Device::PushOneTransaction(EndpointID ep_id, const void *buf, int len)
-{
-  const DeviceContextIndex dci{ep_id};
-  Ring *tr = transfer_rings_[dci.value - 1];
-  if (tr == nullptr)
-  {
-    return MAKE_ERROR(Error::kTransferRingNotSet);
-  }
-
-  NormalTRB normal{};
-  normal.SetPointer(buf);
-  normal.bits.trb_transfer_length = len;
-  normal.bits.interrupt_on_short_packet = true;
-  normal.bits.interrupt_on_completion = true;
-
-  tr->Push(normal);
-  dbreg_->Ring(dci.value);
-  return MAKE_ERROR(Error::kSuccess);
 }
 } // namespace usb::xhci
