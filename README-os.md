@@ -840,3 +840,26 @@ __attribute__((sysv_abi)) // System V ELF ABI; rdi, rsi, rdx, rcx, r8, r9 => (rd
 
 - [pattern rules, makefile doc, GNU](https://www.gnu.org/software/make/manual/make.html#Pattern-Rules)
 
+
+## CPP
+
+### PARAMETER PACK
+
+- Since C++11
+
+```c++
+template<class... Us>
+void f(Us... pargs) {}
+ 
+template<class... Ts>
+void g(Ts... args)
+{
+    f(&args...); // “&args...” is a pack expansion
+                 // “&args” is its pattern
+}
+
+g(1, 0.2, "a"); // Ts... args expand to int E1, double E2, const char* E3
+                // &args... expands to &E1, &E2, &E3
+                // Us... pargs expand to int* E1, double* E2, const char** E3
+```
+
