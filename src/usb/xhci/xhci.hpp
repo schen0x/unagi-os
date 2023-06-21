@@ -87,5 +87,5 @@ Error ConfigureEndpoints(Controller &xhc, Device &dev);
  *
  * @return イベントを正常に処理できたら Error::kSuccess
  */
-Error ProcessEvent(Controller &xhc);
+Error __attribute__((no_caller_saved_registers)) ProcessEvent(Controller &xhc);
 } // namespace usb::xhci

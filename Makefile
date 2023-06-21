@@ -29,7 +29,7 @@ LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc -lc++ -lc++abi \
 # .oc64: c 64-bit
 # .op64: cpp 64-bit
 # .asmo64: asm 64-bit
-OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 libcxx_support.op64 console.op64 pci.op64 asmfunc.asmo64 logger.op64 mouse.op64 \
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 libcxx_support.op64 console.op64 pci.op64 asmfunc.asmo64 logger.op64 mouse.op64 interrupt.op64 \
 	usb/memory.op64 usb/device.op64 usb/xhci/ring.op64 usb/xhci/trb.op64 usb/xhci/xhci.op64 \
 	usb/xhci/port.op64 usb/xhci/device.op64 usb/xhci/devmgr.op64 usb/xhci/registers.op64 \
 	usb/classdriver/base.op64 usb/classdriver/hid.op64 usb/classdriver/keyboard.op64 \

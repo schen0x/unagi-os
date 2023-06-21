@@ -1,12 +1,11 @@
 /**
  * @file mouse.hpp
  *
- * マウス制御プログラム．
+ * Mouse
  */
 
 #pragma once
 
-// #@@range_begin(mouse_class)
 #include "graphics.hpp"
 
 class MouseCursor {

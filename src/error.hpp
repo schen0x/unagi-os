@@ -99,10 +99,8 @@ private:
 
 #define MAKE_ERROR(code) Error((code), __FILE__, __LINE__)
 
-// #@@range_begin(with_error)
 template <class T> struct WithError
 {
   T value;
   Error error;
 };
-// #@@range_end(with_error)

@@ -18,7 +18,6 @@ const uint16_t kConfigAddress = 0x0cf8;
 /** @brief IO port for the CONFIG_DATA register */
 const uint16_t kConfigData = 0x0cfc;
 
-// #@@range_begin(class_code)
 /** @brief PCI デバイスのクラスコード */
 struct ClassCode
 {
@@ -51,7 +50,6 @@ struct Device
   uint8_t bus, device, function, header_type;
   ClassCode class_code;
 };
-// #@@range_end(class_code)
 
 /** @brief CONFIG_ADDRESS に指定された整数を書き込む */
 void WriteAddress(uint32_t address);
@@ -77,6 +75,7 @@ inline uint16_t ReadVendorId(const Device &dev)
 /** @brief 指定された PCI デバイスの 32 ビットレジスタを読み取る */
 uint32_t ReadConfReg(const Device &dev, uint8_t reg_addr);
 
+/** @brief 指定された PCI デバイスの 32 ビットレジスタに書き込む */
 void WriteConfReg(const Device &dev, uint8_t reg_addr, uint32_t value);
 
 uint32_t ReadBusNumbers(uint8_t bus, uint8_t device, uint8_t function);
@@ -105,7 +104,7 @@ constexpr uint8_t CalcBarAddress(unsigned int bar_index)
 }
 
 WithError<uint64_t> ReadBar(Device &device, unsigned int bar_index);
-/** @brief PCI ケーパビリティレジスタの共通ヘッダ */
+ /** @brief PCI ケーパビリティレジスタの共通ヘッダ */
   union CapabilityHeader {
     uint32_t data;
     struct {

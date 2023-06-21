@@ -380,53 +380,45 @@ WithError<uint64_t> ReadBar(Device &device, unsigned int bar_index)
   return {bar | (static_cast<uint64_t>(bar_upper) << 32), MAKE_ERROR(Error::kSuccess)};
 }
 
-CapabilityHeader ReadCapabilityHeader(const Device &dev, uint8_t addr)
-{
-  CapabilityHeader header;
-  header.data = pci::ReadConfReg(dev, addr);
-  return header;
-}
+ CapabilityHeader ReadCapabilityHeader(const Device& dev, uint8_t addr) {
+    CapabilityHeader header;
+    header.data = pci::ReadConfReg(dev, addr);
+    return header;
+  }
 
-Error ConfigureMSI(const Device &dev, uint32_t msg_addr, uint32_t msg_data, unsigned int num_vector_exponent)
-{
-  uint8_t cap_addr = ReadConfReg(dev, 0x34) & 0xffu;
-  uint8_t msi_cap_addr = 0, msix_cap_addr = 0;
-  while (cap_addr != 0)
-  {
-    auto header = ReadCapabilityHeader(dev, cap_addr);
-    if (header.bits.cap_id == kCapabilityMSI)
-    {
-      msi_cap_addr = cap_addr;
+  Error ConfigureMSI(const Device& dev, uint32_t msg_addr, uint32_t msg_data,
+                     unsigned int num_vector_exponent) {
+    uint8_t cap_addr = ReadConfReg(dev, 0x34) & 0xffu;
+    uint8_t msi_cap_addr = 0, msix_cap_addr = 0;
+    while (cap_addr != 0) {
+      auto header = ReadCapabilityHeader(dev, cap_addr);
+      if (header.bits.cap_id == kCapabilityMSI) {
+        msi_cap_addr = cap_addr;
+      } else if (header.bits.cap_id == kCapabilityMSIX) {
+        msix_cap_addr = cap_addr;
+      }
+      cap_addr = header.bits.next_ptr;
     }
-    else if (header.bits.cap_id == kCapabilityMSIX)
-    {
-      msix_cap_addr = cap_addr;
+
+    if (msi_cap_addr) {
+      return ConfigureMSIRegister(dev, msi_cap_addr, msg_addr, msg_data, num_vector_exponent);
+    } else if (msix_cap_addr) {
+      return ConfigureMSIXRegister(dev, msix_cap_addr, msg_addr, msg_data, num_vector_exponent);
     }
-    cap_addr = header.bits.next_ptr;
+    return MAKE_ERROR(Error::kNoPCIMSI);
   }
 
-  if (msi_cap_addr)
-  {
-    return ConfigureMSIRegister(dev, msi_cap_addr, msg_addr, msg_data, num_vector_exponent);
+  Error ConfigureMSIFixedDestination(
+      const Device& dev, uint8_t apic_id,
+      MSITriggerMode trigger_mode, MSIDeliveryMode delivery_mode,
+      uint8_t vector, unsigned int num_vector_exponent) {
+    uint32_t msg_addr = 0xfee00000u | (apic_id << 12);
+    uint32_t msg_data = (static_cast<uint32_t>(delivery_mode) << 8) | vector;
+    if (trigger_mode == MSITriggerMode::kLevel) {
+      msg_data |= 0xc000;
+    }
+    return ConfigureMSI(dev, msg_addr, msg_data, num_vector_exponent);
   }
-  else if (msix_cap_addr)
-  {
-    return ConfigureMSIXRegister(dev, msix_cap_addr, msg_addr, msg_data, num_vector_exponent);
-  }
-  return MAKE_ERROR(Error::kNoPCIMSI);
-}
-
-Error ConfigureMSIFixedDestination(const Device &dev, uint8_t apic_id, MSITriggerMode trigger_mode,
-                                   MSIDeliveryMode delivery_mode, uint8_t vector, unsigned int num_vector_exponent)
-{
-  uint32_t msg_addr = 0xfee00000u | (apic_id << 12);
-  uint32_t msg_data = (static_cast<uint32_t>(delivery_mode) << 8) | vector;
-  if (trigger_mode == MSITriggerMode::kLevel)
-  {
-    msg_data |= 0xc000;
-  }
-  return ConfigureMSI(dev, msg_addr, msg_data, num_vector_exponent);
-}
 } // namespace pci
 
 void InitializePCI()

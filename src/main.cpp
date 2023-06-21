@@ -3,10 +3,12 @@
 #include <cstdio> // use the newlib
 #include <new>
 
+#include "asmfunc.h"
 #include "console.hpp"
 #include "font.hpp"
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
+#include "interrupt.hpp"
 #include "logger.hpp"
 #include "mouse.hpp"
 #include "pci.hpp"
@@ -106,6 +108,34 @@ void SwitchEhci2Xhci(const pci::Device &xhc_dev)
   Log(kDebug, "SwitchEhci2Xhci: SS = %02x, xHCI = %02x\n", superspeed_ports, ehci2xhci_ports);
 }
 
+// #@@range_begin(xhci_handler)
+usb::xhci::Controller *xhc;
+
+/**
+ * https://releases.llvm.org/5.0.1/tools/clang/docs/AttributeReference.html#interrupt
+ * Clang supports the GNU style __attribute__((interrupt)) attribute on
+ * x86/x86-64 targets.The compiler generates function entry and exit sequences
+ * suitable for use in an interrupt handler when this attribute is present. The
+ * ‘IRET’ instruction, instead of the ‘RET’ instruction, is used to return from
+ * interrupt or exception handlers. All registers, except for the EFLAGS
+ * register which is restored by the ‘IRET’ instruction, are preserved by the
+ * compiler. Any interruptible-without-stack-switch code must be compiled with
+ * -mno-red-zone since interrupt handlers can and will, because of the hardware
+ *  design, touch the red zone.
+ */
+__attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
+{
+  while (xhc->PrimaryEventRing()->HasFront())
+  {
+    if (auto err = ProcessEvent(*xhc))
+    {
+      Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+    }
+  }
+  NotifyEndOfInterrupt();
+}
+// #@@range_end(xhci_handler)
+
 /**
  * sysv_abi, ms_abi or whatever calling convention,
  * the callee and the caller must use the same one.
@@ -182,6 +212,28 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   if (xhc_dev)
   {
     Log(kInfo, "xHC (Intel) has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+
+    // #@@range_begin(load_idt)
+    /**
+     * Add the xHCI INT vector (0x40) to IDT
+     * Use the current CodeSegment Selector
+     */
+    const uint16_t cs = GetCS();
+    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+    /**
+     * @limit sizeof(idt) - 1
+     * @offset &idt[0]
+     * TODO call convention?
+     */
+    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
+    // #@@range_end(load_idt)
+
+    // #@@range_begin(configure_msi)
+    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
+    pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
+                                      pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
+    // #@@range_end(configure_msi)
 
     /* Read BAR and find the Memory-mapped I/O (MMIO) address */
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
@@ -293,6 +345,9 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
       Log(kInfo, "xhc.Run: %s\n", err.Name());
     }
 
+    ::xhc = &xhc;
+    __asm__("sti");
+
     usb::HIDMouseDriver::default_observer = MouseObserver;
 
     /**
@@ -332,16 +387,6 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
         }
       }
     }
-
-    while (1)
-    {
-      if (auto err = usb::xhci::ProcessEvent(xhc))
-      {
-        Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
-      }
-      asm("pause");
-    }
-
   } // if (xhc_dev)
 
   asm("hlt");
