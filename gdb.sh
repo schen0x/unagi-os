@@ -18,7 +18,7 @@ printf -v DATA_ADDR "0x%X\n" $(($LOADEREFI_BASE + 0x$TEXT + 0x$DATA))
 # Compile and run a first pass, copy the debug.log to debug.loggdb;
 # Then because the img is the same, the Loader.efi seems to be loaded to the same address (it works for now)
 #gdb -ex "target remote 127.0.0.1:1234" -ex "add-symbol-file ./build/kernel.elf ${TEXT_START}" -ex "b *KernelMain" -ex "layout split" -ex "add-symbol-file ./build/Loader.debug ${TEXT_ADDR} -s .data ${DATA_ADDR}" -ex "b *UefiMain" -ex "b *UefiMain+779"
-gdb -ex "target remote 127.0.0.1:1234" -ex "add-symbol-file ./build/kernel.elf ${TEXT_START}" -ex "b *KernelMain" -ex "layout split" -ex "c" -ex "target record-full" -ex "b *debug_break"
+gdb -ex "target remote 127.0.0.1:1234" -ex "add-symbol-file ./build/kernel.elf ${TEXT_START}" -ex "b *KernelMain" -ex "layout split" -ex "c" -ex "b *debug_break" -ex "set logging on" -ex "watch xhc.cap_"
 
 # gdb -ex "target remote 127.0.0.1:1234" -ex "add-symbol-file ./build/kernel.elf ${ENTRY_ADDR}" -ex "b *KernelMain" -ex "layout split" -ex "add-symbol-file ./build/Loader.debug ${TEXT_ADDR} -s .data ${DATA_ADDR}" -ex "b *UefiMain"
 #gdb -ex "target remote 127.0.0.1:1234" -ex "layout split" -ex "add-symbol-file ./build/Loader.debug ${TEXT_ADDR} -s .data ${DATA_ADDR}" -ex "b *UefiMain"

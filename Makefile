@@ -22,7 +22,7 @@ CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include
 		 --target=x86_64-elf -nostdlibinc -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti \
 		 -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))' \
 		 -Wall -Wextra -Wno-unused-function -Wpedantic -g
-CLANG_OPTIMIZE_FLAGS=-O0
+CLANG_OPTIMIZE_FLAGS=-O2
 LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc -lc++ -lc++abi \
 	      --entry KernelMain -z norelro --image-base 0x100000 --static
 

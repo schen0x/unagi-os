@@ -25,6 +25,9 @@ public:
   {
     return &cr_;
   }
+  /**
+   * EventRing *getEventRing()
+   */
   EventRing *PrimaryEventRing()
   {
     return &er_;

@@ -110,6 +110,7 @@ void SwitchEhci2Xhci(const pci::Device &xhc_dev)
 
 // #@@range_begin(xhci_handler)
 usb::xhci::Controller *xhc;
+uint8_t __buf_xhc[sizeof(usb::xhci::Controller)];
 
 /**
  * https://releases.llvm.org/5.0.1/tools/clang/docs/AttributeReference.html#interrupt
@@ -319,11 +320,8 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
      *
      * - Endpoint Context: The Endpoint Context data structure defines the configuration and state of a specific USB
      * endpoint.
-     *
-     *
-     *
      */
-    usb::xhci::Controller xhc{xhc_mmio_base};
+    xhc = new (__buf_xhc) usb::xhci::Controller(xhc_mmio_base);
 
     if (0x8086 == pci::ReadVendorId(*xhc_dev))
     {
@@ -334,18 +332,17 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
      * 4.2 Host Controller Initialization
      */
     {
-      auto err = xhc.Initialize();
+      auto err = xhc->Initialize();
       Log(kDebug, "xhc.Initialize: %s\n", err.Name());
     }
     /**
      * Set xHC to start executing commands or TDs
      */
     {
-      auto err = xhc.Run();
+      auto err = xhc->Run();
       Log(kInfo, "xhc.Run: %s\n", err.Name());
     }
 
-    ::xhc = &xhc;
     __asm__("sti");
 
     usb::HIDMouseDriver::default_observer = MouseObserver;
@@ -367,9 +364,9 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
      * Loop through all USB ports,
      * do configure if not yet configured
      */
-    for (int i = 1; i <= xhc.MaxPorts(); ++i)
+    for (int i = 1; i <= xhc->MaxPorts(); ++i)
     {
-      auto port = xhc.PortAt(i);
+      auto port = xhc->PortAt(i);
       Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
 
       if (port.IsConnected())
@@ -380,7 +377,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
          *
          * Argument-dependent lookup (ADL), usb::xhci::ConfigurePort
          */
-        if (auto err = ConfigurePort(xhc, port))
+        if (auto err = usb::xhci::ConfigurePort(*xhc, port))
         {
           Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
           continue;

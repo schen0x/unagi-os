@@ -423,9 +423,9 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
   }
 
   CopyLoadSegments((ELF64_HEADER *)raw_elf_addr);
+  Print(L"imgaddr:0x%0lx*%ld", raw_elf_addr, raw_elf_page_num);
   Print(L"Kernel: 0x%0lx - 0x%0lx\n", kElf64LoadStartAddr, kElf64LoadEndAddr);
 
-  Print(L"imgaddr:0x%0lx*%ld", raw_elf_addr, raw_elf_page_num);
 
   status = gBS->FreePages(raw_elf_addr, raw_elf_page_num);
   if (EFI_ERROR(status))

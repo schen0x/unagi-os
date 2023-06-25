@@ -7,3 +7,4 @@ disk.img
 
 *.json
 Session.vim
+gdb.txt
