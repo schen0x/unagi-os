@@ -413,6 +413,15 @@ union IMOD_Bitmap {
   } __attribute__((packed)) bits;
 } __attribute__((packed));
 
+/**
+ * 5.5.2.3.1 Event Ring Segment Table Size Register (ERSTSZ)
+ *
+ * Address:       Runtime Base + 028h + (32 * Interrupter)
+ *                where: Interrupter is 0, 1, 2, 3, … 1023
+ * Default Value: 0000 0000 0000 0000h
+ * Attribute:     RW
+ * Size:          32 bits
+ */
 union ERSTSZ_Bitmap {
   uint32_t data[1];
   struct
@@ -451,6 +460,22 @@ union ERSTBA_Bitmap {
   }
 } __attribute__((packed));
 
+/**
+ * 5.5.2.3.3 Event Ring Dequeue Pointer Register (ERDP)
+ *
+ * Address:       Runtime Base + 038h + (32 * Interrupter)
+ *                where: Interrupter is 0, 1, 2, 3, … 1023
+ * Default Value: 0000 0000 0000 0000h
+ * Attribute:     RW
+ * Size:          64 bits
+ *
+ * The Event Ring Dequeue Pointer Register is written by **software** to define the Event Ring Dequeue Pointer location
+ * to the xHC. Software updates this pointer when it is finished the evaluation of an Event(s) on the Event Ring.
+ *
+ * Before enqueuing an Event, the xHC shall check that space is available on the Event Ring. This check can be skipped
+ * if the xHC is currently enqueuing Event TRBs in a different ERST segment than the one that software is using to
+ * dequeue Events.
+ */
 union ERDP_Bitmap {
   uint64_t data[1];
   struct

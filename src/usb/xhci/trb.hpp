@@ -46,15 +46,6 @@ union TRB {
   } __attribute__((packed)) bits;
 };
 
-/**
- * A Status Stage TD is required to complete a control transfer by retrieving
- * the completion status of the USB SETUP transaction from the USB device. The
- * Status Stage TD is always the last TD in a control transfer sequence. A
- * Status Stage TD always consists of a single Status Stage TRB and may include
- * an Event Data TRB. Refer to section 8.5.3.1 of the USB2 specification and
- * section 8.12.2.1 of the USB3 specification for more information on status
- * reporting.
- */
 union SetupStageTRB {
   static const unsigned int Type = 2;
   static const unsigned int kNoDataStage = 0;
@@ -75,6 +66,7 @@ union SetupStageTRB {
     uint32_t : 5;
     uint32_t interrupter_target : 10;
 
+    /* Cycle bit (C). This bit is used to mark the Enqueue Pointer of the Transfer ring. */
     uint32_t cycle_bit : 1;
     uint32_t : 4;
     uint32_t interrupt_on_completion : 1;
@@ -108,7 +100,7 @@ union DataStageTRB {
     uint32_t trb_transfer_length : 17;
     uint32_t td_size : 5;
     uint32_t interrupter_target : 10;
-
+    /* Cycle bit (C). This bit is used to mark the Enqueue Pointer of the Transfer ring. */
     uint32_t cycle_bit : 1;
     uint32_t evaluate_next_trb : 1;
     uint32_t interrupt_on_short_packet : 1;
@@ -154,7 +146,7 @@ union NormalTRB {
     uint32_t trb_transfer_length : 17;
     uint32_t td_size : 5;
     uint32_t interrupter_target : 10;
-
+    /* Cycle bit (C). This bit is used to mark the Enqueue Pointer of the Transfer ring. */
     uint32_t cycle_bit : 1;
     uint32_t evaluate_next_trb : 1;
     uint32_t interrupt_on_short_packet : 1;
@@ -209,7 +201,7 @@ union StatusStageTRB {
 
     uint32_t : 22;
     uint32_t interrupter_target : 10;
-
+    /* Cycle bit (C). This bit is used to mark the Enqueue Pointer of the Transfer ring. */
     uint32_t cycle_bit : 1;
     uint32_t evaluate_next_trb : 1;
     uint32_t : 2;
@@ -228,11 +220,11 @@ union StatusStageTRB {
 };
 
 /**
- * 3.3 Command Interface
- * To manage the xHC and the devices attached to it, the xHC provides an independent Command Ring interface. A work item
- * on a Command Ring is called a Command Descriptor (CD). Command Ring operation is very similar to that of Transfer
- * Rings, software issues a command to the xHC by placing a CD on the Command Ring then rings the Host Controller
- * doorbell. The size of the Command Ring can be modified using the same Link TRB mechanism that Transfer Rings use.
+ * 6.4.4.1 Link TRB
+ * Figure 4-10: Final State of Transfer Ring
+ *
+ * provides support for non-contiguous TRB Rings. Refer to section 4.11.5.1 for
+ * more information on Link TRBs and the operation of non-contiguous TRB Rings.
  */
 union LinkTRB {
   static const unsigned int Type = 6;
@@ -240,6 +232,7 @@ union LinkTRB {
   struct
   {
     uint64_t : 4;
+    /* Physical address of the next Ring Segment (64-bit), 16-byte aligned */
     uint64_t ring_segment_pointer : 60;
 
     uint32_t : 22;
@@ -255,6 +248,10 @@ union LinkTRB {
     uint32_t : 16;
   } __attribute__((packed)) bits;
 
+  /**
+   * - trb_type = Link TRB type.
+   * - ring_segment_pointer = next Ring Segment physical address << 4
+   */
   LinkTRB(const TRB *ring_segment_pointer)
   {
     bits.trb_type = Type;

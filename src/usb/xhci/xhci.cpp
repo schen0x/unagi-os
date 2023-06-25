@@ -560,6 +560,8 @@ Error __attribute__((no_caller_saved_registers)) ProcessEvent(Controller &xhc)
     return MAKE_ERROR(Error::kSuccess);
   }
 
+  debug_break();
+
   Error err = MAKE_ERROR(Error::kNotImplemented);
   auto event_trb = xhc.PrimaryEventRing()->Front();
   if (auto trb = TRBDynamicCast<TransferEventTRB>(event_trb))

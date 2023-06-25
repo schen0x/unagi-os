@@ -19,6 +19,10 @@ Error Ring::Initialize(size_t buf_size)
     FreeMem(buf_);
   }
 
+  /**
+   * Sync with the xHC hardware
+   * - the xHC maintains an Event Ring Producer Cycle State (PCS) bit; initialized to '1'
+   */
   cycle_bit_ = true;
   write_index_ = 0;
   buf_size_ = buf_size;
@@ -33,33 +37,46 @@ Error Ring::Initialize(size_t buf_size)
   return MAKE_ERROR(Error::kSuccess);
 }
 
+/**
+ * Write data at enqueuePtr
+ * cycle_bit not included
+ */
 void Ring::CopyToLast(const std::array<uint32_t, 4> &data)
 {
+  TRB *enqueuePtr = &buf_[write_index_];
   for (int i = 0; i < 3; ++i)
   {
     // data[0..2] must be written prior to data[3].
-    buf_[write_index_].data[i] = data[i];
+    enqueuePtr->data[i] = data[i];
   }
-  buf_[write_index_].data[3] = (data[3] & 0xfffffffeu) | static_cast<uint32_t>(cycle_bit_);
+  enqueuePtr->data[3] = data[3];
+  enqueuePtr->bits.cycle_bit = cycle_bit_;
 }
 
+/**
+ * Automatically set the cycle_bit_ according to the enqueuePtr,
+ * because in Command and Transfer ring, the Host is the Producer of the &data
+ */
 TRB *Ring::Push(const std::array<uint32_t, 4> &data)
 {
-  auto trb_ptr = &buf_[write_index_];
+  TRB *enqueuePtr = &buf_[write_index_];
   CopyToLast(data);
 
   ++write_index_;
+  /**
+   * Add another segment (actually, wrap to the head of the ring itself)
+   */
   if (write_index_ == buf_size_ - 1)
   {
-    LinkTRB link{buf_};
-    link.bits.toggle_cycle = true;
-    CopyToLast(link.data);
+    LinkTRB link{buf_};            // next segment = (TRB *) buf_; trb_type = linkTRB;
+    link.bits.toggle_cycle = true; // TC = 1; because the ring is wrapped
+    CopyToLast(link.data);         // Write
 
     write_index_ = 0;
     cycle_bit_ = !cycle_bit_;
   }
 
-  return trb_ptr;
+  return enqueuePtr;
 }
 
 Error EventRing::Initialize(size_t buf_size, InterrupterRegisterSet *interrupter)
@@ -111,9 +128,14 @@ void EventRing::WriteDequeuePointer(TRB *p)
   interrupter_->ERDP.Write(erdp);
 }
 
+/**
+ * increment the dequeuePointer
+ * if wrap, flip the Event Ring Consumer Cycle State (CCS) bit
+ * When software finishes processing an Event TRB, it will write the address of that Event TRB to the ERDP.
+ */
 void EventRing::Pop()
 {
-  auto p = ReadDequeuePointer() + 1;
+  TRB *p = ReadDequeuePointer() + 1;
 
   TRB *segment_begin = reinterpret_cast<TRB *>(erst_[0].bits.ring_segment_base_address);
   TRB *segment_end = segment_begin + erst_[0].bits.ring_segment_size;
@@ -124,6 +146,7 @@ void EventRing::Pop()
     cycle_bit_ = !cycle_bit_;
   }
 
+  /* ERSTSZ == 1, no need to update the ERST Segment Index (DESI) field */
   WriteDequeuePointer(p);
 }
 } // namespace usb::xhci
