@@ -348,7 +348,7 @@ GDT_DATA:						; DS, SS, ES, FS, GS
 
 ## U16 PROGRAMMABLE INTERRUPT CONTROLLER (PIC)
 
-- For each PCI controller, there are 4 "Initialization Command Words(ICWs)" need to be sent on init
+- For each PIC controller, there are 4 "Initialization Command Words(ICWs)" need to be sent on init
 - Then 3 "Operation Command Words(OCWs) can be sent"
 - [8259A Datasheet](https://pdos.csail.mit.edu/6.828/2005/readings/hardware/8259A.pdf)
 - ICW1, ICW2:
@@ -647,6 +647,14 @@ The LGDT and LIDT instructions are used only in operating-system software; they 
 - [xHCI specification](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
 ![usb-xhci_arch0](./img/usb-xhci_arch0.png)
 ![usb-xhci_control_transfer_flow](./img/usb-xhci_control_transfer_flow.png)
+
+
+## PCI
+
+### MESSAGE SIGNALLED INTERRUPTS
+
+![Message Address Register Format, intel x64 SDM](./img/pci-intel-msi_addr.png)
+![Message Data Register Format, intel x64 SDM](./img/pci-intel-msi_data.png)
 
 
 ## ASSEMBLY
