@@ -126,6 +126,7 @@ uint8_t __buf_xhc[sizeof(usb::xhci::Controller)];
  */
 __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
 {
+  (void)frame;
   while (xhc->PrimaryEventRing()->HasFront())
   {
     if (auto err = ProcessEvent(*xhc))
@@ -225,12 +226,15 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     /**
      * @limit sizeof(idt) - 1
      * @offset &idt[0]
-     * TODO call convention?
      */
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
     // #@@range_end(load_idt)
 
     // #@@range_begin(configure_msi)
+    /**
+     * Intel 64 Software Developer's Manual Vol.3A
+     * 11.11 MESSAGE SIGNALLED INTERRUPTS (1-4, p3419)
+     */
     const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
     pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
                                       pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
@@ -386,7 +390,8 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     }
   } // if (xhc_dev)
 
-  asm("hlt");
+  while (1)
+    __asm__("hlt");
   return;
 }
 

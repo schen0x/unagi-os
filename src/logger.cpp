@@ -17,6 +17,8 @@ void SetLogLevel(LogLevel level)
   log_level = level;
 }
 
+/* TODO Broken, why */
+//! int __attribute__((no_caller_saved_registers))Log(LogLevel level, const char *format, ...)
 int Log(LogLevel level, const char *format, ...)
 {
   if (level > log_level)

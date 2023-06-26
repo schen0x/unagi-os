@@ -35,6 +35,8 @@ void SetLogLevel(LogLevel level);
  * @param format  書式文字列．printk と互換．
  */
 int Log(LogLevel level, const char *format, ...);
+/* TODO broken, why */
+//! int __attribute__((no_caller_saved_registers)) Log(LogLevel level, const char *format, ...);
 /**
  * Usage:
  * Call this, and set breakpoint in debugger on this function
