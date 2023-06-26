@@ -653,6 +653,15 @@ The LGDT and LIDT instructions are used only in operating-system software; they 
 
 ### MESSAGE SIGNALLED INTERRUPTS
 
+- ref: xHCI; 5.2.8 Message Signaled Interrupts (MSI & MSI-X) Capability:
+  - "PCI Capability List is defined in the PCI Local Bus Specification (revision 3.0, Feb 3, 2004) (Section 6.7)"
+
+![pci-message_signaled_interrupts-local_bus_spec](./img/pci-message_signaled_interrupts-local_bus_spec.png)
+
+- (More info on the Capability Structure in the PCI Local Bus Specification, same section)
+
+- intel implementation:
+
 ![Message Address Register Format, intel x64 SDM](./img/pci-intel-msi_addr.png)
 ![Message Data Register Format, intel x64 SDM](./img/pci-intel-msi_data.png)
 
