@@ -232,8 +232,11 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
     // #@@range_begin(configure_msi)
     /**
+     * Read the Local APIC ID from the "0xFEE0 0020H (Local APIC ID Register)"
+     *
      * Intel 64 Software Developer's Manual Vol.3A
-     * 11.11 MESSAGE SIGNALLED INTERRUPTS (1-4, p3419)
+     *   - Table 11-1. Local APIC Register Address Map (1-4, p3389)
+     *   - 9.4.3 MP Initialization Protocol Algorithm for MP Systems (1-4, p3296)
      */
     const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
     pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
