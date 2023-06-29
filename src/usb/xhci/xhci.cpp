@@ -562,9 +562,9 @@ Error __attribute__((no_caller_saved_registers)) ProcessEvent(Controller &xhc)
 
   Error err = MAKE_ERROR(Error::kNotImplemented);
   TRB *event_trb = xhc.PrimaryEventRing()->Front();
-  //volatile TRB *debug_event_trb = event_trb;
+  // volatile TRB *debug_event_trb = event_trb;
   //(void)debug_event_trb;
-  //debug_break(); // Second int, xhc cap_ corrupted
+  // debug_break();
   if (auto trb = TRBDynamicCast<TransferEventTRB>(event_trb))
   {
     err = OnEvent(xhc, *trb);

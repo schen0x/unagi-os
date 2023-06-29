@@ -113,16 +113,18 @@ usb::xhci::Controller *xhc;
 uint8_t __buf_xhc[sizeof(usb::xhci::Controller)];
 
 /**
- * https://releases.llvm.org/5.0.1/tools/clang/docs/AttributeReference.html#interrupt
- * Clang supports the GNU style __attribute__((interrupt)) attribute on
- * x86/x86-64 targets.The compiler generates function entry and exit sequences
- * suitable for use in an interrupt handler when this attribute is present. The
- * ‘IRET’ instruction, instead of the ‘RET’ instruction, is used to return from
- * interrupt or exception handlers. All registers, except for the EFLAGS
- * register which is restored by the ‘IRET’ instruction, are preserved by the
- * compiler. Any interruptible-without-stack-switch code must be compiled with
- * -mno-red-zone since interrupt handlers can and will, because of the hardware
- *  design, touch the red zone.
+ * __attribute__((interrupt)):
+ *   - https://releases.llvm.org/5.0.1/tools/clang/docs/AttributeReference.html#interrupt
+ *   - Clang supports the GNU style __attribute__((interrupt)) attribute on
+ *   x86/x86-64 targets.The compiler generates function entry and exit
+ *   sequences suitable for use in an interrupt handler when this attribute is
+ *   present. The ‘IRET’ instruction, instead of the ‘RET’ instruction, is used
+ *   to return from interrupt or exception handlers. All registers, except for
+ *   the EFLAGS register which is restored by the ‘IRET’ instruction, are
+ *   preserved by the compiler. Any interruptible-without-stack-switch code
+ *   must be compiled with -mno-red-zone since interrupt handlers can and will,
+ *   because of the hardware design, touch the red zone.
+ *
  */
 __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
 {

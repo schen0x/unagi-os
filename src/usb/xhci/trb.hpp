@@ -546,11 +546,12 @@ union PortStatusChangeEventTRB {
   }
 };
 
-/** @brief TRBDynamicCast casts a trb pointer to other type of TRB.
+/**
+ * @brief Try cast the `trb` to a more specific type.
+ * Look at the `trb_type` field, if unmatch, return `nullptr`
  *
- * @param trb  source pointer
- * @return  casted pointer if the source TRB's type is equal to the resulting
- *  type. nullptr otherwise.
+ * @param trb The raw TRB.
+ * @return The TRB pointer of a specific type. `nullptr` if `trb_type` unmatch.
  */
 template <class ToType, class FromType> ToType *TRBDynamicCast(FromType *trb)
 {
