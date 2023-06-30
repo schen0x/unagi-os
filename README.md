@@ -56,6 +56,7 @@ ccls --version
 - EDK2 Conf/target.txt
 
 ```txt
+# source ./edksetup.sh
 # ...
 ACTIVE_PLATFORM       = UnagiLoaderPkg/UnagiLoaderPkg.dsc
 # ...
@@ -84,6 +85,32 @@ BUILD_RULE_CONF = Conf/build_rule.txt
 make -C BaseTools
 source ./edksetup.sh
 build -p OvmfPkg/OvmfPkgX64.dsc -b DEBUG -a X64 -t GCC5
+```
+
+- to compile with EDK2, soft link the LoaderPkg folder to the EDK2HOME
+
+```sh
+# cd $(EDK2HOME)
+ln -s $(PJHOME)/UnagiLoaderPkg ./
+```
+
+- newlib
+
+```sh
+makedir $HOME/opt/cross64/
+# build the content
+./modules/unagios-build/devenv_src/stdlib/
+```
+
+- qemu
+
+```sh
+wget https://download.qemu.org/qemu-8.0.0.tar.xz
+tar xvJf qemu-8.0.0.tar.xz
+cd qemu-8.0.0
+./configure --enable-gtk
+make
+make install
 ```
 
 ## DEBUGGING WITH GDB

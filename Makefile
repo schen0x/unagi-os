@@ -1,5 +1,5 @@
 QEMUPATH = /usr/local/bin
-#QEMUPATH = /usr/bin
+# QEMUPATH = /usr/bin
 SHELL := /bin/bash
 PJHOME = .
 
