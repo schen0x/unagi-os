@@ -61,12 +61,10 @@ constexpr InterruptDescriptorAttribute MakeIDTAttr(DescriptorType type, uint8_t 
   attr.bits.present = present;
   return attr;
 }
-// #@@range_end(make_idt_attr)
 
 void SetIDTEntry(InterruptDescriptor &desc, InterruptDescriptorAttribute attr, uint64_t offset,
                  uint16_t segment_selector);
 
-// #@@range_begin(vector_numbers)
 class InterruptVector
 {
 public:
@@ -75,9 +73,8 @@ public:
     kXHCI = 0x40,
   };
 };
-// #@@range_end(vector_numbers)
 
-// #@@range_begin(frame_struct)
+/* clang defined */
 struct InterruptFrame
 {
   uint64_t rip;
@@ -86,6 +83,5 @@ struct InterruptFrame
   uint64_t rsp;
   uint64_t ss;
 };
-// #@@range_end(frame_struct)
 
 void __attribute__((no_caller_saved_registers)) NotifyEndOfInterrupt();

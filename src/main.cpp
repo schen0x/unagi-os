@@ -12,6 +12,7 @@
 #include "logger.hpp"
 #include "mouse.hpp"
 #include "pci.hpp"
+#include "queue.hpp"
 #include "usb/classdriver/mouse.hpp"
 #include "usb/device.hpp"
 #include "usb/memory.hpp"
@@ -108,9 +109,21 @@ void SwitchEhci2Xhci(const pci::Device &xhc_dev)
   Log(kDebug, "SwitchEhci2Xhci: SS = %02x, xHCI = %02x\n", superspeed_ports, ehci2xhci_ports);
 }
 
-// #@@range_begin(xhci_handler)
 usb::xhci::Controller *xhc;
 uint8_t __buf_xhc[sizeof(usb::xhci::Controller)];
+
+struct Message
+{
+  enum Type
+  {
+    kInterruptXHCI,
+  } type;
+};
+
+/**
+ * FIFO interrupt queue
+ */
+ArrayQueue<Message> *main_queue;
 
 /**
  * __attribute__((interrupt)):
@@ -129,16 +142,9 @@ uint8_t __buf_xhc[sizeof(usb::xhci::Controller)];
 __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
 {
   (void)frame;
-  while (xhc->PrimaryEventRing()->HasFront())
-  {
-    if (auto err = ProcessEvent(*xhc))
-    {
-      Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
-    }
-  }
+  main_queue->Push(Message{Message::kInterruptXHCI});
   NotifyEndOfInterrupt();
 }
-// #@@range_end(xhci_handler)
 
 /**
  * sysv_abi, ms_abi or whatever calling convention,
@@ -163,7 +169,6 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
   const int kFrameWidth = frameBufferConfig.horizontal_resolution;
   const int kFrameHeight = frameBufferConfig.vertical_resolution;
-  // #@@range_begin(draw_desktop)
   FillRectangle(*pixel_writer, {0, 0}, {kFrameWidth, kFrameHeight - 50}, kDesktopBGColor);
   FillRectangle(*pixel_writer, {0, kFrameHeight - 50}, {kFrameWidth, 50}, {1, 8, 17});
   FillRectangle(*pixel_writer, {0, kFrameHeight - 50}, {kFrameWidth / 5, 50}, {80, 80, 80});
@@ -171,12 +176,21 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
 
   console = new (console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
   printk("Unagi!\n");
-  SetLogLevel(kDebug);
+  // SetLogLevel(kDebug);
+  SetLogLevel(kWarn);
 
   /**
    * Draw the cursor
    */
   mouse_cursor = new (mouse_cursor_buf) MouseCursor{pixel_writer, kDesktopBGColor, {600, 800}};
+
+  /**
+   * Initialize the interrupt FIFO queue
+   */
+  std::array<Message, 32> main_queue_data;
+  ArrayQueue<Message> main_queue{main_queue_data};
+  ::main_queue = &main_queue;
+
   auto err = pci::ScanAllBus();
   Log(kDebug, "ScanAllBus: %s\n", err.Name());
 
@@ -217,7 +231,6 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   {
     Log(kInfo, "xHC (Intel) has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
 
-    // #@@range_begin(load_idt)
     /**
      * Add the xHCI INT vector (0x40) to IDT
      * Use the current CodeSegment Selector
@@ -230,9 +243,7 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
      * @offset &idt[0]
      */
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
-    // #@@range_end(load_idt)
 
-    // #@@range_begin(configure_msi)
     /**
      * Read the Local APIC ID from the "0xFEE0 0020H (Local APIC ID Register)"
      *
@@ -243,7 +254,6 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
     pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
                                       pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
-    // #@@range_end(configure_msi)
 
     /* Read BAR and find the Memory-mapped I/O (MMIO) address */
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
@@ -395,8 +405,35 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
     }
   } // if (xhc_dev)
 
-  while (1)
-    __asm__("hlt");
+  while (true)
+  {
+    __asm__("cli");
+    if (main_queue.IsEmpty())
+    {
+      __asm__("sti\n\thlt");
+      continue;
+    }
+
+    Message msg = main_queue.Front();
+    /* The pop need to be done while "cli" to prevent data corruption due to concurrency */
+    main_queue.Pop();
+    __asm__("sti");
+
+    switch (msg.type)
+    {
+    case Message::kInterruptXHCI:
+      while (xhc->PrimaryEventRing()->HasFront())
+      {
+        if (auto err = ProcessEvent(*xhc))
+        {
+          Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+        }
+      }
+      break;
+    default:
+      Log(kError, "Unknown message type: %d\n", msg.type);
+    }
+  }
   return;
 }
 

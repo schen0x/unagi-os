@@ -6,11 +6,8 @@
 
 #include "interrupt.hpp"
 
-// #@@range_begin(idt_array)
 std::array<InterruptDescriptor, 256> idt;
-// #@@range_end(idt_array)
 
-// #@@range_begin(set_idt_entry)
 void SetIDTEntry(InterruptDescriptor &desc, InterruptDescriptorAttribute attr, uint64_t offset,
                  uint16_t segment_selector)
 {
@@ -20,17 +17,20 @@ void SetIDTEntry(InterruptDescriptor &desc, InterruptDescriptorAttribute attr, u
   desc.offset_high = offset >> 32;
   desc.segment_selector = segment_selector;
 }
-// #@@range_end(set_idt_entry)
 
-// #@@range_begin(notify_eoi)
+/**
+ * Inform a CPU core of the EOI
+ * TODO is 8259 PIC disabled?
+ */
 void __attribute__((no_caller_saved_registers)) NotifyEndOfInterrupt()
 {
   /**
-   * TODO x86, PCI, or APIC ?
-   * End Of Interrupt (EOI) Reg. 0xFEE000B0
-   * Write 0 then CPU will be informed EOI
+   * APIC (More detail on OSDEV); in particular, should be "Local APIC" here
+   * The address is defined in the "Intel SDM";
+   * Table 11-1. Local APIC Register Address Map (1-4, p3389)
+   *   - 0xFEE000B0: Local APIC "End Of Interrupt (EOI)" Register
+   * Write 0 then the CPU core will be informed EOI
    */
   volatile auto end_of_interrupt = reinterpret_cast<uint32_t *>(0xfee000b0);
   *end_of_interrupt = 0;
 }
-// #@@range_end(notify_eoi)
