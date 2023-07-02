@@ -1,5 +1,6 @@
 #include "../src/elf.hpp"
 #include "../src/frame_buffer_config.hpp"
+#include "../src/memory_map.hpp"
 #include "Protocol/GraphicsOutput.h"
 #include "Uefi/UefiBaseType.h"
 #include <Guid/FileInfo.h>
@@ -14,35 +15,6 @@
 #include <Protocol/SimpleFileSystem.h>
 #include <Uefi.h>
 
-// #@@range_begin(struct_memory_map)
-struct MemoryMap
-{
-  UINTN buffer_size;
-  /**
-   * MemoryDesc buffer[map_size/sizeof(MemoryDesc)]
-   */
-  VOID *buffer;
-  /**
-   * [IN] buffer size in bytes that can be written
-   * [OUT] buffer size in bytes that is written
-   */
-  UINTN map_size;
-  /**
-   * The Unique Identifier of the current Memory Map
-   */
-  UINTN map_key;
-  /**
-   * Maybe larger than a MemoryDesc
-   */
-  UINTN descriptor_size;
-  /**
-   * MemoryDesc version
-   */
-  UINT32 descriptor_version;
-};
-// #@@range_end(struct_memory_map)
-
-// #@@range_begin(get_memory_type)
 const CHAR16 *GetMemoryTypeUnicode(EFI_MEMORY_TYPE type)
 {
   switch (type)
@@ -83,12 +55,10 @@ const CHAR16 *GetMemoryTypeUnicode(EFI_MEMORY_TYPE type)
     return L"InvalidMemoryType";
   }
 }
-// #@@range_end(get_memory_type)
 
 /**
  * Loop through all MemoryMapDesc and write to a file in CSV
  */
-// #@@range_begin(save_memory_map)
 EFI_STATUS SaveMemoryMap(struct MemoryMap *map, EFI_FILE_PROTOCOL *file)
 {
   CHAR8 buf[256];
@@ -115,7 +85,6 @@ EFI_STATUS SaveMemoryMap(struct MemoryMap *map, EFI_FILE_PROTOCOL *file)
 
   return EFI_SUCCESS;
 }
-// #@@range_end(save_memory_map)
 
 EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL **root)
 {
@@ -231,7 +200,6 @@ EFI_STATUS SetKernelFrameBufferConfig(FrameBufferConfig *fbc, const EFI_GRAPHICS
  * Call UEFI gBS->GetMemoryMap and store the result in map
  * according to UEFI spec
  */
-// #@@range_begin(get_memory_map)
 EFI_STATUS GetMemoryMap(struct MemoryMap *map)
 {
   if (map->buffer == NULL)
@@ -243,9 +211,7 @@ EFI_STATUS GetMemoryMap(struct MemoryMap *map)
   return gBS->GetMemoryMap(&map->map_size, (EFI_MEMORY_DESCRIPTOR *)map->buffer, &map->map_key, &map->descriptor_size,
                            &map->descriptor_version);
 }
-// #@@range_end(get_memory_map)
 
-// #@@range_begin(calc_addr_func)
 void CalcLoadAddressRange(ELF64_HEADER *ehdr, UINT64 *first, UINT64 *last)
 {
   ELF64_PGN_HEADER *phdr = (ELF64_PGN_HEADER *)((UINT64)ehdr + ehdr->e_phoff);
@@ -259,9 +225,7 @@ void CalcLoadAddressRange(ELF64_HEADER *ehdr, UINT64 *first, UINT64 *last)
     *last = MAX(*last, phdr[i].p_vaddr + phdr[i].p_memsz);
   }
 }
-// #@@range_end(calc_addr_func)
 
-// #@@range_begin(copy_segm_func)
 /**
  * Elf Loader
  * Other ref:
@@ -284,7 +248,6 @@ void CopyLoadSegments(ELF64_HEADER *h)
     gBS->SetMem((void *)(ph[i].p_vaddr + ph[i].p_filesz), remain_bytes, 0);
   }
 }
-// #@@range_end(copy_segm_func)
 
 /**
  * The signature of the Entry point is as per the UEFI specification
@@ -309,7 +272,6 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
   /**
    * Get memory map, write to a file in the image
    */
-  // #@@range_begin(main)
   CHAR8 memmap_buf[4096 * 16];
   struct MemoryMap memmap = {sizeof(memmap_buf), memmap_buf, 0, 0, 0, 0};
   GetMemoryMap(&memmap);
@@ -338,16 +300,13 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
 
   SaveMemoryMap(&memmap, memmap_file);
   memmap_file->Close(memmap_file);
-  // #@@range_end(main)
 
   /**
    * Graphics Output Protocol
    * 	- Get gop handle
    */
-  // #@@range_begin(gop)
   EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
   OpenGOP(image_handle, &gop);
-  // #@@range_end(gop)
 
   /**
    * Open the raw kernel.elf file
@@ -426,7 +385,6 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
   Print(L"imgaddr:0x%0lx*%ld", raw_elf_addr, raw_elf_page_num);
   Print(L"Kernel: 0x%0lx - 0x%0lx\n", kElf64LoadStartAddr, kElf64LoadEndAddr);
 
-
   status = gBS->FreePages(raw_elf_addr, raw_elf_page_num);
   if (EFI_ERROR(status))
   {
@@ -476,7 +434,6 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
    *
    * Try exit, if not success, GetMemoryMap then try again, if not, fatal
    */
-  // #@@range_begin(exit_bs)
   status = gBS->ExitBootServices(image_handle, memmap.map_key);
   if (EFI_ERROR(status))
   {
@@ -495,20 +452,17 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
         ;
     }
   }
-  //#@ @range_end(exit_bs)
 
-  // #@@range_begin(call_kernel)
   /**
    * Get the e_entry field in the elf header
    * During linking, offset of KernelMain() is written to the entry_addr
    */
   // asm("int3");
 
-  typedef UINT64 __attribute__((sysv_abi)) EntryPointType(const struct FrameBufferConfig *);
+  typedef UINT64 __attribute__((sysv_abi)) EntryPointType(const struct FrameBufferConfig *, const struct MemoryMap *);
 
   EntryPointType *entry_point = (EntryPointType *)kernel_elf_entry_addr;
-  entry_point(&frameBufferConfig);
-  // #@@range_end(call_kernel)
+  entry_point(&frameBufferConfig, &memmap);
   // Print(L"All done\n");
   while (1)
     ;

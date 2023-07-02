@@ -10,6 +10,7 @@
 #include "graphics.hpp"
 #include "interrupt.hpp"
 #include "logger.hpp"
+#include "memory_map.hpp"
 #include "mouse.hpp"
 #include "pci.hpp"
 #include "queue.hpp"
@@ -19,8 +20,9 @@
 #include "usb/xhci/trb.hpp"
 #include "usb/xhci/xhci.hpp"
 
-FrameBufferConfig frameBufferConfig = {}; // .bss RW, {0} is C syntax, does not work in cpp
-char console_buf[sizeof(Console)];        // The buffer for placement new
+FrameBufferConfig frameBufferConfig = {}; // .data RW, {0} is C syntax, does not work in cpp
+MemoryMap memoryMap = {};
+char console_buf[sizeof(Console)]; // The buffer for placement new
 Console *console;
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
@@ -152,10 +154,12 @@ __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
  * (https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html)
  * (https://clang.llvm.org/docs/AttributeReference.html#ms-abi)
  */
-extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__frameBufferConfig)
+extern "C" void __attribute__((sysv_abi))
+KernelMain(const FrameBufferConfig &__frameBufferConfig, const MemoryMap &__memoryMap)
 {
   /* Store the param into our managed address */
   frameBufferConfig = __frameBufferConfig;
+  memoryMap = __memoryMap;
 
   switch (frameBufferConfig.pixel_format)
   {
@@ -178,6 +182,27 @@ extern "C" void __attribute__((sysv_abi)) KernelMain(const FrameBufferConfig &__
   printk("Unagi!\n");
   // SetLogLevel(kDebug);
   SetLogLevel(kWarn);
+
+  const std::array available_memory_types{
+      MemoryType::kEfiBootServicesCode,
+      MemoryType::kEfiBootServicesData,
+      MemoryType::kEfiConventionalMemory,
+  };
+
+  printk("memoryMap: %p\n", &memoryMap);
+  for (uintptr_t iter = reinterpret_cast<uintptr_t>(memoryMap.buffer);
+       iter < reinterpret_cast<uintptr_t>(memoryMap.buffer) + memoryMap.map_size; iter += memoryMap.descriptor_size)
+  {
+    auto desc = reinterpret_cast<MemoryDescriptor *>(iter);
+    for (size_t i = 0; i < available_memory_types.size(); ++i)
+    {
+      if (desc->type == available_memory_types[i])
+      {
+        printk("type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
+               desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
+      }
+    }
+  }
 
   /**
    * Draw the cursor
