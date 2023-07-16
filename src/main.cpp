@@ -12,16 +12,18 @@
 #include "logger.hpp"
 #include "memory_map.hpp"
 #include "mouse.hpp"
+#include "paging.hpp"
 #include "pci.hpp"
 #include "queue.hpp"
+#include "segment.hpp"
+#include "sys/_stdint.h"
 #include "usb/classdriver/mouse.hpp"
 #include "usb/device.hpp"
 #include "usb/memory.hpp"
 #include "usb/xhci/trb.hpp"
 #include "usb/xhci/xhci.hpp"
+#include "x86_descriptor.hpp"
 
-FrameBufferConfig frameBufferConfig = {}; // .data RW, {0} is C syntax, does not work in cpp
-MemoryMap memoryMap = {};
 char console_buf[sizeof(Console)]; // The buffer for placement new
 Console *console;
 const PixelColor kDesktopBGColor{45, 118, 237};
@@ -148,18 +150,22 @@ __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
   NotifyEndOfInterrupt();
 }
 
+alignas(16) uint8_t kernel_main_stack[1024 * 1024];
+
 /**
+ * The EntryPoint is specified in the compile flag
+ * .asm _KernelMain -> this
  * sysv_abi, ms_abi or whatever calling convention,
  * the callee and the caller must use the same one.
  * (https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html)
  * (https://clang.llvm.org/docs/AttributeReference.html#ms-abi)
  */
 extern "C" void __attribute__((sysv_abi))
-KernelMain(const FrameBufferConfig &__frameBufferConfig, const MemoryMap &__memoryMap)
+KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap &__memoryMap)
 {
-  /* Store the param into our managed address */
-  frameBufferConfig = __frameBufferConfig;
-  memoryMap = __memoryMap;
+  /* TODO Default max stack size? */
+  FrameBufferConfig frameBufferConfig{__frameBufferConfig};
+  MemoryMap memoryMap{__memoryMap};
 
   switch (frameBufferConfig.pixel_format)
   {
@@ -183,24 +189,24 @@ KernelMain(const FrameBufferConfig &__frameBufferConfig, const MemoryMap &__memo
   // SetLogLevel(kDebug);
   SetLogLevel(kWarn);
 
-  const std::array available_memory_types{
-      MemoryType::kEfiBootServicesCode,
-      MemoryType::kEfiBootServicesData,
-      MemoryType::kEfiConventionalMemory,
-  };
+  /* Setup GDT Segments, 1: RX; 2: RW */
+  SetupSegments();
 
-  printk("memoryMap: %p\n", &memoryMap);
-  for (uintptr_t iter = reinterpret_cast<uintptr_t>(memoryMap.buffer);
-       iter < reinterpret_cast<uintptr_t>(memoryMap.buffer) + memoryMap.map_size; iter += memoryMap.descriptor_size)
+  const uint16_t kernel_cs = 1 << 3; // RX (? TODO does the permission setting has any effect on 64-Bit apps?)
+  const uint16_t kernel_ss = 2 << 3; // RW
+  SetDSAll(0);                       // Well in 64-Bit all is treated as 0, so I guess it's whatever
+  SetCSSS(kernel_cs, kernel_ss);
+
+  // SetupIdentityPageTable();
+
+  const uintptr_t memoryMapBase = reinterpret_cast<uintptr_t>(memoryMap.buffer);
+  for (uintptr_t iter = memoryMapBase; iter < memoryMapBase + memoryMap.map_size; iter += memoryMap.descriptor_size)
   {
     auto desc = reinterpret_cast<MemoryDescriptor *>(iter);
-    for (size_t i = 0; i < available_memory_types.size(); ++i)
+    if (IsAvailable(static_cast<MemoryType>(desc->type)))
     {
-      if (desc->type == available_memory_types[i])
-      {
-        printk("type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
-               desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
-      }
+      printk("type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
+             desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
     }
   }
 
@@ -258,11 +264,10 @@ KernelMain(const FrameBufferConfig &__frameBufferConfig, const MemoryMap &__memo
 
     /**
      * Add the xHCI INT vector (0x40) to IDT
-     * Use the current CodeSegment Selector
+     * Use the kernel managed CodeSegment Selector
      */
-    const uint16_t cs = GetCS();
     SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
-                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
     /**
      * @limit sizeof(idt) - 1
      * @offset &idt[0]

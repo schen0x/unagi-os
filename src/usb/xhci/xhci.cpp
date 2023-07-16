@@ -5,6 +5,7 @@
 #include "usb/device.hpp"
 #include "usb/setupdata.hpp"
 #include "usb/xhci/speed.hpp"
+#include <cstring>
 #include <stdint.h>
 
 namespace

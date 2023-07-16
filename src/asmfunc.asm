@@ -36,3 +36,64 @@ LoadIDT:
     mov rsp, rbp
     pop rbp
     ret
+
+global LoadGDT  ; void __attribute__((sysv_abi)) LoadGDT(uint16_t limit, uint64_t offset);
+LoadGDT:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 10
+    mov [rsp], di  ; limit
+    mov [rsp + 2], rsi  ; offset
+    lgdt [rsp]
+    mov rsp, rbp
+    pop rbp
+    ret
+
+; Set SS and CS register
+; - A smart way to set CS while not effecting execution flow;
+; - CS and RIP need to be set at the same time by doing a far jump or far return;
+; - With a far return, function parameters can be passed more intuitively (i.e., without using a "hack" like the haribote OS);
+; - SS <- Stack Segment Selector; SS can be loaded explicitly (Intel SDM)
+; - CS <- Code Segment Selector; CS cannot be loaded explicitly
+; - In 64-Bit Mode, CS, DS, ES, SS are treated as if each segment base is 0, regardless of the value of the associated segment descriptor base (Intel SDM)
+; - This creates a flat address space for code, data, and stack. Except FS and GS, which may be used as additional base registers in linear address calculations (Intel SDM)
+; - Though generally disable, the segment selectors can still be used by applications running in compatibility mode
+global SetCSSS  ; void __attribute__((sysv_abi)) SetCSSS(uint16_t cs, uint16_t ss);
+SetCSSS:
+    push rbp
+    mov rbp, rsp
+
+    mov ss, si  ; Set the SS register
+    mov rax, .next ; the "Checkpoint"; Save the 64 bit address;
+    push rdi    ; CS
+    push rax    ; RIP
+    o64 retf    ; Set RIP instead of EIP when "far return"; 48 cb rex.W retf (i.e., "REX prefix" syntax)
+                ; `ret` instruction pops an address as EIP, if `retf` (return far), pops an additional address as CS; In 64-bit mode, the default operation size of the `ret` is 64bits, however, `retf` by default uses 32bits (Intel SDM)
+.next:		; Resume original execution
+    mov rsp, rbp
+    pop rbp
+    ret
+
+global SetDSAll  ; void SetDSAll(uint16_t value);
+SetDSAll:
+    mov ds, di
+    mov es, di
+    mov fs, di
+    mov gs, di
+    ret
+
+global SetCR3  ; void SetCR3(uint64_t value);
+SetCR3:
+    mov cr3, rdi
+    ret
+
+extern kernel_main_stack
+extern KernelMainNewStack
+
+global _KernelMain
+_KernelMain:
+    mov rsp, kernel_main_stack + 1024 * 1024
+    call KernelMainNewStack
+.fin:
+    hlt
+    jmp .fin

@@ -21,15 +21,15 @@ CLANG_CXXFLAGS = -I$(S64) -I$(LIBCXX_DIR)/include/c++/v1 -I$(LIBCXX_DIR)/include
 		 -I$(EDK2PATH)/MdePkg/Include -I$(EDK2PATH)/MdePkg/Include/X64 \
 		 --target=x86_64-elf -nostdlibinc -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti \
 		 -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS -DEFIAPI='__attribute__((ms_abi))' \
-		 -Wall -Wextra -Wno-unused-function -Wpedantic -g
+		 -Wall -Wextra -Wno-unused-function -Wpedantic -g -Wno-unused-parameter
 CLANG_OPTIMIZE_FLAGS=-O2
 LD_LLDFLAGS = -L$(LIBCXX_DIR)/lib -lc -lc++ -lc++abi \
-	      --entry KernelMain -z norelro --image-base 0x100000 --static
+	      --entry _KernelMain -z norelro --image-base 0x100000 --static
 
 # .oc64: c 64-bit
 # .op64: cpp 64-bit
 # .asmo64: asm 64-bit
-OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 libcxx_support.op64 console.op64 pci.op64 asmfunc.asmo64 logger.op64 mouse.op64 interrupt.op64 \
+OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 libcxx_support.op64 console.op64 pci.op64 asmfunc.asmo64 logger.op64 mouse.op64 interrupt.op64 segment.op64 paging.op64 \
 	usb/memory.op64 usb/device.op64 usb/xhci/ring.op64 usb/xhci/trb.op64 usb/xhci/xhci.op64 \
 	usb/xhci/port.op64 usb/xhci/device.op64 usb/xhci/devmgr.op64 usb/xhci/registers.op64 \
 	usb/classdriver/base.op64 usb/classdriver/hid.op64 usb/classdriver/keyboard.op64 \

@@ -26,7 +26,7 @@ _gdt_ltr:
 global _taskswitch4:FUNCTION
 ; TODO (Modern Implementation and proper implementation?)
 _taskswitch4: ; void _taskswitch4(void);
-    jmp 4*8:0
+    jmp 4*8:0 ; Hardware TSS; 4*8 is the selector points to a TSS segment; In that case, the 0 is ignored;
     RET
 
 global _taskswitch3:FUNCTION
