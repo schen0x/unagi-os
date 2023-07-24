@@ -4,7 +4,7 @@ SHELL := /bin/bash
 PJHOME = .
 
 #====================[64bit]====================
-EDK2PATH = $(HOME)/src/edk2
+EDK2PATH = /managed/code/edk2
 EDK2UEFIIMGPATH = $(EDK2PATH)/Build/UnagiLoaderX64/DEBUG_GCC5/X64/
 TOOLPATH64 = $(PJHOME)/modules/unagios-build/devenv
 DISK_IMG = $(PJHOME)/build/disk.img
@@ -37,6 +37,7 @@ OBJ64 = main.op64 graphics.op64 font.op64 font/hankaku.oc64 newlib_support.oc64 
 ##### CONFIG #####
 
 all64: clean64 compileuefi64 compilekernel64 makeimg64 run64
+#all64: compileuefi64 compilekernel64 makeimg64 run64
 allgdb: clean64 compileuefi64 compilekernel64 makeimg64 gdb
 bear:
 	bear -- make __bear
@@ -154,9 +155,9 @@ clean32:
 	rm -rf $(PJHOME)/bin/*
 
 clean64:
-	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"src/edk2/Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)/UnagiLoaderPkg/ && rm -rf $(EDK2UEFIIMGPATH)/Loader.*
+	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)/UnagiLoaderPkg/ && rm -rf $(EDK2UEFIIMGPATH)/Loader.*
 	rm -rf $(PJHOME)/build/*
 	rm -rf $(PJHOME)/bin/*
 clean64lib:
-	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"src/edk2/Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)
+	[[ ! -z $(EDK2UEFIIMGPATH) ]] && [[ $(EDK2UEFIIMGPATH) == *"Build/UnagiLoaderX64/"* ]] && rm -rf $(EDK2UEFIIMGPATH)
 

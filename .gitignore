@@ -1,5 +1,6 @@
 .ccls-cache/**/*
 *.bin
+.cache
 build/**/*
 bin/**/*
 mnt/**/*
