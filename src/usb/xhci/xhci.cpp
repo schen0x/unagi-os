@@ -378,6 +378,7 @@ Error Controller::Initialize()
 
   RequestHCOwnership(mmio_base_, cap_->HCCPARAMS1.Read());
 
+  debug_break();
   auto usbcmd = op_->USBCMD.Read();
   usbcmd.bits.interrupter_enable = false;
   usbcmd.bits.host_system_error_enable = false;

@@ -84,7 +84,26 @@ SetDSAll:
 
 global SetCR3  ; void SetCR3(uint64_t value);
 SetCR3:
+; Enter Long Mode (Seems not need since UEFI start from 64 bit)
+   ; ; disable paging
+   ; mov rbx, cr0
+   ; and rbx, ~(1 << 31)
+   ; mov cr0, rbx
+   ; ; Enable PAE
+   ; mov rdx, cr4
+   ; or rdx, (1 << 5)
+   ; mov cr4, rdx
+   ; ; Set LME (long mode enable)
+   ; mov rcx, 0xC0000080
+   ; rdmsr
+   ; or  rax, (1 << 8)
+   ; wrmsr
+
     mov cr3, rdi
+;; Enable paging (and protected mode, if it isn't already active)
+;    or rbx, (1 << 31) | (1 << 0)
+;    mov cr0, rbx
+
     ret
 
 extern kernel_main_stack

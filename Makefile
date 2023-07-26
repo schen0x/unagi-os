@@ -13,7 +13,7 @@ S64=$(PJHOME)/src
 B64=$(PJHOME)/build
 OVMF_LOG=/run/shm/debug.log
 GDB_IN=$(OVMF_LOG)gdb
-RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -serial stdio -debugcon file:$(OVMF_LOG) -global isa-debugcon.iobase=0x402
+RUNQEMU64=$(QEMUPATH)/qemu-system-x86_64 -m 1G -drive if=pflash,format=raw,readonly=on,file=$(TOOLPATH64)/OVMF_CODE.fd -drive if=pflash,format=raw,file=$(TOOLPATH64)/OVMF_VARS.fd -drive if=ide,index=0,media=disk,format=raw,file=$(DISK_IMG) -device nec-usb-xhci,id=xhci -device usb-mouse -device usb-kbd -monitor stdio -debugcon file:$(OVMF_LOG) -global isa-debugcon.iobase=0x402
 # newlib
 LIBCXX_DIR=$(HOME)/opt/cross64/x86_64-elf
 #### FLAGS ####

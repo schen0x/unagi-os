@@ -153,7 +153,7 @@ __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
 /**
- * The EntryPoint is specified in the compile flag
+ * The EntryPoint is specified i the compile flag
  * .asm _KernelMain -> this
  * sysv_abi, ms_abi or whatever calling convention,
  * the callee and the caller must use the same one.
@@ -186,8 +186,8 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
 
   console = new (console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
   printk("Unagi!\n");
-  // SetLogLevel(kDebug);
-  SetLogLevel(kWarn);
+  SetLogLevel(kDebug);
+  // SetLogLevel(kWarn);
 
   /* Setup GDT Segments, 1: RX; 2: RW */
   SetupSegments();
@@ -197,7 +197,9 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   SetDSAll(0);                       // Well in 64-Bit all is treated as 0, so I guess it's whatever
   SetCSSS(kernel_cs, kernel_ss);
 
+  // debug_break();
   // SetupIdentityPageTable();
+  // debug_break();
 
   const uintptr_t memoryMapBase = reinterpret_cast<uintptr_t>(memoryMap.buffer);
   for (uintptr_t iter = memoryMapBase; iter < memoryMapBase + memoryMap.map_size; iter += memoryMap.descriptor_size)
@@ -205,8 +207,8 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
     auto desc = reinterpret_cast<MemoryDescriptor *>(iter);
     if (IsAvailable(static_cast<MemoryType>(desc->type)))
     {
-      printk("type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
-             desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
+      Log(kDebug, "type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
+          desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
     }
   }
 
