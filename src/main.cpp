@@ -188,6 +188,8 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   printk("Unagi!\n");
   SetLogLevel(kDebug);
   // SetLogLevel(kWarn);
+  volatile char *mTest = (char *)0x3FE00000; // @1G
+  *mTest = "A"[0];
 
   /* Setup GDT Segments, 1: RX; 2: RW */
   SetupSegments();
@@ -200,6 +202,10 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   // debug_break();
   // SetupIdentityPageTable();
   // debug_break();
+  *(mTest + 1) = "B"[0];
+
+  const bool mTestRes = *mTest == "A"[0] && *(mTest + 1) == "B"[0];
+  Log(kInfo, "Memory test (paging identity mapping) result: %s", mTestRes ? "success" : "fail");
 
   const uintptr_t memoryMapBase = reinterpret_cast<uintptr_t>(memoryMap.buffer);
   for (uintptr_t iter = memoryMapBase; iter < memoryMapBase + memoryMap.map_size; iter += memoryMap.descriptor_size)
@@ -284,15 +290,17 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
      *   - 9.4.3 MP Initialization Protocol Algorithm for MP Systems (1-4, p3296)
      */
     const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
+    Log(kDebug, "bsp_local_apic_id: %x\n", bsp_local_apic_id); // 0
     pci::ConfigureMSIFixedDestination(*xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
                                       pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
 
     /* Read BAR and find the Memory-mapped I/O (MMIO) address */
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
-    Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
+    Log(kDebug, "ReadBar: %s; %lx\n", xhc_bar.error.Name(), xhc_bar.value);
     /* MMIO address = BAR with the lower 4 bits (flags) masked */
     const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
     Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
+    Log(kDebug, "frameBuffer@%x", frameBufferConfig.frame_buffer_base);
 
     /**
      * xHCI spec 3.1: xHCI defines three interface spaces:

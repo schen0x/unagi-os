@@ -11,7 +11,8 @@
 namespace usb
 {
 /** @brief 動的メモリ確保のためのメモリプールの最大容量（バイト） */
-static const size_t kMemoryPoolSize = 4096 * 32;
+// static const size_t kMemoryPoolSize = 4096 * 32;
+static const size_t kMemoryPoolSize = 4096 * 1024;
 
 /** @brief 指定されたバイト数のメモリ領域を確保して先頭ポインタを返す．
  *
