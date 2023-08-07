@@ -733,6 +733,17 @@ _farjmp:	; void farjmp(uint32_t eip, uint16_t cs)
     JMP FAR[ESP + 4]	; a hack? "FF /5" "JMP m16:32" ==> jmp cs:eip; also eip is ignored
 ```
 
+### ZERO OUT THE HIGHER REGISTER (PARTIAL REGISTER STALL)
+
+- (Why do x86-64 instructions on 32-bit registers zero the upper part of the full 64-bit register, stackoverflow)[https://stackoverflow.com/questions/11177137/why-do-x86-64-instructions-on-32-bit-registers-zero-the-upper-part-of-the-full-6]
+- 32-bit operands generate a 32-bit result, zero-extended to a 64-bit result in the destination general-purpose register.
+- 8-bit and 16-bit operands generate an 8-bit or 16-bit result. The upper 56 bits or 48 bits (respectively) of the destination general-purpose register are not be modified by the operation. If the result of an 8-bit or 16-bit operation is intended for 64-bit address calculation, explicitly sign-extend the register to the full 64-bits.
+
+```asm
+mov rax, 0x80000000 00000013
+and eax,          0x0000ffff ; the higher part (the "8") will be zeroed out
+```
+
 
 ## C
 
