@@ -891,3 +891,9 @@ g(1, 0.2, "a"); // Ts... args expand to int E1, double E2, const char* E3
                 // Us... pargs expand to int* E1, double* E2, const char** E3
 ```
 
+### COMPILE PHRASE
+
+- (Phases of translation)[https://en.cppreference.com/w/cpp/language/translation_phases#Phase_6]
+
+
+

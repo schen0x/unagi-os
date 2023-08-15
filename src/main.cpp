@@ -10,6 +10,7 @@
 #include "graphics.hpp"
 #include "interrupt.hpp"
 #include "logger.hpp"
+#include "memory_manager.hpp"
 #include "memory_map.hpp"
 #include "mouse.hpp"
 #include "paging.hpp"
@@ -59,6 +60,9 @@ int printk(const char *format, ...)
   console->PutString(s);
   return result;
 }
+
+char memory_manager_buf[sizeof(BitmapMemoryManager)];
+BitmapMemoryManager *memory_manager;
 
 /**
  * Enable XHCI (USB3.0 controller) if device is Intel 7 Series PCH
@@ -188,8 +192,8 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   printk("Unagi!\n");
   SetLogLevel(kDebug);
   // SetLogLevel(kWarn);
-  volatile char *mTest = (char *)0x3FE00000; // @1G
-  *mTest = "A"[0];
+  // volatile char *mTest = (char *)0x3FE00000; // @1G
+  // *mTest = "A"[0];
 
   /* Setup GDT Segments, 1: RX; 2: RW */
   SetupSegments();
@@ -200,23 +204,61 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   SetCSSS(kernel_cs, kernel_ss);
 
   // debug_break();
+  // PAGING
   // SetupIdentityPageTable();
   // debug_break();
-  *(mTest + 1) = "B"[0];
+  // *(mTest + 1) = "B"[0];
 
-  const bool mTestRes = *mTest == "A"[0] && *(mTest + 1) == "B"[0];
-  Log(kInfo, "Memory test (paging identity mapping) result: %s", mTestRes ? "success" : "fail");
+  // const bool mTestRes = *mTest == "A"[0] && *(mTest + 1) == "B"[0];
+  // Log(kInfo, "Memory test (paging identity mapping) result: %s", mTestRes ? "success" : "fail");
 
+  // TODO
+  memory_manager = new (memory_manager_buf) BitmapMemoryManager;
+  //::memory_manager = new (memory_manager_buf) BitmapMemoryManager;
   const uintptr_t memoryMapBase = reinterpret_cast<uintptr_t>(memoryMap.buffer);
+  uintptr_t available_end = 0;
+
+  /**
+   * Loop through memoryMap
+   *   - find usable spaces
+   *   - pass info to a memory manager
+   */
   for (uintptr_t iter = memoryMapBase; iter < memoryMapBase + memoryMap.map_size; iter += memoryMap.descriptor_size)
   {
-    auto desc = reinterpret_cast<MemoryDescriptor *>(iter);
+    auto desc = reinterpret_cast<const MemoryDescriptor *>(iter);
+    /**
+     * - Use FrameID == a representation of linear physical address
+     * - Frame is marked "allocated" if an physical address does not exist
+     * - Assume the map is sorted
+     */
+    /* Mark the non-exist physical address "allocated" */
+    if (available_end < desc->physical_start)
+    {
+      /* FIXME? problematic when Frame alignment > UEFI alignment;
+       * And problematic because we can enter this branch while the 2nd param may be 0?
+       * [FrameAlignment][non-existence physical address][physical_start]...[FrameAlignment]
+       *                 |----------------This can be a frame---------------|
+       */
+      memory_manager->MarkAllocated(FrameID{available_end / kBytesPerFrame},
+                                    (desc->physical_start - available_end) / kBytesPerFrame);
+    }
+    /**
+     * - Mark the non-available physical address "allocated"
+     * - Advance the end pointer, if physical address available
+     */
+    const auto physical_end = desc->physical_start + desc->number_of_pages * kUEFIPageSize;
+    /* If memory type is an "usable" type: no need to mark anything; step over the range */
     if (IsAvailable(static_cast<MemoryType>(desc->type)))
     {
-      Log(kDebug, "type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
-          desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
+      available_end = physical_end;
+    }
+    else
+    {
+      memory_manager->MarkAllocated(FrameID{desc->physical_start / kBytesPerFrame},
+                                    desc->number_of_pages * kUEFIPageSize / kBytesPerFrame);
     }
   }
+  memory_manager->SetMemoryRange(FrameID{1}, FrameID{available_end / kBytesPerFrame});
 
   /**
    * Draw the cursor
