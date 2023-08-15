@@ -111,7 +111,7 @@ extern KernelMainNewStack
 
 global _KernelMain
 _KernelMain:
-    mov rsp, kernel_main_stack + 1024 * 1024
+    mov rsp, (kernel_main_stack + 1024 * 1024 * 4)
     call KernelMainNewStack
 .fin:
     hlt

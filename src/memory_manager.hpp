@@ -68,7 +68,7 @@ class BitmapMemoryManager
 {
 public:
   /** @brief Max bytes that this memory management class can handle */
-  static const auto kMaxPhysicalMemoryBytes{128_GiB};
+  static const auto kMaxPhysicalMemoryBytes{128_GiB}; // 16 GB -> 0.5MB BitMap
   /** @brief Total frames necessary if kMaxPhysicalMemoryBytes needs to be managed */
   static const auto kFrameCount{kMaxPhysicalMemoryBytes / kBytesPerFrame};
 

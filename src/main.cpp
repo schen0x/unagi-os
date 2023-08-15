@@ -34,6 +34,12 @@ void operator delete(void *obj) noexcept
 {
   (void)obj;
 }
+/* This buffer cannot be in .data,  */
+// char __memory_manager_buf[sizeof(BitmapMemoryManager)]; // 16GB -> 0.5MB?
+char __memory_manager_buf[1024 * 1024 * 8]; // 16GB -> 0.5MB?
+BitmapMemoryManager *memory_manager;
+
+alignas(4096) uint8_t kernel_main_stack[1024 * 1024 * 4]; // .data
 
 char mouse_cursor_buf[sizeof(MouseCursor)];
 MouseCursor *mouse_cursor;
@@ -60,9 +66,6 @@ int printk(const char *format, ...)
   console->PutString(s);
   return result;
 }
-
-char memory_manager_buf[sizeof(BitmapMemoryManager)];
-BitmapMemoryManager *memory_manager;
 
 /**
  * Enable XHCI (USB3.0 controller) if device is Intel 7 Series PCH
@@ -154,8 +157,6 @@ __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
   NotifyEndOfInterrupt();
 }
 
-alignas(16) uint8_t kernel_main_stack[1024 * 1024];
-
 /**
  * The EntryPoint is specified i the compile flag
  * .asm _KernelMain -> this
@@ -193,7 +194,7 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   SetLogLevel(kDebug);
   // SetLogLevel(kWarn);
   // volatile char *mTest = (char *)0x3FE00000; // @1G
-  // *mTest = "A"[0];
+  //*mTest = "A"[0];
 
   /* Setup GDT Segments, 1: RX; 2: RW */
   SetupSegments();
@@ -212,9 +213,7 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   // const bool mTestRes = *mTest == "A"[0] && *(mTest + 1) == "B"[0];
   // Log(kInfo, "Memory test (paging identity mapping) result: %s", mTestRes ? "success" : "fail");
 
-  // TODO
-  memory_manager = new (memory_manager_buf) BitmapMemoryManager;
-  //::memory_manager = new (memory_manager_buf) BitmapMemoryManager;
+  memory_manager = new (__memory_manager_buf) BitmapMemoryManager;
   const uintptr_t memoryMapBase = reinterpret_cast<uintptr_t>(memoryMap.buffer);
   uintptr_t available_end = 0;
 
@@ -225,12 +224,17 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
    */
   for (uintptr_t iter = memoryMapBase; iter < memoryMapBase + memoryMap.map_size; iter += memoryMap.descriptor_size)
   {
-    auto desc = reinterpret_cast<const MemoryDescriptor *>(iter);
+    const MemoryDescriptor *desc = reinterpret_cast<const MemoryDescriptor *>(iter);
     /**
      * - Use FrameID == a representation of linear physical address
      * - Frame is marked "allocated" if an physical address does not exist
      * - Assume the map is sorted
      */
+    /* Limit the loop in 128GB; Otherwise cause crash (probably because of some higher address) */
+    if (desc->physical_start > ((uintptr_t)128 * 1024 * 1024 * 1024))
+    {
+      break;
+    }
     /* Mark the non-exist physical address "allocated" */
     if (available_end < desc->physical_start)
     {
@@ -250,6 +254,8 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
     /* If memory type is an "usable" type: no need to mark anything; step over the range */
     if (IsAvailable(static_cast<MemoryType>(desc->type)))
     {
+      Log(kDebug, "type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
+          desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
       available_end = physical_end;
     }
     else
@@ -259,6 +265,7 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
     }
   }
   memory_manager->SetMemoryRange(FrameID{1}, FrameID{available_end / kBytesPerFrame});
+  debug_break();
 
   /**
    * Draw the cursor
