@@ -206,7 +206,7 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
 
   // debug_break();
   // PAGING
-  // SetupIdentityPageTable();
+  SetupIdentityPageTable();
   // debug_break();
   // *(mTest + 1) = "B"[0];
 
