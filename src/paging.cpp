@@ -37,8 +37,12 @@ alignas(kPageSize4K) std::array<std::array<std::array<uint64_t, PDE_SIZE>, PDPTE
 } // namespace
 
 /**
- * - Setup PML4E[0] so that logical == physical address
- * - Enable (CR3 == &PML4E) (For 4-level paging, ... (CR3) is the PML4 table)
+ * The function do 2 things:
+ * 1. Setup the Page Table so that logical == physical address
+ * 2. Enable paging; (by setting CR3 = &PML4E) (For 4-level paging, ... (CR3) is the PML4 table)
+ *
+ * A simple way to consider the overall page table structure:
+ * - "The entry in every level" == ("base address of the next level" | "0x000" (flag))
  */
 void SetupIdentityPageTable()
 {
@@ -48,12 +52,13 @@ void SetupIdentityPageTable()
     /* Lv3 PDPTE */
     for (uint64_t i_PDPTE = 0; i_PDPTE < PDPTE_SIZE; ++i_PDPTE)
     {
+      // The same
+      // PDPTE[i_PML4E][i_PDPTE] = reinterpret_cast<uint64_t>(&PDE[i_PML4E][i_PDPTE][0]) | 0x003;
       PDPTE[i_PML4E][i_PDPTE] = reinterpret_cast<uint64_t>(&PDE[i_PML4E][i_PDPTE]) | 0x003;
       for (int i_pd = 0; i_pd < PDE_SIZE; ++i_pd)
       {
         /**
-         * offset1 (pdp[i_pdp+1] - pdp[i_pdp]) == i_pdp * kPageSize1G
-         * offset2 (pd[i_pd+1] - pd[i_pd]) == i_pd * kPageSize2M
+         * Meaning of the flags (last 12 bits, or 1.5 bytes, or the 0x000):
          * (Table 4-18. Format of a Page-Directory Entry that Maps a 2-MByte Page, SDM 1-4, p3129)
          * - Flags 0x083
          *   Bit 63 ... 0: 0b...10000011
@@ -66,12 +71,12 @@ void SetupIdentityPageTable()
          *
          *   0x80'0000'0000 == kPageSize1G * 512
          */
-        //? page_directory[i_pdp][i_pd] = 0xFFFF'FF80'0000'0000 + i_pdp * kPageSize1G + i_pd * kPageSize2M | 0x083;
         PDE[i_PML4E][i_PDPTE][i_pd] = i_PML4E * kPageSize512G + i_PDPTE * kPageSize1G + i_pd * kPageSize2M | 0x083;
       }
     }
   }
 
   SetCR3(reinterpret_cast<uint64_t>(&PML4E[0]));
-  // SetCR3(reinterpret_cast<uint64_t>(&pml4_table));
+  // The same
+  // SetCR3(reinterpret_cast<uint64_t>(&PML4E));
 }
