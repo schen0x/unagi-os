@@ -218,9 +218,9 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
   uintptr_t available_end = 0;
 
   /**
-   * Loop through memoryMap
-   *   - find usable spaces
-   *   - pass info to a memory manager
+   * Initialize the Heap (memory_manager)
+   * - Loop through memoryMap, find usable spaces
+   * - Pass info to a memory manager
    */
   for (uintptr_t iter = memoryMapBase; iter < memoryMapBase + memoryMap.map_size; iter += memoryMap.descriptor_size)
   {
@@ -255,7 +255,7 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
     if (IsAvailable(static_cast<MemoryType>(desc->type)))
     {
       Log(kDebug, "type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n", desc->type, desc->physical_start,
-          desc->physical_start + desc->number_of_pages * 4096 - 1, desc->number_of_pages, desc->attribute);
+          desc->physical_start + desc->number_of_pages * kBytesPerFrame - 1, desc->number_of_pages, desc->attribute);
       available_end = physical_end;
     }
     else
@@ -265,6 +265,11 @@ KernelMainNewStack(const FrameBufferConfig &__frameBufferConfig, const MemoryMap
     }
   }
   memory_manager->SetMemoryRange(FrameID{1}, FrameID{available_end / kBytesPerFrame});
+  if (Error err = InitializeHeap(*memory_manager))
+  {
+    Log(kError, "failed to allocate pages: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+    exit(1);
+  }
   debug_break();
 
   /**

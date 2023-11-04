@@ -35,14 +35,15 @@ void _exit(void)
 // }
 
 /**
- * TODO mordern linux reImpl
- * The impl in the book, head start && end need to be initialized by us
- * typedef	char *	caddr_t;
- * @program_break heap_end; // the head of heap after the allocation
- * @program_break_end _end; // Some _end we assign in memory_manager.cpp
- * @return -1 when fail;
+ * typedef char *caddr_t;
+ * @program_break     The first address past the highest address of the allocated heap.
+ * @program_break_end The first address past the allocatable memory. Manually assigned in memory_manager.cpp
  */
 caddr_t program_break, program_break_end;
+/**
+ * TODO mordern linux reImpl
+ * @return -1 when fail;
+ */
 caddr_t sbrk(int incr)
 {
   if (program_break == 0 || program_break + incr >= program_break_end)
