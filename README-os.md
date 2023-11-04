@@ -646,6 +646,47 @@ The LGDT and LIDT instructions are used only in operating-system software; they 
 - TODO Q: when program is loaded, there should be a preallocated .data segment? is that not used?
 - TODO Q: does all program share a heap? or how is sbrk managed.
 
+- Goal: use the "new" keyword
+  - the "new" keyword uses malloc, defined by Newlib [malloc, Newlib doc](https://sourceware.org/newlib/libc.html#malloc)
+  - according to the document, the `malloc` function "operate by calling the function `_sbrk_r` or `sbrk`", which need to be implemented by us
+  - the interface is defined in the [Definitions for OS interface, Newlib doc](https://sourceware.org/newlib/libc.html#index-sbrk)
+
+```c
+caddr_t sbrk(int incr) {
+  /**
+   * - Defined by the GNU linker
+   * - According to [man end 3](https://man7.org/linux/man-pages/man3/end.3.html)
+   *
+   *   etext  This is the first address past the end of the text segment
+   *          (the program code).
+   *
+   *   edata  This is the first address past the end of the initialized
+   *          data segment.
+   *
+   *   end    This is the first address past the end of the
+   *          uninitialized data segment (also known as the BSS
+   *          segment).
+   *
+   * - Lower address -> .bss -> _end -> Heap -> ... -> Stack -> higher address
+   */
+  extern char _end;
+  static char *heap_end;
+  char *prev_heap_end;
+
+  if (heap_end == 0) {
+    heap_end = &_end;
+  }
+  prev_heap_end = heap_end;
+  if (heap_end + incr > stack_ptr) {
+    write (1, "Heap and stack collision\n", 25);
+    abort ();
+  }
+
+  heap_end += incr;
+  return (caddr_t) prev_heap_end;
+}
+```
+
 
 ## QEMU
 
