@@ -27,8 +27,6 @@
 
 char console_buf[sizeof(Console)]; // The buffer for placement new
 Console *console;
-const PixelColor kDesktopBGColor{45, 118, 237};
-const PixelColor kDesktopFGColor{255, 255, 255};
 
 void operator delete(void *obj) noexcept
 {

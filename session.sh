@@ -24,6 +24,7 @@ tmux new-window -t $session:$window -n 'g'
 
 window=4
 tmux new-window -t $session:$window -n 'n'
+tmux send-keys -t $session:$window "cd ..;"
 
 # Select the first window
 tmux select-window -t $session:0
